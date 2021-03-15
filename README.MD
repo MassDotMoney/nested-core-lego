@@ -1,11 +1,12 @@
 # NESTED
 
-https://nested.finance.
+https://nested.finance
 
 # SETUP
 - Install Node > 12
 - Install Yarn
 - `yarn install`
+- Copy `.env.example` to a new file `.env` and insert a dummy mnemonic
 
 # RUN
 Start a local blockchain
@@ -14,12 +15,10 @@ Start a local blockchain
 Compile
 `npx hardhat compile`
 
-Migrate
+Deploy to hardhat
 `npx hardhat run scripts/<deployment_file.js>`
 
 Run tests
 `npx hardhat test`
 
 ## License
-
-MIT
