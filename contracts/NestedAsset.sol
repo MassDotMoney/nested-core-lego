@@ -7,19 +7,23 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721Burnable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-contract NestedProduct is ERC721, ERC721Burnable, Ownable  {
+contract NestedAsset is ERC721, ERC721Burnable, Ownable  {
   event NestedCreated(address indexed adress, address indexed owner); // TODO: add number of underlying assets
 
+  using Counters for Counters.Counter;
   Counters.Counter private _tokenIds;
+
   address public factory;
 
-  // TODO: add address mapping to track locked tokens OR contract adress where they are locked
-
-  constructor() ERC721("NestedProduct", "NP") public {
-    factory = msg.sender;
+  constructor(address _factory) ERC721("NestedAsset", "NESTED") public {
+    factory = _factory;
   }
 
-  function mint() public returns (uint256) { // TODO verify if the factory should send the creator's adress
+  function destroy(uint256 _tokenId) public onlyOwner() {
+    _burn(_tokenId);
+  }
+
+  function mint() public onlyOwner() returns (uint256) { // TODO verify if the factory should send the creator's adress
     _tokenIds.increment();
 
     uint256 newNestedId = _tokenIds.current();
@@ -32,17 +36,4 @@ contract NestedProduct is ERC721, ERC721Burnable, Ownable  {
 
     return newNestedId;
   }
-
-  /* function destroy() public onlyOwner {
-    // _release();
-    _burn(address(this));
-  } */
-
-   /* function _lock() {
-    console.log("Minting a Nested NFT: ");
-  }
-
-  function _release() public onlyOwner() {
-
-  } */
 }
