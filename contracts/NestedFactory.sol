@@ -9,7 +9,7 @@ contract NestedFactory {
 
   constructor(address _feeToSetter) {
     feeToSetter = _feeToSetter;
-    console.log("Deploying the Nested Factory: ", address(this));
+    console.log("Deploying the Nested Factory Contract: ", address(this));
   }
 
   function setFeeTo(address _feeTo) external {

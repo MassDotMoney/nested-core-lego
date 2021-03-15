@@ -17,13 +17,14 @@ contract NestedAsset is ERC721, ERC721Burnable, Ownable  {
 
   constructor(address _factory) ERC721("NestedAsset", "NESTED") public {
     factory = _factory;
+    console.log("Deploying the Nested Asset Contract: ", address(this));
   }
 
   function destroy(uint256 _tokenId) public onlyOwner() {
     _burn(_tokenId);
   }
 
-  function mint() public onlyOwner() returns (uint256) { // TODO verify if the factory should send the creator's adress
+  function mint() public returns (uint256) {
     _tokenIds.increment();
 
     uint256 newNestedId = _tokenIds.current();
