@@ -1,3 +1,4 @@
+require('dotenv').config()
 require("@nomiclabs/hardhat-waffle");
 require("hardhat-deploy");
 require("hardhat-deploy-ethers");
@@ -35,11 +36,9 @@ module.exports = {
       tags: ["test", "local"],
     },
     ropsten: {
-      url: `https://eth-ropsten.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
-      accounts: [
-        process.env.ACCOUNT_PRIVATE_KEY,
-      ],
-    },
+       url: `https://eth-ropsten.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
+       accounts: [`0x${process.env.ACCOUNT_PRIVATE_KEY}`],
+     },
   },
   solidity: "0.7.3",
 };
