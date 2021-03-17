@@ -32,7 +32,7 @@ contract NestedAsset is ERC721, ERC721Burnable, Ownable  {
 
     console.log("Owner is: ", owner());
     console.log("TokenId is: ", newNestedId);
-    emit NestedCreated(tokenId, owner());
+    emit NestedCreated(newNestedId, owner());
 
     return newNestedId;
   }
