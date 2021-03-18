@@ -14,16 +14,15 @@ contract NestedFactory {
 
   constructor(address _feeToSetter) {
     feeToSetter = _feeToSetter;
-    console.log("Deploying the Nested Factory Contract: ", address(this));
   }
 
   function setFeeTo(address _feeTo) external {
-    require(msg.sender == feeToSetter, 'Nested: FORBIDDEN');
+    require(msg.sender == feeToSetter, 'NestedFactory: FORBIDDEN');
     feeTo = _feeTo;
   }
 
   function setFeeToSetter(address _feeToSetter) external {
-      require(msg.sender == feeToSetter, 'Nested: FORBIDDEN');
+      require(msg.sender == feeToSetter, 'NestedFactory: FORBIDDEN');
       feeToSetter = _feeToSetter;
     }
 }
