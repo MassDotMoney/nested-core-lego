@@ -15,7 +15,7 @@ contract NestedAsset is ERC721, ERC721Burnable, Ownable  {
 
   address public factory;
 
-  constructor(address _factory) ERC721("NestedAsset", "NESTED") public {
+  constructor(address _factory) ERC721("NestedAsset", "NESTED") {
     factory = _factory;
     console.log("Deploying the Nested Asset Contract: ", address(this));
   }
