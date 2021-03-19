@@ -1,8 +1,9 @@
-require('dotenv').config()
+require("dotenv").config();
+require("solidity-coverage");
 require("@nomiclabs/hardhat-waffle");
 require("hardhat-deploy");
 require("hardhat-deploy-ethers");
-//require("@nomiclabs/hardhat-solhint");
+require("@nomiclabs/hardhat-solhint");
 
 task("accounts", "Prints the list of accounts", async () => {
   const accounts = await ethers.getSigners();

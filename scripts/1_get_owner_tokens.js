@@ -1,5 +1,4 @@
 async function main() {
-
   // Get the list of accounts
   const accounts = await ethers.getSigners();
 
@@ -24,7 +23,7 @@ async function main() {
   // Wait that the contract is deployed
   await nestedAsset.deployed();
 
-  // Mint an NFT
+  // Mint NFTs
   await nestedAsset.mint();
   await nestedAsset.mint();
   await nestedAsset.mint();
