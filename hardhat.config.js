@@ -43,9 +43,13 @@ module.exports = {
       chainId: 1337
     },
     ropsten: {
-       url: `https://eth-ropsten.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
-       accounts: [`0x${process.env.ACCOUNT_PRIVATE_KEY}`],
-     },
+      url: `https://eth-ropsten.alchemyapi.io/v2/${process.env.ALCHEMY_ROPSTEN_API_KEY}`,
+      accounts: accounts,
+    },
+    mainnet: {
+      url: `https://eth-ropsten.alchemyapi.io/v2/${process.env.ALCHEMY_MAINNET_API_KEY}`,
+      accounts: accounts,
+    },
   },
   solidity: "0.7.3",
 };

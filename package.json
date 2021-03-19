@@ -1,6 +1,7 @@
 {
   "name": "Nested",
   "version": "1.0.0",
+  "license": "UNLICENSED",
   "scripts": {
     "build": "hardhat compile",
     "console": "hardhat console",
