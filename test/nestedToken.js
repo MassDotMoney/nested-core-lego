@@ -5,10 +5,9 @@ describe("NestedToken", () => {
     this.NestedToken = await ethers.getContractFactory("NestedToken");
 
     this.signers = await ethers.getSigners();
-    // All transaction will be sent from the factory unless explicity specified
-    this.factory = this.signers[0];
-    this.alice = this.signers[1];
-    this.bob = this.signers[2];
+    // All transaction will be sent from the Alice unless explicity specified
+    this.alice = this.signers[0];
+    this.bob = this.signers[1];
   });
 
   beforeEach(async () => {
@@ -18,14 +17,24 @@ describe("NestedToken", () => {
 
   describe("#mint", () => {
     it("should create ERC-20 and mint tokens to owner account", async () => {
-      expect(await this.token.balanceOf(this.factory.address)).to.equal("150000000000000000000000000");
+      expect(await this.token.balanceOf(this.alice.address)).to.equal(ethers.utils.parseEther("150000000").toString());
     });
 
-    it("should transfer token to alice account", async () => {
-        await this.token.transfer(this.alice.address, 500);
-        expect(await this.token.balanceOf(this.alice.address)).to.equal(500);
-      });
+    it("should transfer token to bob account", async () => {
+      await this.token.transfer(this.bob.address, ethers.utils.parseEther("500").toString());
+      expect(await this.token.balanceOf(this.bob.address)).to.equal(ethers.utils.parseEther("500").toString());
+    });
 
+    it("Should fail if sender doesn’t have enough tokens", async () => {
+      const initialOwnerBalance = await this.token.balanceOf(this.alice.address);
+
+      // Try to send 1000 tokens from bob to alice.
+      await expect(
+        this.token.connect(this.bob).transfer(this.alice.address, ethers.utils.parseEther("1000").toString())
+      ).to.be.revertedWith("revert ERC20: transfer amount exceeds balance");
+
+      // alice balance shouldn't have changed.
+      expect(await this.token.balanceOf(this.alice.address)).to.equal(initialOwnerBalance);
+    });
   });
-
 });
