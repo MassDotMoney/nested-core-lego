@@ -28,12 +28,11 @@ module.exports = {
   defaultNetwork: "hardhat",
   networks: {
     hardhat: {
-      // Seems to be a bug with this, even when false it complains about being unauthenticated.
-      // Sushiswap reported it to HardHat team and fix is incoming
-      // forking: {
-      //   enabled: process.env.FORKING === "true",
-      //   url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
-      // },
+       forking: {
+         enabled: process.env.FORKING === "true",
+         url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_MAINNET_API_KEY}`,
+         blockNumber: 12082999, // 2021 March 21st, 4:45pm
+       },
       live: false,
       saveDeployments: true,
       tags: ["test", "local"],
@@ -48,7 +47,7 @@ module.exports = {
       accounts: accounts,
     },
     mainnet: {
-      url: `https://eth-ropsten.alchemyapi.io/v2/${process.env.ALCHEMY_MAINNET_API_KEY}`,
+      // url: `https://eth-ropsten.alchemyapi.io/v2/${process.env.ALCHEMY_MAINNET_API_KEY}`,
       accounts: accounts,
     },
   },
