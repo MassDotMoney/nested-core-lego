@@ -38,6 +38,13 @@ async function main() {
   }
 
     console.log('Owner tokens: ', tokenIds)
+    for(i= 0; i < tokenIds.length; i++) {
+      const tokenid = tokenIds[i];
+      await nestedAsset.destroy(tokenid);
+      console.log("Tokenid "+ tokenid + " destroyed");
+
+//      tokenIds.push((await nestedAsset.tokenOfOwnerByIndex(accounts[0].address, i)).toNumber());
+    }
 }
 
 const getOwnerTokens = async (ownerAddress) => {
