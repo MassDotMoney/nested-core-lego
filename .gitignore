@@ -2,7 +2,10 @@ node_modules/
 yarn-error.log
 .env
 .DS_Store
+.vscode/
 
+coverage.json
+coverage/
 artifacts/
 cache/
 *.js

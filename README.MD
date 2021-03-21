@@ -1,5 +1,4 @@
 # NESTED
-
 https://nested.finance
 
 # SETUP
@@ -8,17 +7,27 @@ https://nested.finance
 - `yarn install`
 - Copy `.env.example` to a new file `.env` and insert a dummy mnemonic
 
-# RUN
+# COMMANDS
 Start a local blockchain
-`npx hardhat node`
+`yarn run`
+
+Start a hardhat console
+`yarn console`
 
 Compile
-`npx hardhat compile`
+`yarn compile`
 
 Deploy to hardhat
-`npx hardhat run scripts/<deployment_file.js>`
+`yarn deploy`
+
+Deploy to Ropsten testnet
+`yarn ropsten:deploy`
 
 Run tests
-`npx hardhat test`
+`yarn test`
+
+Run linter
+`yarn lint`
 
 ## License
+UNLICENSED
