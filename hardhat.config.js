@@ -47,7 +47,7 @@ module.exports = {
       accounts: accounts,
     },
     mainnet: {
-      // url: `https://eth-ropsten.alchemyapi.io/v2/${process.env.ALCHEMY_MAINNET_API_KEY}`,
+      url: `https://eth-ropsten.alchemyapi.io/v2/${process.env.ALCHEMY_MAINNET_API_KEY}`,
       accounts: accounts,
     },
   },
