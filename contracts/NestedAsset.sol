@@ -44,10 +44,7 @@ contract NestedAsset is ERC721, Ownable {
    @param tokenId The id of the NestedAsset
   */
     function burn(address _owner, uint256 _tokenId) public onlyFactory() {
-        require(
-            _owner == ownerOf(_tokenId),
-            "NestedAsset: only owner can burn"
-        );
+        require(_owner == ownerOf(_tokenId), "NestedAsset: only owner can burn");
         _burn(_tokenId);
     }
 }
