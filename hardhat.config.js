@@ -3,6 +3,7 @@ require("solidity-coverage");
 require("@nomiclabs/hardhat-waffle");
 require("hardhat-deploy");
 require("hardhat-deploy-ethers");
+require("hardhat-gas-reporter");
 require("@nomiclabs/hardhat-solhint");
 
 task("accounts", "Prints the list of accounts", async() => {
