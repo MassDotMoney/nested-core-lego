@@ -1,4 +1,4 @@
-require("dotenv").config();
+require("dotenv/config")
 require("solidity-coverage");
 require("@nomiclabs/hardhat-waffle");
 require("hardhat-deploy");
