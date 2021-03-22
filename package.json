@@ -1,42 +1,47 @@
 {
-  "name": "Nested",
-  "version": "1.0.0",
-  "license": "UNLICENSED",
-  "scripts": {
-    "build": "hardhat compile",
-    "console": "hardhat console",
-    "run": "npx hardhat node",
-    "deploy": "hardhat deploy",
-    "testnet:deploy": "yarn ropsten:deploy",
-    "mainnet:deploy": "hardhat --network mainnet deploy",
-    "mainnet:verify": "hardhat --network mainnet etherscan-verify --solc-input",
-    "mainnet:export": "hardhat --network mainnet export --export exports/mainnet.json",
-    "ropsten:deploy": "hardhat --network ropsten deploy",
-    "ropsten:verify": "hardhat --network ropsten etherscan-verify --solc-input",
-    "ropsten:export": "hardhat --network ropsten export --export exports/ropsten.json",
-    "export": "hardhat export --export-all exports/deployments.json",
-    "test": "hardhat coverage",
-    "prettier": "prettier --write test/**/*.js && prettier --write contracts/**/*.sol",
-    "lint": "yarn prettier && solhint -c .solhint.json contracts/**/*.sol"
-  },
-  "devDependencies": {
-    "@nomiclabs/hardhat-ethers": "^2.0.2",
-    "@nomiclabs/hardhat-solhint": "^2.0.0",
-    "@nomiclabs/hardhat-waffle": "^2.0.1",
-    "chai": "^4.3.4",
-    "dotenv": "^8.2.0",
-    "ethereum-waffle": "^3.3.0",
-    "ethers": "^5.0.32",
-    "hardhat": "^2.1.1",
-    "hardhat-deploy": "^0.7.0-beta.48",
-    "hardhat-deploy-ethers": "^0.3.0-beta.7",
-    "prettier": "^2.2.1",
-    "prettier-plugin-solidity": "^1.0.0-beta.6",
-    "solhint": "^3.3.4",
-    "solhint-plugin-prettier": "^0.0.5",
-    "solidity-coverage": "^0.7.16"
-  },
-  "dependencies": {
-    "@openzeppelin/contracts": "^3.4.1"
-  }
+    "name": "nested-finance",
+    "version": "1.0.0",
+    "license": "UNLICENSED",
+    "scripts": {
+        "build": "hardhat compile",
+        "console": "hardhat console",
+        "run": "npx hardhat node",
+        "deploy": "hardhat deploy",
+        "testnet:deploy": "yarn ropsten:deploy",
+        "mainnet:deploy": "hardhat --network mainnet deploy",
+        "mainnet:verify": "hardhat --network mainnet etherscan-verify --solc-input",
+        "mainnet:export": "hardhat --network mainnet export --export exports/mainnet.json",
+        "ropsten:deploy": "hardhat --network ropsten deploy",
+        "ropsten:verify": "hardhat --network ropsten etherscan-verify --solc-input",
+        "ropsten:export": "hardhat --network ropsten export --export exports/ropsten.json",
+        "export": "hardhat export --export-all exports/deployments.json",
+        "test": "cross-env FORKING=false hardhat coverage",
+        "test:fork": " hardhat coverage",
+        "test:gas": "cross-env FORKING=false REPORT_GAS=true hardhat test",
+        "test:fork:gas": "REPORT_GAS=true hardhat test",
+        "prettier": "prettier --write test/**/*.js && prettier --write contracts/**/*.sol",
+        "lint": "yarn prettier && solhint -c .solhint.json contracts/**/*.sol"
+    },
+    "devDependencies": {
+        "@nomiclabs/hardhat-ethers": "^2.0.2",
+        "@nomiclabs/hardhat-solhint": "^2.0.0",
+        "@nomiclabs/hardhat-waffle": "^2.0.1",
+        "chai": "^4.3.4",
+        "cross-env": "^7.0.3",
+        "dotenv": "^8.2.0",
+        "ethereum-waffle": "^3.3.0",
+        "ethers": "^5.0.32",
+        "hardhat": "^2.1.1",
+        "hardhat-deploy": "^0.7.0-beta.48",
+        "hardhat-deploy-ethers": "^0.3.0-beta.7",
+        "hardhat-gas-reporter": "^1.0.4",
+        "prettier": "^2.2.1",
+        "prettier-plugin-solidity": "^1.0.0-beta.6",
+        "solhint": "^3.3.4",
+        "solhint-plugin-prettier": "^0.0.5",
+        "solidity-coverage": "^0.7.16"
+    },
+    "dependencies": {
+        "@openzeppelin/contracts": "^3.4.1"
+    }
 }

@@ -4,7 +4,6 @@ pragma solidity ^0.7.0;
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721Burnable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
 contract NestedAsset is ERC721, Ownable {
@@ -13,7 +12,7 @@ contract NestedAsset is ERC721, Ownable {
 
     address public factory;
 
-    constructor(address _factory) public ERC721("NestedAsset", "NESTED") {
+    constructor(address _factory) ERC721("NestedAsset", "NESTED") {
         factory = _factory;
     }
 
@@ -35,7 +34,6 @@ contract NestedAsset is ERC721, Ownable {
 
         uint256 newNestedId = _tokenIds.current();
         _safeMint(_owner, newNestedId);
-        require(_exists(newNestedId), "NestedAsset: Mint failed");
 
         return newNestedId;
     }
@@ -46,11 +44,7 @@ contract NestedAsset is ERC721, Ownable {
    @param tokenId The id of the NestedAsset
   */
     function burn(address _owner, uint256 _tokenId) public onlyFactory() {
-        require(
-            _owner == ownerOf(_tokenId),
-            "NestedAsset: only owner can burn"
-        );
+        require(_owner == ownerOf(_tokenId), "NestedAsset: only owner can burn");
         _burn(_tokenId);
-        require(!_exists(_tokenId), "NestedAsset: Burn failed");
     }
 }

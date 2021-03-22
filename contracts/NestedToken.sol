@@ -9,6 +9,6 @@ contract NestedToken is ERC20, Ownable {
     uint256 public constant initialSupply = 150000000;
 
     constructor() ERC20("Nested Token", "NEST") {
-        _mint(msg.sender, initialSupply * 10 ** decimals());
+        _mint(msg.sender, initialSupply * 10**decimals());
     }
 }
