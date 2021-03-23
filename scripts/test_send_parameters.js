@@ -12,9 +12,9 @@ async function main() {
     await nestedFactory.deployed();
 
     const tokens = [
-        '0xC70296d26Fc964D2dA32AD9dd24a5B7f74035D63',
-        '0xC70296d26Fc964D2dA32AD9dd24a5B7f74035D63',
-        '0xC70296d26Fc964D2dA32AD9dd24a5B7f74035D63'
+        '0x9e19c82033881119be1b0aac434cf54acd525f97',
+        '0xaa5fe8f9178125df33c28dd0ff39393422f5aa3e',
+        '0xc098b2a3aa256d2140208c3de6543aaef5cd3a94'
     ]
     const amounts = [10, 0.0001, 0.1].map((e) => ethers.BigNumber.from(ethers.utils.parseUnits(e.toString(), 18)))
     const owned = [true, true, false]

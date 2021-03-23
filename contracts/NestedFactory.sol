@@ -19,10 +19,11 @@ contract NestedFactory {
         // no need to store user's address here if we push those objects to a mapping address -> struct
         address token;
         uint256 amount;
+        address reserve;
         // uint256 lockedUntil; // For v1.1 hodl feature
     }
 
-    mapping(address => uint256[]) public usersTokens;
+    mapping(address => uint256[]) public usersTokenIds;
     mapping(uint256 => Holding[]) public usersHoldings;
 
     constructor(address _feeToSetter) {
@@ -67,21 +68,35 @@ contract NestedFactory {
         require(length > 0, "NestedFactory: TOKENS_ARG_ERROR");
         require(length == amounts.length, "NestedFactory: AMOUNTS_ARG_ERROR");
         require(length == owned.length, "NestedFactory: OWNER_ARG_ERROR");
-            
-            uint tokenId = 1; // tokenId will be the result of the minting later on
-            usersTokens[msg.sender].push(tokenId);
+
+        // mint with nestedAsset
+        uint tokenId = NestedAsset('0xcontract_address').mint(msg.sender);
+
+        usersTokenIds[msg.sender].push(tokenId);
+
+        address reserve = 0x9e19c82033881119be1b0aac434cf54acd525f97;
 
         for (uint256 i = 0; i < length; i++) {
             // if owned[i] is true we transfer from user, otherwise we'll buy
-            console.log(owned[i] ? "Collecting " : "Buying ", amounts[i], " of ", tokens[i]);
+            if(owned[i]) {
+                // transfer 0.99 * amount to the Reserve
+                // collect 0.01 * amount, send to feeTo
+                console.log();
+            } else {
+                // transfer 0.01 of assets sent to feeTo
+                // buy for the reserve
+                console.log();
+            }
 
         usersHoldings[tokenId].push(
             Holding({
                 token: tokens[i],
-                amount: amounts[i]
+                amount: amounts[i],
+                reserve: reserve
             })
         );
         }
+
         // TODO add relevant requires.
     }
 }
