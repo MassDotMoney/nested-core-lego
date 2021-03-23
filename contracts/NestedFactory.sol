@@ -3,12 +3,16 @@ pragma solidity ^0.7.0;
 
 import "hardhat/console.sol";
 import "./NestedAsset.sol";
+import "./NestedReserve.sol";
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract NestedFactory {
     event NestedCreated(uint256 indexed tokenId, address indexed owner);
 
     address public feeTo;
     address public feeToSetter;
+    address public reserve;
 
     /*
     Represents custody from Nested over an asset
@@ -28,13 +32,28 @@ contract NestedFactory {
 
     constructor(address _feeToSetter) {
         feeToSetter = _feeToSetter;
+        feeTo = _feeToSetter;
+
+        // TODO: do this outside of cousntructor 
+        NestedReserve reserveContract = new NestedReserve();
+        reserve = address(reserveContract);
+    }
+
+    modifier reserveExists() {
+        require(reserve != address(0));
+        _;
+    }
+
+    modifier addressExists(address _address) {
+        require(_address != address(0));
+        _;
     }
 
     /*
    Sets the address receiving the fees
    @param feeTo The address of the receiver
    */
-    function setFeeTo(address _feeTo) external {
+    function setFeeTo(address _feeTo) external addressExists(_feeTo) {
         require(msg.sender == feeToSetter, "NestedFactory: FORBIDDEN");
         feeTo = _feeTo;
     }
@@ -43,9 +62,13 @@ contract NestedFactory {
     Sets the address that can redirect the fees to a new receiver
     @param _feeToSetter The address that decides where the fees go
     */
-    function setFeeToSetter(address _feeToSetter) external {
+    function setFeeToSetter(address _feeToSetter) external addressExists(_feeToSetter) {
         require(msg.sender == feeToSetter, "NestedFactory: FORBIDDEN");
         feeToSetter = _feeToSetter;
+    }
+
+    function setReserve(address _reserve) external addressExists(_reserve) {
+        reserve = _reserve;
     }
 
     /*
@@ -59,7 +82,7 @@ contract NestedFactory {
         address[] calldata tokens,
         uint256[] calldata amounts,
         bool[] calldata owned
-    ) external {
+    ) external reserveExists() {
         uint256 length = tokens.length;
         // TODO
         // we'd better check quickly that the user is sending enough coins to purchase assets.
@@ -70,18 +93,20 @@ contract NestedFactory {
         require(length == owned.length, "NestedFactory: OWNER_ARG_ERROR");
 
         // mint with nestedAsset
-        uint tokenId = NestedAsset('0xcontract_address').mint(msg.sender);
+        uint tokenId = 1; //NestedAsset('0xcontract_address').mint(msg.sender);
 
         usersTokenIds[msg.sender].push(tokenId);
-
-        address reserve = 0x9e19c82033881119be1b0aac434cf54acd525f97;
 
         for (uint256 i = 0; i < length; i++) {
             // if owned[i] is true we transfer from user, otherwise we'll buy
             if(owned[i]) {
                 // transfer 0.99 * amount to the Reserve
                 // collect 0.01 * amount, send to feeTo
-                console.log();
+                uint256 fees = amounts[i] * 1 / 10000;
+                uint256 sendingAmount = amounts[i] - fees;
+                require(ERC20(tokens[i]).transferFrom(msg.sender, reserve, sendingAmount) == true);
+                require(ERC20(tokens[i]).transferFrom(msg.sender, feeTo, fees) == true);
+                // TODO check that it revert when failed transfer
             } else {
                 // transfer 0.01 of assets sent to feeTo
                 // buy for the reserve
