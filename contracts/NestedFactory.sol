@@ -107,8 +107,8 @@ contract NestedFactory {
                 );
             } else {
                 // supply 1 * amount in ETH/usdt
-                    // transfer 0.01 of assets sent to feeTo
-                    // buy for the reserve
+                // transfer 0.01 of assets sent to feeTo
+                // buy for the reserve
                 console.log();
             }
             usersHoldings[tokenId].push(Holding({ token: tokens[i], amount: amounts[i], reserve: reserve }));

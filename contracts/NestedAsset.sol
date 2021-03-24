@@ -53,7 +53,7 @@ contract NestedAsset is ERC721, Ownable {
     @param factory the address of the new factory
     */
     function setFactory(address _factory) external {
-        require(factory != address(0), 'NestedAsset: invalid address');
+        require(factory != address(0), "NestedAsset: invalid address");
         factory = _factory;
     }
 }
