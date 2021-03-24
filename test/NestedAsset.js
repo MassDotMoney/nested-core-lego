@@ -12,7 +12,7 @@ describe("NestedAsset", () => {
     })
 
     beforeEach(async () => {
-        this.asset = await this.NestedAsset.deploy(this.factory.address)
+        this.asset = await this.NestedAsset.deploy()
         await this.asset.deployed()
     })
 

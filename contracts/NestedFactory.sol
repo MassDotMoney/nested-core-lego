@@ -4,7 +4,6 @@ pragma solidity ^0.7.0;
 import "hardhat/console.sol";
 import "./NestedAsset.sol";
 import "./NestedReserve.sol";
-
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract NestedFactory {
@@ -14,13 +13,14 @@ contract NestedFactory {
     address public feeToSetter;
     address public reserve;
 
+    NestedAsset public immutable nestedAsset;
+
     /*
     Represents custody from Nested over an asset
 
     Feel free to suggest a better name
     */
     struct Holding {
-        // no need to store user's address here if we push those objects to a mapping address -> struct
         address token;
         uint256 amount;
         address reserve;
@@ -34,18 +34,14 @@ contract NestedFactory {
         feeToSetter = _feeToSetter;
         feeTo = _feeToSetter;
 
-        // TODO: do this outside of cousntructor 
+        nestedAsset = new NestedAsset();
+        // TODO: do this outside of constructor. Think about reserve architecture
         NestedReserve reserveContract = new NestedReserve();
         reserve = address(reserveContract);
     }
 
-    modifier reserveExists() {
-        require(reserve != address(0));
-        _;
-    }
-
     modifier addressExists(address _address) {
-        require(_address != address(0));
+        require(_address != address(0), "NestedFactory: invalid address");
         _;
     }
 
@@ -67,13 +63,9 @@ contract NestedFactory {
         feeToSetter = _feeToSetter;
     }
 
-    function setReserve(address _reserve) external addressExists(_reserve) {
-        reserve = _reserve;
-    }
-
     /*
-    Purchase and collect assets for the user.
-    Take custody of users assets against fees and issue an NFT in return.
+    Purchase and collect tokens for the user.
+    Take custody of user's tokens against fees and issue an NFT in return.
     @param tokens [<address>] the list of tokens to purchase or collect
     @param amounts [<uint256>] the respective amount of token
     @param owner [<bool>] whether the user supplies the tokens
@@ -82,7 +74,7 @@ contract NestedFactory {
         address[] calldata tokens,
         uint256[] calldata amounts,
         bool[] calldata owned
-    ) external reserveExists() {
+    ) external {
         uint256 length = tokens.length;
         // TODO
         // we'd better check quickly that the user is sending enough coins to purchase assets.
@@ -92,36 +84,34 @@ contract NestedFactory {
         require(length == amounts.length, "NestedFactory: AMOUNTS_ARG_ERROR");
         require(length == owned.length, "NestedFactory: OWNER_ARG_ERROR");
 
-        // mint with nestedAsset
-        uint tokenId = 1; //NestedAsset('0xcontract_address').mint(msg.sender);
+        uint256 tokenId = nestedAsset.mint(msg.sender);
 
         usersTokenIds[msg.sender].push(tokenId);
 
         for (uint256 i = 0; i < length; i++) {
             // if owned[i] is true we transfer from user, otherwise we'll buy
-            if(owned[i]) {
-                // transfer 0.99 * amount to the Reserve
-                // collect 0.01 * amount, send to feeTo
-                uint256 fees = amounts[i] * 1 / 100;
+            if (owned[i]) {
+                // transfer 1 * amount to the Reserve
+                // user transfer 0.01 * amount in ETH/Usdt
+
+                uint256 fees = (amounts[i] * 1) / 100;
                 uint256 sendingAmount = amounts[i] - fees;
-                require(ERC20(tokens[i]).transferFrom(msg.sender, reserve, sendingAmount) == true);
-                require(ERC20(tokens[i]).transferFrom(msg.sender, feeTo, fees) == true);
-                // TODO check that it revert when failed transfer
+                // TODO tets if can get rid of the requires, do reverts bubble up and revert the whole tx
+                require(
+                    ERC20(tokens[i]).transferFrom(msg.sender, reserve, sendingAmount) == true,
+                    "NestedFactory: Transfer revert"
+                );
+                require(
+                    ERC20(tokens[i]).transferFrom(msg.sender, feeTo, fees) == true,
+                    "NestedFactory: Transfer revert"
+                );
             } else {
-                // transfer 0.01 of assets sent to feeTo
-                // buy for the reserve
+                // supply 1 * amount in ETH/usdt
+                    // transfer 0.01 of assets sent to feeTo
+                    // buy for the reserve
                 console.log();
             }
-
-        usersHoldings[tokenId].push(
-            Holding({
-                token: tokens[i],
-                amount: amounts[i],
-                reserve: reserve
-            })
-        );
+            usersHoldings[tokenId].push(Holding({ token: tokens[i], amount: amounts[i], reserve: reserve }));
         }
-
-        // TODO add relevant requires.
     }
 }
