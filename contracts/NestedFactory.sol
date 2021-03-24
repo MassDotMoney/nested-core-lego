@@ -102,7 +102,7 @@ contract NestedFactory {
             if(owned[i]) {
                 // transfer 0.99 * amount to the Reserve
                 // collect 0.01 * amount, send to feeTo
-                uint256 fees = amounts[i] * 1 / 10000;
+                uint256 fees = amounts[i] * 1 / 100;
                 uint256 sendingAmount = amounts[i] - fees;
                 require(ERC20(tokens[i]).transferFrom(msg.sender, reserve, sendingAmount) == true);
                 require(ERC20(tokens[i]).transferFrom(msg.sender, feeTo, fees) == true);
