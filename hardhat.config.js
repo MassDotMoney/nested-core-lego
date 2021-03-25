@@ -1,4 +1,4 @@
-require("dotenv").config();
+require("dotenv/config")
 require("solidity-coverage");
 require("@nomiclabs/hardhat-waffle");
 require("hardhat-deploy");
@@ -31,8 +31,8 @@ module.exports = {
         hardhat: {
             forking: {
                 enabled: process.env.FORKING === "true",
-                url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
-                blockNumber: 12082999,
+                url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_MAINNET_API_KEY}`,
+                
             },
             live: false,
             saveDeployments: true,
