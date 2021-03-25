@@ -21,7 +21,9 @@ describe("NestedToken", () => {
                 ethers.utils.parseEther("150000000").toString(),
             )
         })
+    })
 
+    describe("#transfer", () => {
         it("should transfer token to bob account", async () => {
             await this.token.transfer(this.bob.address, ethers.utils.parseEther("500").toString())
             expect(await this.token.balanceOf(this.bob.address)).to.equal(ethers.utils.parseEther("500").toString())

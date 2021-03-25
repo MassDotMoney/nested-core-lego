@@ -63,6 +63,11 @@ contract NestedFactory {
         feeToSetter = _feeToSetter;
     }
 
+    // return the list of erc721 tokens for and address
+    function tokensOf(address account) public view virtual returns (uint256[] memory) {
+        return usersTokenIds[account];
+    }
+
     /*
     Purchase and collect tokens for the user.
     Take custody of user's tokens against fees and issue an NFT in return.
@@ -82,7 +87,7 @@ contract NestedFactory {
         // An alternative is to get quotes from 0x in the frontend and pass a value normalized in ETH
         require(length > 0, "NestedFactory: TOKENS_ARG_ERROR");
         require(length == amounts.length, "NestedFactory: AMOUNTS_ARG_ERROR");
-        require(length == owned.length, "NestedFactory: OWNER_ARG_ERROR");
+        require(length == owned.length, "NestedFactory: OWNED_ARG_ERROR");
 
         uint256 tokenId = nestedAsset.mint(msg.sender);
 
@@ -105,12 +110,11 @@ contract NestedFactory {
                     ERC20(tokens[i]).transferFrom(msg.sender, feeTo, fees) == true,
                     "NestedFactory: Transfer revert"
                 );
-            } else {
+            } //else {
                 // supply 1 * amount in ETH/usdt
                 // transfer 0.01 of assets sent to feeTo
                 // buy for the reserve
-                console.log();
-            }
+            //}
             usersHoldings[tokenId].push(Holding({ token: tokens[i], amount: amounts[i], reserve: reserve }));
         }
     }

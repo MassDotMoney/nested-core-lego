@@ -47,7 +47,7 @@ describe("NestedFactory", () => {
         beforeEach(async () => {
             this.nestedToken1 = await this.NestedToken.deploy()
             await this.nestedToken1.deployed()
-
+    
             this.nestedToken2 = await this.NestedToken.deploy()
             await this.nestedToken2.deployed()
         })
@@ -76,19 +76,51 @@ describe("NestedFactory", () => {
             this.amounts = [10].map(e => ethers.BigNumber.from(ethers.utils.parseEther(e.toString())))
             this.owned = [true, true]
             await expect(this.factory.create(this.tokens, this.amounts, this.owned)).to.be.revertedWith(
-                "OWNER_ARG_ERROR",
+                "OWNED_ARG_ERROR",
             )
         })
 
-        it("should store the tokenId", async () => {
+        it("should transfer token from alice to reserve", async () => {
             this.tokens = [this.nestedToken1.address]
             this.amounts = [10].map(e => ethers.BigNumber.from(ethers.utils.parseEther(e.toString())))
             this.owned = [true]
 
+            await this.nestedToken1.approve(this.factory.address, ethers.BigNumber.from(ethers.utils.parseEther("10")))
+            await this.factory.create(this.tokens, this.amounts, this.owned)
+            expect(await this.nestedToken1.balanceOf(this.alice.address)).to.equal(ethers.utils.parseEther("149999990").toString())
+            expect(await this.nestedToken1.balanceOf(this.factory.reserve())).to.equal(ethers.utils.parseEther("9.9").toString())
+            expect(await this.nestedToken1.balanceOf(this.feeToSetter.address)).to.equal(ethers.utils.parseEther("0.1").toString())
+            expect(await this.factory.tokensOf(this.alice.address)).to.length(1)
+        })
+
+        it("should transfer multiple tokens from alice to reserve", async () => {
+            this.tokens = [this.nestedToken1.address, this.nestedToken2.address]
+            this.amounts = [10, 100].map(e => ethers.BigNumber.from(ethers.utils.parseEther(e.toString())))
+            this.owned = [true, true]
+
+            await this.nestedToken1.approve(this.factory.address, ethers.BigNumber.from(ethers.utils.parseEther("10")))
+            await this.nestedToken2.approve(this.factory.address, ethers.BigNumber.from(ethers.utils.parseEther("100")))
+            await this.factory.create(this.tokens, this.amounts, this.owned)
+            expect(await this.nestedToken1.balanceOf(this.alice.address)).to.equal(ethers.utils.parseEther("149999990").toString())
+            expect(await this.nestedToken1.balanceOf(this.factory.reserve())).to.equal(ethers.utils.parseEther("9.9").toString())
+            expect(await this.nestedToken1.balanceOf(this.feeToSetter.address)).to.equal(ethers.utils.parseEther("0.1").toString())
+
+            expect(await this.nestedToken2.balanceOf(this.alice.address)).to.equal(ethers.utils.parseEther("149999900").toString())
+            expect(await this.nestedToken2.balanceOf(this.factory.reserve())).to.equal(ethers.utils.parseEther("99").toString())
+            expect(await this.nestedToken2.balanceOf(this.feeToSetter.address)).to.equal(ethers.utils.parseEther("1").toString())
+            expect(await this.factory.tokensOf(this.alice.address)).to.length(1)
+        })
+
+        it("should revert everything if a token transfer fail", async () => {
+            this.tokens = [this.nestedToken1.address, this.nestedToken2.address]
+            this.amounts = [10, 100].map(e => ethers.BigNumber.from(ethers.utils.parseEther(e.toString())))
+            this.owned = [true, true]
+
+            await this.nestedToken1.approve(this.factory.address, ethers.BigNumber.from(ethers.utils.parseEther("10")))
             await expect(this.factory.create(this.tokens, this.amounts, this.owned)).to.be.revertedWith(
-                "ERC20: transfer amount exceeds allowance",
+                "transfer amount exceeds allowance",
             )
-            expect(await this.factory.usersTokenIds[this.alice.address]).to.equal(2)
+            expect(await this.nestedToken1.balanceOf(this.alice.address)).to.equal(ethers.utils.parseEther("150000000").toString())
         })
 
         // describe 2 tokens
