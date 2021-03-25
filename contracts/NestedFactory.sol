@@ -5,7 +5,7 @@ import "hardhat/console.sol";
 import "./NestedAsset.sol";
 import "./NestedReserve.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-/*interface IERC20 {
+interface IERC20 {
     function balanceOf(address owner) external view returns (uint256);
     function approve(address spender, uint256 amount) external returns (bool);
     function transfer(address to, uint256 amount) external returns (bool);
