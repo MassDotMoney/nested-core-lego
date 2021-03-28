@@ -1,9 +1,11 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.7.0;
+pragma experimental ABIEncoderV2;
 
 import "hardhat/console.sol";
 import "./NestedAsset.sol";
 import "./NestedReserve.sol";
+
 
 contract NestedFactory {
     event NestedCreated(uint256 indexed tokenId, address indexed owner);
@@ -70,87 +72,137 @@ contract NestedFactory {
     /*
     Purchase and collect tokens for the user.
     Take custody of user's tokens against fees and issue an NFT in return.
-    @param tokens [<address>] the list of tokens to purchase or collect
-    @param amounts [<uint256>] the respective amount of token
-    @param owner [<bool>] whether the user supplies the tokens
+    @param _sellToken [address] token used to make swaps
+    @param _sellAmount [uint] value of sell tokens to exchange
+    @param _tokensToBuy [<address>] the list of tokens to purchase
+    @param _swapCallData [<bytes>] the list of call data provided by 0x to fill quotes
+    @param _spender [address] the address that swaps tokens
+    @param _swapTarget [address] the address of the contract that will swap tokens (equal to _sender here)
+    @param _tokensToTransfer [<address>] the list of tokens to collect
+    @param _amountsToTransfer [<uint256>] the respective amount of token to collect
     */
     function create(
-        address[] calldata tokens,
-        uint256[] calldata amounts,
-        bool[] calldata owned
-    ) external {
-        uint256 length = tokens.length;
-        // TODO
-        // we'd better check quickly that the user is sending enough coins to purchase assets.
-        // NDX uses chainlink to compute short term average cost of tokens
-        // An alternative is to get quotes from 0x in the frontend and pass a value normalized in ETH
-        require(length > 0, "NestedFactory: TOKENS_ARG_ERROR");
-        require(length == amounts.length, "NestedFactory: AMOUNTS_ARG_ERROR");
-        require(length == owned.length, "NestedFactory: OWNED_ARG_ERROR");
+        address _sellToken,
+        uint256 _sellAmount,
+        address _spender,
+        address payable _swapTarget,
+        address[] calldata _tokensToBuy,
+        bytes[] calldata _swapCallData,
+        address[] calldata _tokensToTransfer,
+        uint256[] calldata _amountsToTransfer
+    ) external payable {
+        uint256 buyCount = _tokensToBuy.length;
+        require(buyCount == _swapCallData.length, "BUY_ARG_ERROR");
+
+        uint256 transferCount = _tokensToTransfer.length;
+        require(transferCount == _amountsToTransfer.length, "TRANSFER_ARG_ERROR");
+
+        require(transferCount + buyCount > 0, "INSUFFICIENT_ASSETS_FOR_MINTING");
+
+        uint256 initialSellTokenBalance = ERC20(_sellToken).balanceOf(address(this));
+        uint256 buyFees = (_sellAmount * 15) / 1000;
+        uint256 sendingAmount = _sellAmount - buyFees;
+
+        require(
+            ERC20(_sellToken).transferFrom(msg.sender, reserve, sendingAmount) == true,
+            "SELL_TOKEN_TRANSFER_ERROR"
+        );
+        require(ERC20(_sellToken).transferFrom(msg.sender, feeTo, buyFees) == true, "FEE_TRANSFER_ERROR");
 
         uint256 tokenId = nestedAsset.mint(msg.sender);
-
         usersTokenIds[msg.sender].push(tokenId);
 
-        for (uint256 i = 0; i < length; i++) {
-            // if owned[i] is true we transfer from user, otherwise we'll buy
-            if (owned[i]) {
-                // transfer 1 * amount to the Reserve
-                // user transfer 0.01 * amount in ETH/Usdt
+        for (uint256 i = 0; i < buyCount; i++) {
+            uint256 initialBalance = ERC20(_tokensToBuy[i]).balanceOf(address(this));
 
-                uint256 fees = (amounts[i] * 1) / 100;
-                uint256 sendingAmount = amounts[i] - fees;
-                // TODO tets if can get rid of the requires, do reverts bubble up and revert the whole tx
-                require(
-                    ERC20(tokens[i]).transferFrom(msg.sender, reserve, sendingAmount) == true,
-                    "NestedFactory: Transfer revert"
-                );
-                require(
-                    ERC20(tokens[i]).transferFrom(msg.sender, feeTo, fees) == true,
-                    "NestedFactory: Transfer revert"
-                );
-            } //else {
-                // supply 1 * amount in ETH/usdt
-                // transfer 0.01 of assets sent to feeTo
-                // buy for the reserve
-            //}
-            usersHoldings[tokenId].push(Holding({ token: tokens[i], amount: amounts[i], reserve: reserve }));
+            swapTokens(_sellToken, _tokensToBuy[i], _spender, _swapTarget, _swapCallData[i]);
+            uint256 amountBought = ERC20(_tokensToBuy[i]).balanceOf(address(this)) - initialBalance;
+
+            usersHoldings[tokenId].push(Holding({ token: _tokensToBuy[i], amount: amountBought, reserve: reserve }));
         }
+
+        for (uint256 i = 0; i < transferCount; i++) {
+            uint256 transferFees = (_amountsToTransfer[i] * 15) / 1000;
+            uint256 remainingAmount = _amountsToTransfer[i] - transferFees;
+
+            require(
+                ERC20(_tokensToTransfer[i]).transferFrom(msg.sender, reserve, remainingAmount) == true,
+                "USER_TOKENS_TRANSFER_ERROR"
+            );
+
+            require(
+                ERC20(_tokensToTransfer[i]).transferFrom(msg.sender, feeTo, transferFees) == true,
+                "FEE_TRANSFER_ERROR"
+            );
+
+            usersHoldings[tokenId].push(
+                Holding({ token: _tokensToTransfer[i], amount: _amountsToTransfer[i], reserve: reserve })
+            );
+        }
+        require(ERC20(_sellToken).balanceOf(address(this)) - initialSellTokenBalance < _sellAmount, "SLIPPAGE_ERROR");
     }
+
+    /*
+
+    TO THINK ABOUT:
+    
+    A) Call stack is too deep. 
+    We could egt rid of some parameters by splitting the execution in 2 transactions
+    That would result in a poorer UX
+
+
+    TO DO:
+
+    1) get estimate of required funds for the transaction to get through.
+     Revert early if user can't afford the operation
+     Hints: NDX uses chainlink to compute short term average cost of tokens
+        I think Uniswap Oracle would be cheaper here if we want to do this on chain. To verify.
+        If we wangt to do it offchain, pass w anormalized value of ETH, provided by the front by 0x
+
+    2) test if we can get rid of require wrappers for transfer, do reverts bubble up and revert the whole tx?
+
+    3) make adjustements to allow the user to pay with ETH passed in msg.value
+
+    4) modify swapTokens function, it should refund the amount of unspent ETH
+         instead of using the current balance value
+
+    5) Emit events. TBD which are necessary.
+
+    6) refund unspent tokens of _sellToken
+
+    7) IMPORTANT: Optimise gas
+
+    8) allow to specify amount of slippage in total amount of exchanged assets
+        add default to 1%
+
+    */
 
     function swapTokens(
         // The `sellTokenAddress` field from the API response.
-        address sellToken,
+        address _sellToken,
         // The `buyTokenAddress` field from the API response.
-        address buyToken,
+        address _buyToken,
         // The `allowanceTarget` field from the API response.
-        address spender,
+        address _spender,
         // The `to` field from the API response.
-        address payable swapTarget,
+        address payable _swapTarget,
         // The `data` field from the API response.
-        bytes calldata swapCallData
-    )
-        external
-        payable // Must attach ETH equal to the `value` field from the API response.
-    {
-      //require(msg.sender == _recipient, "NestedFactory: FORBIDDEN");
-      console.log("IN FILLQUOTE");
+        bytes calldata _swapCallData
+    ) internal {
         // Track our balance of the buyToken to determine how much we've bought.
-        uint256 boughtAmount = ERC20(buyToken).balanceOf(address(this));
+        // uint256 buyTokenInitialBalance = ERC20(_buyToken).balanceOf(address(this));
 
-        // Give `spender` an infinite allowance to spend this contract's `sellToken`.
         // Note that for some tokens (e.g., USDT, KNC), you must first reset any existing
         // allowance to 0 before being able to update it.
-        require(ERC20(sellToken).approve(spender, uint256(-1)));
-        // Call the encoded swap function call on the contract at `swapTarget`,
-        // passing along any ETH attached to this function call to cover protocol fees.
-        (bool success,) = swapTarget.call{value: msg.value}(swapCallData);
+        require(ERC20(_sellToken).approve(_spender, uint256(-1)), "ALLOWANCE_SETTER_ERROR");
+
+        (bool success, ) = _swapTarget.call{ value: msg.value }(_swapCallData);
         require(success, "SWAP_CALL_FAILED");
+
         // Refund any unspent protocol fees to the sender.
         msg.sender.transfer(address(this).balance);
 
-        // Use our current buyToken balance to determine how much we've bought.
-        boughtAmount = ERC20(buyToken).balanceOf(address(this)) - boughtAmount;
-        //emit BoughtTokens(sellToken, buyToken, boughtAmount);
+        // Here is how to compute amount bought for events if needed
+        // uint256 amountBought = ERC20(_buyToken).balanceOf(address(this)) - buyTokenInitialBalance;
     }
 }
