@@ -64,7 +64,7 @@ contract NestedFactory {
         feeToSetter = _feeToSetter;
     }
 
-    // return the list of erc721 tokens for and address
+    // return the list of erc721 tokens for an address
     function tokensOf(address account) public view virtual returns (uint256[] memory) {
         return usersTokenIds[account];
     }
@@ -76,37 +76,26 @@ contract NestedFactory {
     @param _sellAmount [uint] value of sell tokens to exchange
     @param _tokensToBuy [<address>] the list of tokens to purchase
     @param _swapCallData [<bytes>] the list of call data provided by 0x to fill quotes
-    @param _spender [address] the address that swaps tokens
-    @param _swapTarget [address] the address of the contract that will swap tokens (equal to _sender here)
-    @param _tokensToTransfer [<address>] the list of tokens to collect
-    @param _amountsToTransfer [<uint256>] the respective amount of token to collect
+    @param _swapTarget [address] the address of the contract that will swap tokens
     */
     function create(
         address _sellToken,
         uint256 _sellAmount,
-        address _spender,
         address payable _swapTarget,
         address[] calldata _tokensToBuy,
-        bytes[] calldata _swapCallData,
-        address[] calldata _tokensToTransfer,
-        uint256[] calldata _amountsToTransfer
+        bytes[] calldata _swapCallData
     ) external payable {
         uint256 buyCount = _tokensToBuy.length;
+        require(buyCount > 0, "BUY_ARG_MISSING");
         require(buyCount == _swapCallData.length, "BUY_ARG_ERROR");
-
-        uint256 transferCount = _tokensToTransfer.length;
-        require(transferCount == _amountsToTransfer.length, "TRANSFER_ARG_ERROR");
-
-        require(transferCount + buyCount > 0, "INSUFFICIENT_ASSETS_FOR_MINTING");
+        require(ERC20(_sellToken).allowance(msg.sender, address(this)) > _sellAmount, "USER_FUND_ALLOWANCE_ERROR");
+        require(ERC20(_sellToken).transferFrom(msg.sender, address(this), _sellAmount), "USER_FUND_TRANSFER_ERROR");
 
         uint256 initialSellTokenBalance = ERC20(_sellToken).balanceOf(address(this));
-        uint256 buyFees = (_sellAmount * 15) / 1000;
-        uint256 sendingAmount = _sellAmount - buyFees;
 
-        require(
-            ERC20(_sellToken).transferFrom(msg.sender, reserve, sendingAmount) == true,
-            "SELL_TOKEN_TRANSFER_ERROR"
-        );
+        uint256 buyFees = (_sellAmount * 15) / 1000;
+        uint256 availableAmount = _sellAmount - buyFees;
+
         require(ERC20(_sellToken).transferFrom(msg.sender, feeTo, buyFees) == true, "FEE_TRANSFER_ERROR");
 
         uint256 tokenId = nestedAsset.mint(msg.sender);
@@ -115,31 +104,18 @@ contract NestedFactory {
         for (uint256 i = 0; i < buyCount; i++) {
             uint256 initialBalance = ERC20(_tokensToBuy[i]).balanceOf(address(this));
 
-            swapTokens(_sellToken, _tokensToBuy[i], _spender, _swapTarget, _swapCallData[i]);
+            swapTokens(_sellToken, _tokensToBuy[i], _swapTarget, _swapCallData[i]);
             uint256 amountBought = ERC20(_tokensToBuy[i]).balanceOf(address(this)) - initialBalance;
 
             usersHoldings[tokenId].push(Holding({ token: _tokensToBuy[i], amount: amountBought, reserve: reserve }));
+            
+            require(
+                ERC20(_tokensToBuy[i]).transfer(reserve, amountBought) == true,
+                "TOKEN_TRANSFER_ERROR"
+            );
         }
 
-        for (uint256 i = 0; i < transferCount; i++) {
-            uint256 transferFees = (_amountsToTransfer[i] * 15) / 1000;
-            uint256 remainingAmount = _amountsToTransfer[i] - transferFees;
-
-            require(
-                ERC20(_tokensToTransfer[i]).transferFrom(msg.sender, reserve, remainingAmount) == true,
-                "USER_TOKENS_TRANSFER_ERROR"
-            );
-
-            require(
-                ERC20(_tokensToTransfer[i]).transferFrom(msg.sender, feeTo, transferFees) == true,
-                "FEE_TRANSFER_ERROR"
-            );
-
-            usersHoldings[tokenId].push(
-                Holding({ token: _tokensToTransfer[i], amount: _amountsToTransfer[i], reserve: reserve })
-            );
-        }
-        require(ERC20(_sellToken).balanceOf(address(this)) - initialSellTokenBalance < _sellAmount, "SLIPPAGE_ERROR");
+        require(ERC20(_sellToken).balanceOf(address(this)) - initialSellTokenBalance < availableAmount, "EXCHANGE_ERROR");
     }
 
     /*
@@ -147,7 +123,7 @@ contract NestedFactory {
     TO THINK ABOUT:
     
     A) Call stack is too deep. 
-    We could egt rid of some parameters by splitting the execution in 2 transactions
+    We could get rid of some parameters by splitting the execution in 2 transactions
     That would result in a poorer UX
 
 
@@ -177,16 +153,17 @@ contract NestedFactory {
 
     */
 
+    /*
+    Purchase a token
+    @param _sellToken [address] token used to make swaps
+    @param _buyToken [address] token to buy
+    @param _swapTarget [address] the address of the contract that will swap tokens
+    @param _swapCallData [bytes] call data provided by 0x to fill the quote
+    */
     function swapTokens(
-        // The `sellTokenAddress` field from the API response.
         address _sellToken,
-        // The `buyTokenAddress` field from the API response.
         address _buyToken,
-        // The `allowanceTarget` field from the API response.
-        address _spender,
-        // The `to` field from the API response.
         address payable _swapTarget,
-        // The `data` field from the API response.
         bytes calldata _swapCallData
     ) internal {
         // Track our balance of the buyToken to determine how much we've bought.
@@ -194,7 +171,7 @@ contract NestedFactory {
 
         // Note that for some tokens (e.g., USDT, KNC), you must first reset any existing
         // allowance to 0 before being able to update it.
-        require(ERC20(_sellToken).approve(_spender, uint256(-1)), "ALLOWANCE_SETTER_ERROR");
+        require(ERC20(_sellToken).approve(_swapTarget, uint256(-1)), "ALLOWANCE_SETTER_ERROR");
 
         (bool success, ) = _swapTarget.call{ value: msg.value }(_swapCallData);
         require(success, "SWAP_CALL_FAILED");
