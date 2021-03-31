@@ -12,6 +12,9 @@ async function main() {
 
     const tokenToSell = process.env.ERC20_CONTRACT_ADDRESS;
 
+    // wrap some ethers first
+    //await nestedFactory.depositETH("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",{value: ethers.utils.parseEther("10").toString()});
+
     const orders = [{
             sellToken: tokenToSell,
             buyToken: "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", // Uni

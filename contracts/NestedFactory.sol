@@ -6,6 +6,11 @@ import "hardhat/console.sol";
 import "./NestedAsset.sol";
 import "./NestedReserve.sol";
 
+// A partial WETH interfaec.
+interface WETH is IERC20 {
+    function deposit() external payable;
+    //function balanceOf() external return(bool);
+}
 
 contract NestedFactory {
     event NestedCreated(uint256 indexed tokenId, address indexed owner);
@@ -44,6 +49,13 @@ contract NestedFactory {
     modifier addressExists(address _address) {
         require(_address != address(0), "NestedFactory: invalid address");
         _;
+    }
+
+    function depositETH(address weth) external payable
+    {
+        //WETH(weth).balanceOf[msg.sender] += msg.value;
+        WETH(weth).deposit{value: msg.value}();
+        WETH(weth).transfer(msg.sender,msg.value);
     }
 
     /*

@@ -44,84 +44,83 @@ describe("NestedFactory", () => {
     })
 
     describe("#create", () => {
+        before(async () => {
+            const axios = require("axios").default
+            const qs = require("qs")
+            this.abi = require("./../mocks/ERC20.json")
+
+            this.tokenToSell = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"; // WETH
+
+            console.log('first wrap some ETH to WETH');
+            await this.factory.depositETH("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",{value: ethers.utils.parseEther("10").toString()})
+
+            const orders = [{
+                    sellToken: this.tokenToSell,
+                    buyToken: "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", // Uni
+                    sellAmount: ethers.utils.parseEther("1").toString(),
+                },
+                {
+                    sellToken: this.tokenToSell,
+                    buyToken: "0xdd974d5c2e2928dea5f71b9825b8b646686bd200", // KNC
+                    sellAmount: ethers.utils.parseEther("1").toString(),
+                },
+            ]
+        
+            this.responses = [];
+            const resp1 = await axios.get(`https://api.0x.org/swap/v1/quote?${qs.stringify(orders[0])}`);
+            const resp2 = await axios.get(`https://api.0x.org/swap/v1/quote?${qs.stringify(orders[1])}`);
+        
+            this.responses.push(resp1)
+            this.responses.push(resp2);
+        
+            this.maximumSellAmount = 0;
+            this.tokensToBuy = [];
+            this.swapCallData = [];
+        
+            this.maximumSellAmount = ethers.BigNumber.from(this.maximumSellAmount).add(ethers.BigNumber.from(this.responses[0].data.sellAmount));
+
+            this.tokensToBuy.push(this.responses[0].data.buyTokenAddress);
+            this.swapCallData.push(this.responses[0].data.data);
+        
+            this.maximumSellAmount = ethers.BigNumber.from(this.maximumSellAmount).add(ethers.BigNumber.from(this.responses[1].data.sellAmount));
+            this.tokensToBuy.push(this.responses[1].data.buyTokenAddress);
+            this.swapCallData.push(this.responses[1].data.data);
+        })
+
         beforeEach(async () => {
-            this.nestedToken1 = await this.NestedToken.deploy()
-            await this.nestedToken1.deployed()
-    
-            this.nestedToken2 = await this.NestedToken.deploy()
-            await this.nestedToken2.deployed()
         })
 
-        it("revert if token list is empty", async () => {
-            this.tokens = []
-            this.amounts = [10, 0.1].map(e => ethers.BigNumber.from(ethers.utils.parseEther(e.toString())))
-            this.owned = [true, true]
-
-            await expect(this.factory.create(this.tokens, this.amounts, this.owned)).to.be.revertedWith(
-                "TOKENS_ARG_ERROR",
+        it("revert if token to buy list is empty", async () => {
+            await expect(this.factory.create(this.tokenToSell, this.maximumSellAmount, this.responses[0].data.to, [], this.swapCallData)).to.be.revertedWith(
+                "BUY_ARG_MISSING",
             )
         })
 
-        it("revert if tokens size is different than amounts size", async () => {
-            this.tokens = [this.nestedToken1.address]
-            this.amounts = [10, 0.1].map(e => ethers.BigNumber.from(ethers.utils.parseEther(e.toString())))
-            this.owned = [true, true]
-            await expect(this.factory.create(this.tokens, this.amounts, this.owned)).to.be.revertedWith(
-                "AMOUNTS_ARG_ERROR",
+        it("revert if no swapCall data for all token to buy", async () => {
+            
+            
+            await expect(this.factory.create(this.tokenToSell, this.maximumSellAmount, this.responses[0].data.to, this.tokensToBuy, [])).to.be.revertedWith(
+                "BUY_ARG_ERROR",
             )
         })
 
-        it("revert if tokens size is different than owned size", async () => {
-            this.tokens = [this.nestedToken1.address]
-            this.amounts = [10].map(e => ethers.BigNumber.from(ethers.utils.parseEther(e.toString())))
-            this.owned = [true, true]
-            await expect(this.factory.create(this.tokens, this.amounts, this.owned)).to.be.revertedWith(
-                "OWNED_ARG_ERROR",
+        it("revert if allowance was not set for sellToken", async () => {
+            await expect(this.factory.create(this.tokenToSell, this.maximumSellAmount, this.responses[0].data.to, this.tokensToBuy, this.swapCallData)).to.be.revertedWith(
+                "USER_FUND_ALLOWANCE_ERROR",
             )
         })
 
-        it("should transfer token from alice to reserve", async () => {
-            this.tokens = [this.nestedToken1.address]
-            this.amounts = [10].map(e => ethers.BigNumber.from(ethers.utils.parseEther(e.toString())))
-            this.owned = [true]
+        it("should swap tokens", async () => {
+            const tokenToSellContract = new ethers.Contract(this.tokenToSell, this.abi, this.alice)
+            await tokenToSellContract.approve(this.factory.address, ethers.utils.parseEther("100"))
+            await this.factory.create(this.tokenToSell, this.maximumSellAmount, this.responses[0].data.to, this.tokensToBuy, this.swapCallData)
 
-            await this.nestedToken1.approve(this.factory.address, ethers.BigNumber.from(ethers.utils.parseEther("10")))
-            await this.factory.create(this.tokens, this.amounts, this.owned)
-            expect(await this.nestedToken1.balanceOf(this.alice.address)).to.equal(ethers.utils.parseEther("149999990").toString())
-            expect(await this.nestedToken1.balanceOf(this.factory.reserve())).to.equal(ethers.utils.parseEther("9.9").toString())
-            expect(await this.nestedToken1.balanceOf(this.feeToSetter.address)).to.equal(ethers.utils.parseEther("0.1").toString())
-            expect(await this.factory.tokensOf(this.alice.address)).to.length(1)
+            // WETH balance of user should be 10 - 1 - 1 - 0.03 (for fees)
+            expect(await tokenToSellContract.balanceOf(this.alice.address)).to.equal(ethers.utils.parseEther("7.97").toString())
+            expect(await tokenToSellContract.balanceOf(this.factory.feeTo())).to.equal(ethers.utils.parseEther("0.03").toString())
         })
 
-        it("should transfer multiple tokens from alice to reserve", async () => {
-            this.tokens = [this.nestedToken1.address, this.nestedToken2.address]
-            this.amounts = [10, 100].map(e => ethers.BigNumber.from(ethers.utils.parseEther(e.toString())))
-            this.owned = [true, true]
-
-            await this.nestedToken1.approve(this.factory.address, ethers.BigNumber.from(ethers.utils.parseEther("10")))
-            await this.nestedToken2.approve(this.factory.address, ethers.BigNumber.from(ethers.utils.parseEther("100")))
-            await this.factory.create(this.tokens, this.amounts, this.owned)
-            expect(await this.nestedToken1.balanceOf(this.alice.address)).to.equal(ethers.utils.parseEther("149999990").toString())
-            expect(await this.nestedToken1.balanceOf(this.factory.reserve())).to.equal(ethers.utils.parseEther("9.9").toString())
-            expect(await this.nestedToken1.balanceOf(this.feeToSetter.address)).to.equal(ethers.utils.parseEther("0.1").toString())
-
-            expect(await this.nestedToken2.balanceOf(this.alice.address)).to.equal(ethers.utils.parseEther("149999900").toString())
-            expect(await this.nestedToken2.balanceOf(this.factory.reserve())).to.equal(ethers.utils.parseEther("99").toString())
-            expect(await this.nestedToken2.balanceOf(this.feeToSetter.address)).to.equal(ethers.utils.parseEther("1").toString())
-            expect(await this.factory.tokensOf(this.alice.address)).to.length(1)
-        })
-
-        it("should revert everything if a token transfer fail", async () => {
-            this.tokens = [this.nestedToken1.address, this.nestedToken2.address]
-            this.amounts = [10, 100].map(e => ethers.BigNumber.from(ethers.utils.parseEther(e.toString())))
-            this.owned = [true, true]
-
-            await this.nestedToken1.approve(this.factory.address, ethers.BigNumber.from(ethers.utils.parseEther("10")))
-            await expect(this.factory.create(this.tokens, this.amounts, this.owned)).to.be.revertedWith(
-                "transfer amount exceeds allowance",
-            )
-            expect(await this.nestedToken1.balanceOf(this.alice.address)).to.equal(ethers.utils.parseEther("150000000").toString())
-        })
+        
 
         // describe 2 tokens
         // owned = true
