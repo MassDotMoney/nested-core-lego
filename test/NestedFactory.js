@@ -68,6 +68,7 @@ describe("NestedFactory", () => {
             this.responses = [];
             const resp1 = await axios.get(`https://api.0x.org/swap/v1/quote?${qs.stringify(this.orders[0])}`);
             const resp2 = await axios.get(`https://api.0x.org/swap/v1/quote?${qs.stringify(this.orders[1])}`);
+
         
             this.responses.push(resp1)
             this.responses.push(resp2);
@@ -117,9 +118,18 @@ describe("NestedFactory", () => {
             // WETH balance of user should be 10 - 1 - 1 - 0.03 (for fees)
             expect(await tokenToSellContract.balanceOf(this.alice.address)).to.equal(ethers.utils.parseEther("7.97").toString())
             expect(await tokenToSellContract.balanceOf(this.factory.feeTo())).to.equal(ethers.utils.parseEther("0.03").toString())
+
+            let buyUniAmount = ethers.BigNumber.from(this.responses[0].data.buyAmount);
+            let buyUniPercent = buyUniAmount.mul(ethers.utils.parseEther("1").toString()).div(ethers.utils.parseEther("100").toString())
+            let buyLinkAmount = ethers.BigNumber.from(this.responses[1].data.buyAmount);
+            let buyLinkPercent = buyLinkAmount.mul(ethers.utils.parseEther("1").toString()).div(ethers.utils.parseEther("100").toString())
             // reserve balance for token bought should be greater than 0
-            expect(await uni.balanceOf(this.factory.reserve())).to.gt(ethers.utils.parseEther("0").toString())
-            expect(await link.balanceOf(this.factory.reserve())).to.gt(ethers.utils.parseEther("0").toString())
+            expect(await uni.balanceOf(this.factory.reserve())).to.within(buyUniAmount.sub(buyUniPercent).toString(),buyUniAmount.add(buyUniPercent).toString())
+            expect(await link.balanceOf(this.factory.reserve())).to.within(buyLinkAmount.sub(buyLinkPercent).toString(),buyLinkAmount.add(buyLinkPercent).toString())
+
+            let result = await this.factory.tokensOf(this.alice.address);
+            expect(result.length).to.equal(1);
+
         })
 
         
