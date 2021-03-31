@@ -12,7 +12,7 @@ async function main() {
 
     const tokenToSell = process.env.ERC20_CONTRACT_ADDRESS;
 
-    // wrap some ethers first
+    // wrap some ethers first if you do not have any ERC20 token to use for testing
     //await nestedFactory.depositETH("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",{value: ethers.utils.parseEther("10").toString()});
 
     const orders = [{

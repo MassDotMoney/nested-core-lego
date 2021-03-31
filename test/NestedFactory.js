@@ -1,4 +1,7 @@
 const { expect } = require("chai")
+const axios = require("axios").default
+const qs = require("qs")
+abi = require("./../mocks/ERC20.json")
 
 describe("NestedFactory", () => {
     before(async () => {
@@ -45,16 +48,12 @@ describe("NestedFactory", () => {
 
     describe("#create", () => {
         before(async () => {
-            const axios = require("axios").default
-            const qs = require("qs")
-            this.abi = require("./../mocks/ERC20.json")
-
             this.tokenToSell = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"; // WETH
 
             console.log('first wrap some ETH to WETH');
             await this.factory.depositETH("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",{value: ethers.utils.parseEther("10").toString()})
 
-            const orders = [{
+            this.orders = [{
                     sellToken: this.tokenToSell,
                     buyToken: "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", // Uni
                     sellAmount: ethers.utils.parseEther("1").toString(),
@@ -67,8 +66,8 @@ describe("NestedFactory", () => {
             ]
         
             this.responses = [];
-            const resp1 = await axios.get(`https://api.0x.org/swap/v1/quote?${qs.stringify(orders[0])}`);
-            const resp2 = await axios.get(`https://api.0x.org/swap/v1/quote?${qs.stringify(orders[1])}`);
+            const resp1 = await axios.get(`https://api.0x.org/swap/v1/quote?${qs.stringify(this.orders[0])}`);
+            const resp2 = await axios.get(`https://api.0x.org/swap/v1/quote?${qs.stringify(this.orders[1])}`);
         
             this.responses.push(resp1)
             this.responses.push(resp2);
@@ -97,8 +96,6 @@ describe("NestedFactory", () => {
         })
 
         it("revert if no swapCall data for all token to buy", async () => {
-            
-            
             await expect(this.factory.create(this.tokenToSell, this.maximumSellAmount, this.responses[0].data.to, this.tokensToBuy, [])).to.be.revertedWith(
                 "BUY_ARG_ERROR",
             )
@@ -111,13 +108,18 @@ describe("NestedFactory", () => {
         })
 
         it("should swap tokens", async () => {
-            const tokenToSellContract = new ethers.Contract(this.tokenToSell, this.abi, this.alice)
+            const tokenToSellContract = new ethers.Contract(this.tokenToSell, abi, this.alice)
             await tokenToSellContract.approve(this.factory.address, ethers.utils.parseEther("100"))
             await this.factory.create(this.tokenToSell, this.maximumSellAmount, this.responses[0].data.to, this.tokensToBuy, this.swapCallData)
 
+            const uni = new ethers.Contract(this.orders[0].buyToken, abi, this.alice)
+            const link = new ethers.Contract(this.orders[1].buyToken, abi, this.alice)
             // WETH balance of user should be 10 - 1 - 1 - 0.03 (for fees)
             expect(await tokenToSellContract.balanceOf(this.alice.address)).to.equal(ethers.utils.parseEther("7.97").toString())
             expect(await tokenToSellContract.balanceOf(this.factory.feeTo())).to.equal(ethers.utils.parseEther("0.03").toString())
+            // reserve balance for token bought should be greater than 0
+            expect(await uni.balanceOf(this.factory.reserve())).to.gt(ethers.utils.parseEther("0").toString())
+            expect(await link.balanceOf(this.factory.reserve())).to.gt(ethers.utils.parseEther("0").toString())
         })
 
         
