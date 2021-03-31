@@ -51,11 +51,10 @@ contract NestedFactory {
         _;
     }
 
-    function depositETH(address weth) external payable
-    {
+    function depositETH(address weth) external payable {
         //WETH(weth).balanceOf[msg.sender] += msg.value;
-        WETH(weth).deposit{value: msg.value}();
-        WETH(weth).transfer(msg.sender,msg.value);
+        WETH(weth).deposit{ value: msg.value }();
+        WETH(weth).transfer(msg.sender, msg.value);
     }
 
     /*
@@ -79,6 +78,11 @@ contract NestedFactory {
     // return the list of erc721 tokens for an address
     function tokensOf(address account) public view virtual returns (uint256[] memory) {
         return usersTokenIds[account];
+    }
+
+    // return the content of a NFT token by ID
+    function tokenHoldings(uint256 tokenId) public view virtual returns (Holding[] memory) {
+        return usersHoldings[tokenId];
     }
 
     /*
@@ -120,11 +124,8 @@ contract NestedFactory {
             uint256 amountBought = ERC20(_tokensToBuy[i]).balanceOf(address(this)) - initialBalance;
 
             usersHoldings[tokenId].push(Holding({ token: _tokensToBuy[i], amount: amountBought, reserve: reserve }));
-            
-            require(
-                ERC20(_tokensToBuy[i]).transfer(reserve, amountBought) == true,
-                "TOKEN_TRANSFER_ERROR"
-            );
+
+            require(ERC20(_tokensToBuy[i]).transfer(reserve, amountBought) == true, "TOKEN_TRANSFER_ERROR");
         }
 
         //require(ERC20(_sellToken).balanceOf(address(this)) - initialSellTokenBalance < availableAmount, "EXCHANGE_ERROR");

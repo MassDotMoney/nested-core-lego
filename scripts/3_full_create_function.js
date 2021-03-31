@@ -13,7 +13,7 @@ async function main() {
     const tokenToSell = process.env.ERC20_CONTRACT_ADDRESS;
 
     // wrap some ethers first if you do not have any ERC20 token to use for testing
-    //await nestedFactory.depositETH("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",{value: ethers.utils.parseEther("10").toString()});
+    await nestedFactory.depositETH("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",{value: ethers.utils.parseEther("10").toString()});
 
     const orders = [{
             sellToken: tokenToSell,
@@ -89,6 +89,12 @@ async function main() {
     console.log("Balance of factory in LINK is ", linkFactoryBalance.toString());
     console.log("Balance of reserve in LINK is ", linkReserveBalance.toString());
     console.log("Balance of feeTo in LINK is ", linkFeeBalance.toString());
+
+    let result = await nestedFactory.tokensOf(accounts[0].address);
+    console.log('result', result);
+
+    let holdings = await nestedFactory.tokenHoldings(result[0]);
+    console.log('holdings', holdings);
 
 }
 
