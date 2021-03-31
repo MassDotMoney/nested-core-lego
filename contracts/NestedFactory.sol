@@ -49,6 +49,7 @@ contract NestedFactory {
         _;
     }
 
+    // TODO remove
     function depositETH(address weth) external payable {
         //WETH(weth).balanceOf[msg.sender] += msg.value;
         WETH(weth).deposit{ value: msg.value }();
@@ -114,7 +115,6 @@ contract NestedFactory {
         require(ERC20(_sellToken).transferFrom(msg.sender, feeTo, fees) == true, "FEE_TRANSFER_ERROR");
 
         uint256 sellTokenBalanceBeforePurchase = ERC20(_sellToken).balanceOf(address(this));
-        //console.log("ERC20 token balance:", sellTokenBalanceBeforePurchase);
 
         uint256 tokenId = nestedAsset.mint(msg.sender);
         usersTokenIds[msg.sender].push(tokenId);
@@ -122,7 +122,7 @@ contract NestedFactory {
         for (uint256 i = 0; i < buyCount; i++) {
             uint256 initialBalance = ERC20(_tokensToBuy[i]).balanceOf(address(this));
 
-            swapTokens(_sellToken, _tokensToBuy[i], _swapTarget, _swapCallData[i]);
+            swapTokens(_sellToken, _swapTarget, _swapCallData[i]);
             uint256 amountBought = ERC20(_tokensToBuy[i]).balanceOf(address(this)) - initialBalance;
 
             usersHoldings[tokenId].push(Holding({ token: _tokensToBuy[i], amount: amountBought, reserve: reserve }));
@@ -139,13 +139,13 @@ contract NestedFactory {
     /*
     Purchase and collect tokens for the user with ETH.
     Take custody of user's tokens against fees and issue an NFT in return.
-    @param _sellAmount [uint] values of ETH to exchange foor each _tokensToBuy
+    @param _sellAmounts [<uint>] values of ETH to exchange for each _tokensToBuy
     @param _tokensToBuy [<address>] the list of tokens to purchase
     @param _swapCallData [<bytes>] the list of call data provided by 0x to fill quotes
     @param _swapTarget [address] the address of the contract that will swap tokens
     */
     function createFromETH(
-        uint256[] memory _sellAmount,
+        uint256[] memory _sellAmounts,
         address payable _swapTarget,
         address[] calldata _tokensToBuy,
         bytes[] calldata _swapCallData
@@ -153,11 +153,10 @@ contract NestedFactory {
         uint256 buyCount = _tokensToBuy.length;
         require(buyCount > 0, "BUY_ARG_MISSING");
         require(buyCount == _swapCallData.length, "BUY_ARG_ERROR");
-        require(buyCount == _sellAmount.length, "SELL_AMOUNT_ERROR");
+        require(buyCount == _sellAmounts.length, "SELL_AMOUNT_ERROR");
 
-
+        // TODO: sanity check. User sends enough funds for every swaps
         uint256 ethBalanceBeforePurchase = address(this).balance;
-        //console.log("ETH balance:", ethBalanceBeforePurchase);
 
         uint256 tokenId = nestedAsset.mint(msg.sender);
         usersTokenIds[msg.sender].push(tokenId);
@@ -167,23 +166,20 @@ contract NestedFactory {
         for (uint256 i = 0; i < buyCount; i++) {
             uint256 initialBalance = ERC20(_tokensToBuy[i]).balanceOf(address(this));
 
-            swapFromETH(_sellAmount[i], _swapTarget, _swapCallData[i]);
+            swapFromETH(_sellAmounts[i], _swapTarget, _swapCallData[i]);
             uint256 amountBought = ERC20(_tokensToBuy[i]).balanceOf(address(this)) - initialBalance;
 
             usersHoldings[tokenId].push(Holding({ token: _tokensToBuy[i], amount: amountBought, reserve: reserve }));
 
             require(ERC20(_tokensToBuy[i]).transfer(reserve, amountBought) == true, "TOKEN_TRANSFER_ERROR");
-            totalSellAmount = totalSellAmount + _sellAmount[i];
+            // TODO: compute sold amount by looking at balance difference, pre and post swap
+            totalSellAmount = totalSellAmount + _sellAmounts[i];
         }
 
-        require(
-            ethBalanceBeforePurchase - address(this).balance <= totalSellAmount,
-            "EXCHANGE_ERROR"
-        );
+        require(ethBalanceBeforePurchase - address(this).balance <= totalSellAmount, "EXCHANGE_ERROR");
     }
 
     /*
-
     TO THINK ABOUT:
     
     TO DO:
@@ -194,14 +190,7 @@ contract NestedFactory {
         I think Uniswap Oracle would be cheaper here if we want to do this on chain. To verify.
         If we wangt to do it offchain, pass w anormalized value of ETH, provided by the front by 0x
 
-    3) make adjustements to allow the user to pay with ETH passed in msg.value
-
-    4) modify swapTokens function, it should refund the amount of unspent ETH
-         instead of using the current balance value
-
     5) Emit events. TBD which are necessary.
-
-    6) refund unspent tokens of _sellToken
 
     7) IMPORTANT: Optimise gas
 
@@ -216,7 +205,6 @@ contract NestedFactory {
     */
     function swapTokens(
         address _sellToken,
-        address _buyToken,
         address payable _swapTarget,
         bytes calldata _swapCallData
     ) internal {
@@ -227,10 +215,6 @@ contract NestedFactory {
         (bool success, bytes memory resultData) = _swapTarget.call{ value: msg.value }(_swapCallData);
 
         require(success, "SWAP_CALL_FAILED");
-
-        // TODO check if we need fees to be paid to 0x, otherwise remove refund call
-        // Refund any unspent protocol fees to the sender.
-        // msg.sender.transfer(address(this).balance);
     }
 
     /*
@@ -244,7 +228,7 @@ contract NestedFactory {
         address payable _swapTarget,
         bytes calldata _swapCallData
     ) internal {
-        (bool success, bytes memory resultData) = _swapTarget.call{ value:_sellAmount }(_swapCallData);
+        (bool success, bytes memory resultData) = _swapTarget.call{ value: _sellAmount }(_swapCallData);
         require(success, "SWAP_CALL_FAILED");
     }
 }

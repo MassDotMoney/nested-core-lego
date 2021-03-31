@@ -16,11 +16,13 @@ async function main() {
             sellToken: tokenToSell,
             buyToken: "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", // Uni
             sellAmount: ethers.utils.parseEther("1").toString(),
+            slippagePercentage: 0.05,
         },
         {
             sellToken: tokenToSell,
             buyToken: "0x6b175474e89094c44da98b954eedeac495271d0f", // DAI
             sellAmount: ethers.utils.parseEther("1").toString(),
+            slippagePercentage: 0.05,
         },
     ]
 
@@ -31,6 +33,7 @@ async function main() {
     responses.push(resp1)
     responses.push(resp2);
 
+    let maximumSellAmount = 0;
     let sellAmounts = [];
     let tokensToBuy = [];
     let swapCallData = [];
@@ -38,10 +41,12 @@ async function main() {
     sellAmounts.push(ethers.BigNumber.from(responses[0].data.sellAmount));
     tokensToBuy.push(responses[0].data.buyTokenAddress);
     swapCallData.push(responses[0].data.data);
+    maximumSellAmount = ethers.BigNumber.from(maximumSellAmount).add(ethers.BigNumber.from(responses[0].data.sellAmount));
 
     sellAmounts.push(ethers.BigNumber.from(responses[1].data.sellAmount));
     tokensToBuy.push(responses[1].data.buyTokenAddress);
     swapCallData.push(responses[1].data.data);
+    maximumSellAmount = ethers.BigNumber.from(maximumSellAmount).add(ethers.BigNumber.from(responses[1].data.sellAmount));
 
     let totalSellAmount = ethers.BigNumber.from(sellAmounts[0]).add(ethers.BigNumber.from(sellAmounts[1]));
 
@@ -52,9 +57,15 @@ async function main() {
         sellAmounts,
         responses[0].data.to,
         tokensToBuy,
-        swapCallData,
-        {value: totalSellAmount}
+        swapCallData, { value: totalSellAmount }
     )
+
+    let provider = ethers.getDefaultProvider();
+
+    const sellTokenUserBalance = await provider.getBalance(accounts[0].address);
+    const sellTokenFactoryBalance = await provider.getBalance(nestedFactory.address);
+    const sellTokenReserveBalance = await provider.getBalance(nestedFactory.reserve());
+    const sellTokenFeeBalance = await provider.getBalance(accounts[10].address);
 
     const uniUserBalance = await uni.balanceOf(accounts[0].address);
     const uniFactoryBalance = await uni.balanceOf(nestedFactory.address);
@@ -66,15 +77,22 @@ async function main() {
     const linkReserveBalance = await link.balanceOf(nestedFactory.reserve());
     const linkFeeBalance = await link.balanceOf(accounts[10].address);
 
+    console.log("Balance of user in ETH is ", sellTokenUserBalance.toString());
+    console.log("Balance of factory in ETH is ", sellTokenFactoryBalance.toString());
+    console.log("Balance of reserve in ETH is ", sellTokenReserveBalance.toString());
+    console.log("Balance of feeTo in ETH is ", sellTokenFeeBalance.toString());
+    console.log('--')
+
     console.log("Balance of user in UNI is ", uniUserBalance.toString());
     console.log("Balance of factory in UNI is ", uniFactoryBalance.toString());
     console.log("Balance of reserve in UNI is ", uniReserveBalance.toString());
     console.log("Balance of feeTo in UNI is ", uniFeeBalance.toString());
     console.log('--')
-    console.log("Balance of user in DAI is ", linkUserBalance.toString());
-    console.log("Balance of factory in DAI is ", linkFactoryBalance.toString());
-    console.log("Balance of reserve in DAI is ", linkReserveBalance.toString());
-    console.log("Balance of feeTo in DAI is ", linkFeeBalance.toString());
+
+    console.log("Balance of user in LINK is ", linkUserBalance.toString());
+    console.log("Balance of factory in LINK is ", linkFactoryBalance.toString());
+    console.log("Balance of reserve in LINK is ", linkReserveBalance.toString());
+    console.log("Balance of feeTo in LINK is ", linkFeeBalance.toString());
 
     let result = await nestedFactory.tokensOf(accounts[0].address);
     console.log('result', result);

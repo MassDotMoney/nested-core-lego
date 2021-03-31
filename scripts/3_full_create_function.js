@@ -9,8 +9,10 @@ async function main() {
     const NestedFactory = await hre.ethers.getContractFactory("NestedFactory")
     const nestedFactory = await NestedFactory.deploy(accounts[10].address)
     await nestedFactory.deployed()
-
+    let tokenToSellFor0XApi = false;
     const tokenToSell = process.env.ERC20_CONTRACT_ADDRESS;
+    // wrap some ethers first if you do not have any ERC20 token to use for testing
+    await nestedFactory.depositETH("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",{value: ethers.utils.parseEther("10").toString()});
 
     // wrap some ethers first if you do not have any ERC20 token to use for testing
     await nestedFactory.depositETH("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",{value: ethers.utils.parseEther("10").toString()});
@@ -19,11 +21,13 @@ async function main() {
             sellToken: tokenToSell,
             buyToken: "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", // Uni
             sellAmount: ethers.utils.parseEther("1").toString(),
+            slippagePercentage: 0.05,
         },
         {
             sellToken: tokenToSell,
             buyToken: "0xdd974d5c2e2928dea5f71b9825b8b646686bd200", // KNC
             sellAmount: ethers.utils.parseEther("1").toString(),
+            slippagePercentage: 0.05,
         },
     ]
 
@@ -34,6 +38,13 @@ async function main() {
     responses.push(resp1)
     responses.push(resp2);
 
+    let ethAddress = false;
+    let wethAddress = false;
+    if(tokenToSell=="ETH"){
+        wethAddress = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
+        ethAddress = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+    }
+
     let maximumSellAmount = 0;
     let tokensToBuy = [];
     let swapCallData = [];
@@ -43,23 +54,39 @@ async function main() {
     swapCallData.push(responses[0].data.data);
 
     maximumSellAmount = ethers.BigNumber.from(maximumSellAmount).add(ethers.BigNumber.from(responses[1].data.sellAmount));
+
     tokensToBuy.push(responses[1].data.buyTokenAddress);
     swapCallData.push(responses[1].data.data);
 
-    const tokenToSellContract = new ethers.Contract(tokenToSell, abi, accounts[0])
+    let tokenToSellContract = false;
+    if(tokenToSell=="ETH")
+        tokenToSellContract = new ethers.Contract(wethAddress, abi, accounts[0])
+    else
+        tokenToSellContract = new ethers.Contract(tokenToSell, abi, accounts[0])
     await tokenToSellContract.approve(nestedFactory.address, ethers.utils.parseEther("100"))
 
     const uni = new ethers.Contract(orders[0].buyToken, abi, accounts[0])
     const link = new ethers.Contract(orders[1].buyToken, abi, accounts[0])
-
-    await nestedFactory.create(
-        tokenToSell,
-        maximumSellAmount,
-        responses[0].data.to,
-        tokensToBuy,
-        swapCallData
-    )
-
+    
+    if(tokenToSell == "ETH")
+    {
+      await nestedFactory.create(
+          ethAddress,
+          maximumSellAmount,
+          responses[0].data.to,
+          tokensToBuy,
+          swapCallData,{value:maximumSellAmount})
+    }
+    else
+    {
+      await nestedFactory.create(
+          tokenToSell,
+          maximumSellAmount,
+          responses[0].data.to,
+          tokensToBuy,
+          swapCallData
+      )
+    }
     const sellTokenUserBalance = await tokenToSellContract.balanceOf(accounts[0].address);
     const sellTokenFactoryBalance = await tokenToSellContract.balanceOf(nestedFactory.address);
     const sellTokenReserveBalance = await tokenToSellContract.balanceOf(nestedFactory.reserve());
