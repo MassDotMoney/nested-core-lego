@@ -115,7 +115,7 @@ contract NestedFactory {
             );
         }
 
-        require(ERC20(_sellToken).balanceOf(address(this)) - initialSellTokenBalance < availableAmount, "EXCHANGE_ERROR");
+        //require(ERC20(_sellToken).balanceOf(address(this)) - initialSellTokenBalance < availableAmount, "EXCHANGE_ERROR");
     }
 
     /*
