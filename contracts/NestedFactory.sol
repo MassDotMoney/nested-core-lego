@@ -23,8 +23,6 @@ contract NestedFactory {
 
     /*
     Represents custody from Nested over an asset
-
-    Feel free to suggest a better name
     */
     struct Holding {
         address token;
@@ -104,15 +102,18 @@ contract NestedFactory {
         uint256 buyCount = _tokensToBuy.length;
         require(buyCount > 0, "BUY_ARG_MISSING");
         require(buyCount == _swapCallData.length, "BUY_ARG_ERROR");
-        require(ERC20(_sellToken).allowance(msg.sender, address(this)) > _sellAmount, "USER_FUND_ALLOWANCE_ERROR");
+
+        uint256 fees = (_sellAmount * 15) / 1000;
+
+        require(
+            ERC20(_sellToken).allowance(msg.sender, address(this)) > _sellAmount + fees,
+            "USER_FUND_ALLOWANCE_ERROR"
+        );
+
         require(ERC20(_sellToken).transferFrom(msg.sender, address(this), _sellAmount), "USER_FUND_TRANSFER_ERROR");
+        require(ERC20(_sellToken).transferFrom(msg.sender, feeTo, fees) == true, "FEE_TRANSFER_ERROR");
 
-        uint256 initialSellTokenBalance = ERC20(_sellToken).balanceOf(address(this));
-
-        uint256 buyFees = (_sellAmount * 15) / 1000;
-        uint256 availableAmount = _sellAmount - buyFees;
-
-        require(ERC20(_sellToken).transferFrom(msg.sender, feeTo, buyFees) == true, "FEE_TRANSFER_ERROR");
+        uint256 sellTokenBalanceBeforePurchase = ERC20(_sellToken).balanceOf(address(this));
 
         uint256 tokenId = nestedAsset.mint(msg.sender);
         usersTokenIds[msg.sender].push(tokenId);
@@ -128,18 +129,16 @@ contract NestedFactory {
             require(ERC20(_tokensToBuy[i]).transfer(reserve, amountBought) == true, "TOKEN_TRANSFER_ERROR");
         }
 
-        //require(ERC20(_sellToken).balanceOf(address(this)) - initialSellTokenBalance < availableAmount, "EXCHANGE_ERROR");
+        require(
+            sellTokenBalanceBeforePurchase - ERC20(_sellToken).balanceOf(address(this)) <= _sellAmount,
+            "EXCHANGE_ERROR"
+        );
     }
 
     /*
 
     TO THINK ABOUT:
     
-    A) Call stack is too deep. 
-    We could get rid of some parameters by splitting the execution in 2 transactions
-    That would result in a poorer UX
-
-
     TO DO:
 
     1) get estimate of required funds for the transaction to get through.
@@ -147,8 +146,6 @@ contract NestedFactory {
      Hints: NDX uses chainlink to compute short term average cost of tokens
         I think Uniswap Oracle would be cheaper here if we want to do this on chain. To verify.
         If we wangt to do it offchain, pass w anormalized value of ETH, provided by the front by 0x
-
-    2) test if we can get rid of require wrappers for transfer, do reverts bubble up and revert the whole tx?
 
     3) make adjustements to allow the user to pay with ETH passed in msg.value
 
@@ -160,9 +157,6 @@ contract NestedFactory {
     6) refund unspent tokens of _sellToken
 
     7) IMPORTANT: Optimise gas
-
-    8) allow to specify amount of slippage in total amount of exchanged assets
-        add default to 1%
 
     */
 
@@ -179,21 +173,18 @@ contract NestedFactory {
         address payable _swapTarget,
         bytes calldata _swapCallData
     ) internal {
-        // Track our balance of the buyToken to determine how much we've bought.
-        // uint256 buyTokenInitialBalance = ERC20(_buyToken).balanceOf(address(this));
-
         // Note that for some tokens (e.g., USDT, KNC), you must first reset any existing
         // allowance to 0 before being able to update it.
         require(ERC20(_sellToken).approve(_swapTarget, uint256(-1)), "ALLOWANCE_SETTER_ERROR");
 
         (bool success, bytes memory resultData) = _swapTarget.call{ value: msg.value }(_swapCallData);
+
+        // TODO remove, only for debugging
         console.log(string(resultData));
         require(success, "SWAP_CALL_FAILED");
 
+        // TODO check if we need fees to be paid to 0x, otherwise remove refund call
         // Refund any unspent protocol fees to the sender.
-        msg.sender.transfer(address(this).balance);
-
-        // Here is how to compute amount bought for events if needed
-        // uint256 amountBought = ERC20(_buyToken).balanceOf(address(this)) - buyTokenInitialBalance;
+        // msg.sender.transfer(address(this).balance);
     }
 }

@@ -91,6 +91,8 @@ describe("NestedFactory", () => {
             )
             this.tokensToBuy.push(this.responses[1].data.buyTokenAddress)
             this.swapCallData.push(this.responses[1].data.data)
+
+            this.tokenToSellContract = new ethers.Contract(this.tokenToSell, abi, this.alice)
         })
 
         beforeEach(async () => {})
@@ -131,9 +133,39 @@ describe("NestedFactory", () => {
             ).to.be.revertedWith("USER_FUND_ALLOWANCE_ERROR")
         })
 
+        it("reverts if allowance does not cover fees", async () => {
+            await this.tokenToSellContract.approve(this.factory.address, this.maximumSellAmount)
+
+            await expect(
+                this.factory.create(
+                    this.tokenToSell,
+                    this.maximumSellAmount,
+                    this.responses[0].data.to,
+                    this.tokensToBuy,
+                    this.swapCallData,
+                ),
+            ).to.be.revertedWith("USER_FUND_ALLOWANCE_ERROR")
+        })
+
+        // TODO Find a way to mock the call to 0x to cover the EXCHANGE_ERROR revert scenario
+
+        // it("reverts if unallowed spendings", async() => {
+        //     await this.tokenToSellContract.approve(this.factory.address, this.maximumSellAmount)
+        //     await this.tokenToSellContract.approve(this.factory.address, ethers.utils.parseEther("100"))
+
+        //     await expect(
+        //         this.factory.create(
+        //             this.tokenToSell,
+        //             this.maximumSellAmount.sub(ethers.BigNumber.from("1")),
+        //             this.responses[0].data.to,
+        //             this.tokensToBuy,
+        //             this.swapCallData,
+        //         ),
+        //     ).to.be.revertedWith("EXCHANGE_ERROR")
+        // })
+
         it("should swap tokens", async () => {
-            const tokenToSellContract = new ethers.Contract(this.tokenToSell, abi, this.alice)
-            await tokenToSellContract.approve(this.factory.address, ethers.utils.parseEther("100"))
+            await this.tokenToSellContract.approve(this.factory.address, ethers.utils.parseEther("100"))
             await this.factory.create(
                 this.tokenToSell,
                 this.maximumSellAmount,
@@ -145,10 +177,10 @@ describe("NestedFactory", () => {
             const uni = new ethers.Contract(this.orders[0].buyToken, abi, this.alice)
             const link = new ethers.Contract(this.orders[1].buyToken, abi, this.alice)
             // WETH balance of user should be 10 - 1 - 1 - 0.03 (for fees)
-            expect(await tokenToSellContract.balanceOf(this.alice.address)).to.equal(
+            expect(await this.tokenToSellContract.balanceOf(this.alice.address)).to.equal(
                 ethers.utils.parseEther("7.97").toString(),
             )
-            expect(await tokenToSellContract.balanceOf(this.factory.feeTo())).to.equal(
+            expect(await this.tokenToSellContract.balanceOf(this.factory.feeTo())).to.equal(
                 ethers.utils.parseEther("0.03").toString(),
             )
 
@@ -172,23 +204,10 @@ describe("NestedFactory", () => {
             // check if NFT was created
             let NFTs = await this.factory.tokensOf(this.alice.address)
             expect(NFTs.length).to.equal(1)
-            
+
             // check number of assets in NFT token
             let result = await this.factory.tokenHoldings(NFTs[0])
             expect(result.length).to.equal(this.tokensToBuy.length)
         })
-
-        // describe 2 tokens
-        // owned = true
-        // test balance reserve +
-        // test balance user -
-        // test balance fees +
-        // owned = false
-        // test 0x
-        // test balance reserve +
-        // test balance fees +
-        // push holding
-
-        // test balance user between (initial - amount - 1%, initial - amount + 1%)
     })
 })
