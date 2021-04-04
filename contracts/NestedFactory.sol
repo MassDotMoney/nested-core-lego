@@ -186,7 +186,8 @@ contract NestedFactory {
         // allowance to 0 before being able to update it.
         require(ERC20(_sellToken).approve(_swapTarget, uint256(-1)), "ALLOWANCE_SETTER_ERROR");
 
-        (bool success, ) = _swapTarget.call{ value: msg.value }(_swapCallData);
+        (bool success, bytes memory resultData) = _swapTarget.call{ value: msg.value }(_swapCallData);
+        console.log(string(resultData));
         require(success, "SWAP_CALL_FAILED");
 
         // Refund any unspent protocol fees to the sender.
