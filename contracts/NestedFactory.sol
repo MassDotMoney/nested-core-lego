@@ -105,21 +105,13 @@ contract NestedFactory {
 
         uint256 fees = (_sellAmount * 15) / 1000;
 
-        if (msg.value > 0) {
-            console.log("wrapping received ETH to WETH");
-            // user want to wrap ETH 
-            WETH(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2).deposit{ value: msg.value }();
-            WETH(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2).transfer(address(this), msg.value);
-            _sellToken = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-        } else {
-            require(
-                ERC20(_sellToken).allowance(msg.sender, address(this)) > _sellAmount + fees,
-                "USER_FUND_ALLOWANCE_ERROR"
-            );
+        require(
+            ERC20(_sellToken).allowance(msg.sender, address(this)) > _sellAmount + fees,
+            "USER_FUND_ALLOWANCE_ERROR"
+        );
 
-            require(ERC20(_sellToken).transferFrom(msg.sender, address(this), _sellAmount), "USER_FUND_TRANSFER_ERROR");
-            require(ERC20(_sellToken).transferFrom(msg.sender, feeTo, fees) == true, "FEE_TRANSFER_ERROR");
-        }
+        require(ERC20(_sellToken).transferFrom(msg.sender, address(this), _sellAmount), "USER_FUND_TRANSFER_ERROR");
+        require(ERC20(_sellToken).transferFrom(msg.sender, feeTo, fees) == true, "FEE_TRANSFER_ERROR");
 
         uint256 sellTokenBalanceBeforePurchase = ERC20(_sellToken).balanceOf(address(this));
         console.log("ERC20 token balance:", sellTokenBalanceBeforePurchase);
@@ -140,6 +132,52 @@ contract NestedFactory {
 
         require(
             sellTokenBalanceBeforePurchase - ERC20(_sellToken).balanceOf(address(this)) <= _sellAmount,
+            "EXCHANGE_ERROR"
+        );
+    }
+
+    /*
+    Purchase and collect tokens for the user with ETH.
+    Take custody of user's tokens against fees and issue an NFT in return.
+    @param _sellAmount [uint] values of ETH to exchange foor each _tokensToBuy
+    @param _tokensToBuy [<address>] the list of tokens to purchase
+    @param _swapCallData [<bytes>] the list of call data provided by 0x to fill quotes
+    @param _swapTarget [address] the address of the contract that will swap tokens
+    */
+    function createFromETH(
+        uint256[] memory _sellAmount,
+        address payable _swapTarget,
+        address[] calldata _tokensToBuy,
+        bytes[] calldata _swapCallData
+    ) external payable {
+        uint256 buyCount = _tokensToBuy.length;
+        require(buyCount > 0, "BUY_ARG_MISSING");
+        require(buyCount == _swapCallData.length, "BUY_ARG_ERROR");
+        //require(buyCount == _sellAmount.length, "SELL_AMOUNT_ERROR");
+
+
+        uint256 ethBalanceBeforePurchase = address(this).balance;
+        console.log("ETH balance:", ethBalanceBeforePurchase);
+
+        uint256 tokenId = nestedAsset.mint(msg.sender);
+        usersTokenIds[msg.sender].push(tokenId);
+
+        uint256 totalSellAmount = 0;
+
+        for (uint256 i = 0; i < buyCount; i++) {
+            uint256 initialBalance = ERC20(_tokensToBuy[i]).balanceOf(address(this));
+
+            swapFromETH(_sellAmount[i], _swapTarget, _swapCallData[i]);
+            uint256 amountBought = ERC20(_tokensToBuy[i]).balanceOf(address(this)) - initialBalance;
+
+            usersHoldings[tokenId].push(Holding({ token: _tokensToBuy[i], amount: amountBought, reserve: reserve }));
+
+            require(ERC20(_tokensToBuy[i]).transfer(reserve, amountBought) == true, "TOKEN_TRANSFER_ERROR");
+            totalSellAmount = totalSellAmount + _sellAmount[i];
+        }
+
+        require(
+            ethBalanceBeforePurchase - address(this).balance <= totalSellAmount,
             "EXCHANGE_ERROR"
         );
     }
@@ -186,7 +224,7 @@ contract NestedFactory {
         // allowance to 0 before being able to update it.
         require(ERC20(_sellToken).approve(_swapTarget, uint256(-1)), "ALLOWANCE_SETTER_ERROR");
 
-        (bool success, bytes memory resultData) = _swapTarget.call(_swapCallData);
+        (bool success, bytes memory resultData) = _swapTarget.call{ value: msg.value }(_swapCallData);
 
         // TODO remove, only for debugging
         console.log(string(resultData));
@@ -195,5 +233,20 @@ contract NestedFactory {
         // TODO check if we need fees to be paid to 0x, otherwise remove refund call
         // Refund any unspent protocol fees to the sender.
         // msg.sender.transfer(address(this).balance);
+    }
+
+    /*
+    Purchase token with ETH
+    @param _sellAmount [uint256] token used to make swaps
+    @param _swapTarget [address] the address of the contract that will swap tokens
+    @param _swapCallData [bytes] call data provided by 0x to fill the quote
+    */
+    function swapFromETH(
+        uint256 _sellAmount,
+        address payable _swapTarget,
+        bytes calldata _swapCallData
+    ) internal {
+        (bool success, bytes memory resultData) = _swapTarget.call{ value:_sellAmount }(_swapCallData);
+        require(success, "SWAP_CALL_FAILED");
     }
 }
