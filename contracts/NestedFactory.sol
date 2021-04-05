@@ -114,7 +114,7 @@ contract NestedFactory {
         require(ERC20(_sellToken).transferFrom(msg.sender, feeTo, fees) == true, "FEE_TRANSFER_ERROR");
 
         uint256 sellTokenBalanceBeforePurchase = ERC20(_sellToken).balanceOf(address(this));
-        console.log("ERC20 token balance:", sellTokenBalanceBeforePurchase);
+        //console.log("ERC20 token balance:", sellTokenBalanceBeforePurchase);
 
         uint256 tokenId = nestedAsset.mint(msg.sender);
         usersTokenIds[msg.sender].push(tokenId);
@@ -153,11 +153,11 @@ contract NestedFactory {
         uint256 buyCount = _tokensToBuy.length;
         require(buyCount > 0, "BUY_ARG_MISSING");
         require(buyCount == _swapCallData.length, "BUY_ARG_ERROR");
-        //require(buyCount == _sellAmount.length, "SELL_AMOUNT_ERROR");
+        require(buyCount == _sellAmount.length, "SELL_AMOUNT_ERROR");
 
 
         uint256 ethBalanceBeforePurchase = address(this).balance;
-        console.log("ETH balance:", ethBalanceBeforePurchase);
+        //console.log("ETH balance:", ethBalanceBeforePurchase);
 
         uint256 tokenId = nestedAsset.mint(msg.sender);
         usersTokenIds[msg.sender].push(tokenId);
@@ -226,8 +226,6 @@ contract NestedFactory {
 
         (bool success, bytes memory resultData) = _swapTarget.call{ value: msg.value }(_swapCallData);
 
-        // TODO remove, only for debugging
-        console.log(string(resultData));
         require(success, "SWAP_CALL_FAILED");
 
         // TODO check if we need fees to be paid to 0x, otherwise remove refund call

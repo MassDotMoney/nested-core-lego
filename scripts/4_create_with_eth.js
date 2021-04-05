@@ -10,7 +10,7 @@ async function main() {
     const nestedFactory = await NestedFactory.deploy(accounts[10].address)
     await nestedFactory.deployed()
 
-    const tokenToSell = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"; // ETH for 0x
+    const tokenToSell = "ETH"; // ETH for 0x
 
     const orders = [{
             sellToken: tokenToSell,
@@ -43,7 +43,7 @@ async function main() {
     tokensToBuy.push(responses[1].data.buyTokenAddress);
     swapCallData.push(responses[1].data.data);
 
-    totalSellAmount = ethers.BigNumber.from(sellAmounts[0]).add(ethers.BigNumber.from(sellAmounts[1]));
+    let totalSellAmount = ethers.BigNumber.from(sellAmounts[0]).add(ethers.BigNumber.from(sellAmounts[1]));
 
     const uni = new ethers.Contract(orders[0].buyToken, abi, accounts[0])
     const link = new ethers.Contract(orders[1].buyToken, abi, accounts[0])
