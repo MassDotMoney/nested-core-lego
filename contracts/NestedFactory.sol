@@ -105,15 +105,24 @@ contract NestedFactory {
 
         uint256 fees = (_sellAmount * 15) / 1000;
 
-        require(
-            ERC20(_sellToken).allowance(msg.sender, address(this)) > _sellAmount + fees,
-            "USER_FUND_ALLOWANCE_ERROR"
-        );
+        if (msg.value > 0) {
+            console.log("wrapping received ETH to WETH");
+            // user want to wrap ETH 
+            WETH(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2).deposit{ value: msg.value }();
+            WETH(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2).transfer(address(this), msg.value);
+            _sellToken = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+        } else {
+            require(
+                ERC20(_sellToken).allowance(msg.sender, address(this)) > _sellAmount + fees,
+                "USER_FUND_ALLOWANCE_ERROR"
+            );
 
-        require(ERC20(_sellToken).transferFrom(msg.sender, address(this), _sellAmount), "USER_FUND_TRANSFER_ERROR");
-        require(ERC20(_sellToken).transferFrom(msg.sender, feeTo, fees) == true, "FEE_TRANSFER_ERROR");
+            require(ERC20(_sellToken).transferFrom(msg.sender, address(this), _sellAmount), "USER_FUND_TRANSFER_ERROR");
+            require(ERC20(_sellToken).transferFrom(msg.sender, feeTo, fees) == true, "FEE_TRANSFER_ERROR");
+        }
 
         uint256 sellTokenBalanceBeforePurchase = ERC20(_sellToken).balanceOf(address(this));
+        console.log("ERC20 token balance:", sellTokenBalanceBeforePurchase);
 
         uint256 tokenId = nestedAsset.mint(msg.sender);
         usersTokenIds[msg.sender].push(tokenId);
@@ -177,7 +186,7 @@ contract NestedFactory {
         // allowance to 0 before being able to update it.
         require(ERC20(_sellToken).approve(_swapTarget, uint256(-1)), "ALLOWANCE_SETTER_ERROR");
 
-        (bool success, bytes memory resultData) = _swapTarget.call{ value: msg.value }(_swapCallData);
+        (bool success, bytes memory resultData) = _swapTarget.call(_swapCallData);
 
         // TODO remove, only for debugging
         console.log(string(resultData));
