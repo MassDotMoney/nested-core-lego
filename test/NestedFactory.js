@@ -177,6 +177,7 @@ describe("NestedFactory", () => {
             let result = await this.factory.tokenHoldings(NFTs[0])
             expect(result.length).to.equal(this.tokensToBuy.length)
         })
+        //TO DO : Add refund ERC20
     })
 
     describe("#createFromETH", () => {

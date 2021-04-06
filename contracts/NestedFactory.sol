@@ -9,7 +9,7 @@ import "./NestedReserve.sol";
 // A partial WETH interfaec.
 interface WETH is IERC20 {
     function deposit() external payable;
-    //function balanceOf() external return(bool);
+    function withdraw(uint256 amount) external;
 }
 
 contract NestedFactory {
@@ -83,7 +83,11 @@ contract NestedFactory {
     function tokenHoldings(uint256 tokenId) public view virtual returns (Holding[] memory) {
         return usersHoldings[tokenId];
     }
+    // Function to receive Ether. msg.data must be empty
+    receive() external payable {}
 
+    // Fallback function is called when msg.data is not empty
+    fallback() external payable {}
     /*
     Purchase and collect tokens for the user.
     Take custody of user's tokens against fees and issue an NFT in return.
@@ -110,6 +114,7 @@ contract NestedFactory {
             ERC20(_sellToken).allowance(msg.sender, address(this)) > _sellAmount + fees,
             "USER_FUND_ALLOWANCE_ERROR"
         );
+        uint256 sellTokenBalanceBeforeDeposit = ERC20(_sellToken).balanceOf(address(this));
 
         require(ERC20(_sellToken).transferFrom(msg.sender, address(this), _sellAmount), "USER_FUND_TRANSFER_ERROR");
         require(ERC20(_sellToken).transferFrom(msg.sender, feeTo, fees) == true, "FEE_TRANSFER_ERROR");
@@ -134,6 +139,11 @@ contract NestedFactory {
             sellTokenBalanceBeforePurchase - ERC20(_sellToken).balanceOf(address(this)) <= _sellAmount,
             "EXCHANGE_ERROR"
         );
+        uint256 remainingBalance = ERC20(_sellToken).balanceOf(address(this)) - sellTokenBalanceBeforeDeposit;
+        if(remainingBalance>0)
+        {
+            WETH(_sellToken).withdraw(remainingBalance);
+        }
     }
 
     /*
@@ -181,7 +191,7 @@ contract NestedFactory {
 
     /*
     TO THINK ABOUT:
-    
+
     TO DO:
 
     1) get estimate of required funds for the transaction to get through.
