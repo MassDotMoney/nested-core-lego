@@ -165,6 +165,8 @@ contract NestedFactory {
         require(buyCount == _swapCallData.length, "BUY_ARG_ERROR");
         require(buyCount == _sellAmounts.length, "SELL_AMOUNT_ERROR");
 
+        uint256 ethBalanceBeforeDesposit = address(this).balance - msg.value;
+
         // TODO: sanity check. User sends enough funds for every swaps
         uint256 ethBalanceBeforePurchase = address(this).balance;
 
@@ -187,6 +189,12 @@ contract NestedFactory {
         }
 
         require(ethBalanceBeforePurchase - address(this).balance <= totalSellAmount, "EXCHANGE_ERROR");
+        uint256 remainingETH = address(this).balance - ethBalanceBeforeDesposit;
+
+        if(remainingETH>0)
+        {
+           msg.sender.transfer(remainingETH);
+        }
     }
 
     /*
