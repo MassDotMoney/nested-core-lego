@@ -6,9 +6,10 @@ import "hardhat/console.sol";
 import "./NestedAsset.sol";
 import "./NestedReserve.sol";
 
-// A partial WETH interfaec.
+// A partial WETH interface.
 interface WETH is IERC20 {
     function deposit() external payable;
+
     function withdraw(uint256 amount) external;
 }
 
@@ -28,7 +29,6 @@ contract NestedFactory {
         address token;
         uint256 amount;
         address reserve;
-        // uint256 lockedUntil; // For v1.1 hodl feature
     }
 
     mapping(address => uint256[]) public usersTokenIds;
@@ -49,13 +49,6 @@ contract NestedFactory {
         _;
     }
 
-    // TODO remove
-    function depositETH(address weth) external payable {
-        //WETH(weth).balanceOf[msg.sender] += msg.value;
-        WETH(weth).deposit{ value: msg.value }();
-        WETH(weth).transfer(msg.sender, msg.value);
-    }
-
     /*
    Sets the address receiving the fees
    @param feeTo The address of the receiver
@@ -74,28 +67,37 @@ contract NestedFactory {
         feeToSetter = _feeToSetter;
     }
 
-    // return the list of erc721 tokens for an address
-    function tokensOf(address account) public view virtual returns (uint256[] memory) {
-        return usersTokenIds[account];
+    /*
+    Returns the list of NestedAsset ids owned by an address
+    @params account [address] address
+    @return [<uint256>] 
+    */
+    function tokensOf(address _address) public view virtual returns (uint256[] memory) {
+        return usersTokenIds[_address];
     }
 
-    // return the content of a NFT token by ID
-    function tokenHoldings(uint256 tokenId) public view virtual returns (Holding[] memory) {
-        return usersHoldings[tokenId];
+    /*
+    Returns the holdings associated to a NestedAsset
+    @params _tokenId [uint256] the id of the NestedAsset
+    @return [<Holding>] 
+    */
+    function tokenHoldings(uint256 _tokenId) public view virtual returns (Holding[] memory) {
+        return usersHoldings[_tokenId];
     }
-    // Function to receive Ether. msg.data must be empty
-    receive() external payable {}
 
-    // Fallback function is called when msg.data is not empty
+    /*
+    Fallback function
+    */
     fallback() external payable {}
+
     /*
     Purchase and collect tokens for the user.
     Take custody of user's tokens against fees and issue an NFT in return.
     @param _sellToken [address] token used to make swaps
     @param _sellAmount [uint] value of sell tokens to exchange
+    @param _swapTarget [address] the address of the contract that will swap tokens
     @param _tokensToBuy [<address>] the list of tokens to purchase
     @param _swapCallData [<bytes>] the list of call data provided by 0x to fill quotes
-    @param _swapTarget [address] the address of the contract that will swap tokens
     */
     function create(
         address _sellToken,
@@ -125,10 +127,10 @@ contract NestedFactory {
         usersTokenIds[msg.sender].push(tokenId);
 
         for (uint256 i = 0; i < buyCount; i++) {
-            uint256 initialBalance = ERC20(_tokensToBuy[i]).balanceOf(address(this));
+            uint256 buyTokenInitialBalance = ERC20(_tokensToBuy[i]).balanceOf(address(this));
 
             swapTokens(_sellToken, _swapTarget, _swapCallData[i]);
-            uint256 amountBought = ERC20(_tokensToBuy[i]).balanceOf(address(this)) - initialBalance;
+            uint256 amountBought = ERC20(_tokensToBuy[i]).balanceOf(address(this)) - buyTokenInitialBalance;
 
             usersHoldings[tokenId].push(Holding({ token: _tokensToBuy[i], amount: amountBought, reserve: reserve }));
 
@@ -139,9 +141,9 @@ contract NestedFactory {
             sellTokenBalanceBeforePurchase - ERC20(_sellToken).balanceOf(address(this)) <= _sellAmount,
             "EXCHANGE_ERROR"
         );
+
         uint256 remainingBalance = ERC20(_sellToken).balanceOf(address(this)) - sellTokenBalanceBeforeDeposit;
-        if(remainingBalance>0)
-        {
+        if (remainingBalance > 0) {
             ERC20(_sellToken).transfer(msg.sender, remainingBalance);
         }
     }
@@ -150,12 +152,12 @@ contract NestedFactory {
     Purchase and collect tokens for the user with ETH.
     Take custody of user's tokens against fees and issue an NFT in return.
     @param _sellAmounts [<uint>] values of ETH to exchange for each _tokensToBuy
+    @param _swapTarget [address] the address of the contract that will swap tokens
     @param _tokensToBuy [<address>] the list of tokens to purchase
     @param _swapCallData [<bytes>] the list of call data provided by 0x to fill quotes
-    @param _swapTarget [address] the address of the contract that will swap tokens
     */
     function createFromETH(
-        uint256[] memory _sellAmounts,
+        uint256[] calldata _sellAmounts,
         address payable _swapTarget,
         address[] calldata _tokensToBuy,
         bytes[] calldata _swapCallData
@@ -165,9 +167,13 @@ contract NestedFactory {
         require(buyCount == _swapCallData.length, "BUY_ARG_ERROR");
         require(buyCount == _sellAmounts.length, "SELL_AMOUNT_ERROR");
 
-        uint256 ethBalanceBeforeDesposit = address(this).balance - msg.value;
-
         // TODO: sanity check. User sends enough funds for every swaps
+        uint256 amountToSell = 0;
+        for (uint256 i = 0; i < _sellAmounts.length; i++) {
+            amountToSell += _sellAmounts[i];
+        }
+        require(msg.value >= amountToSell, "INSUFFICIENT_FUNDS_RECEIVED");
+
         uint256 ethBalanceBeforePurchase = address(this).balance;
 
         uint256 tokenId = nestedAsset.mint(msg.sender);
@@ -176,10 +182,10 @@ contract NestedFactory {
         uint256 totalSellAmount = 0;
 
         for (uint256 i = 0; i < buyCount; i++) {
-            uint256 initialBalance = ERC20(_tokensToBuy[i]).balanceOf(address(this));
+            uint256 buyTokenInitialBalance = ERC20(_tokensToBuy[i]).balanceOf(address(this));
 
             swapFromETH(_sellAmounts[i], _swapTarget, _swapCallData[i]);
-            uint256 amountBought = ERC20(_tokensToBuy[i]).balanceOf(address(this)) - initialBalance;
+            uint256 amountBought = ERC20(_tokensToBuy[i]).balanceOf(address(this)) - buyTokenInitialBalance;
 
             usersHoldings[tokenId].push(Holding({ token: _tokensToBuy[i], amount: amountBought, reserve: reserve }));
 
@@ -189,29 +195,27 @@ contract NestedFactory {
         }
 
         require(ethBalanceBeforePurchase - address(this).balance <= totalSellAmount, "EXCHANGE_ERROR");
-        uint256 remainingETH = address(this).balance - ethBalanceBeforeDesposit;
+        uint256 remainingETH = address(this).balance + msg.value - ethBalanceBeforePurchase;
 
-        if(remainingETH>0)
-        {
-           msg.sender.transfer(remainingETH);
+        if (remainingETH > 0) {
+            msg.sender.transfer(remainingETH);
         }
     }
 
     /*
     TO THINK ABOUT:
-
-    TO DO:
-
-    1) get estimate of required funds for the transaction to get through.
+    1) [only for create, covered in createFromEth] 
+     Get estimate of required funds for the transaction to get through.
      Revert early if user can't afford the operation
      Hints: NDX uses chainlink to compute short term average cost of tokens
         I think Uniswap Oracle would be cheaper here if we want to do this on chain. To verify.
-        If we wangt to do it offchain, pass w anormalized value of ETH, provided by the front by 0x
+        If we want to do it offchain, pass a normalized value of ETH, provided by the front by 0x
+
+    TO DO:
 
     5) Emit events. TBD which are necessary.
 
     7) IMPORTANT: Optimise gas
-
     */
 
     /*

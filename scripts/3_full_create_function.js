@@ -2,6 +2,7 @@ const axios = require("axios").default
 const qs = require("qs")
 
 const abi = require("./../mocks/ERC20.json")
+const weth = require("./../mocks/WETH.json")
 
 async function main() {
     const accounts = await ethers.getSigners()
@@ -9,13 +10,19 @@ async function main() {
     const NestedFactory = await hre.ethers.getContractFactory("NestedFactory")
     const nestedFactory = await NestedFactory.deploy(accounts[10].address)
     await nestedFactory.deployed()
-    let tokenToSellFor0XApi = false;
-    const tokenToSell = process.env.ERC20_CONTRACT_ADDRESS;
-    // wrap some ethers first if you do not have any ERC20 token to use for testing
-    await nestedFactory.depositETH("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",{value: ethers.utils.parseEther("10").toString()});
 
-    // wrap some ethers first if you do not have any ERC20 token to use for testing
-    await nestedFactory.depositETH("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",{value: ethers.utils.parseEther("10").toString()});
+    const tokenToSell = process.env.ERC20_CONTRACT_ADDRESS;
+    let tokenToSellContract = new ethers.Contract(tokenToSell, abi, accounts[0])
+
+    if (tokenToSell === '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2') {
+        // wrap some ethers first if you do not have any ERC20 token to use for testing
+        tokenToSellContract = new ethers.Contract(tokenToSell, weth, accounts[0])
+        await tokenToSellContract.deposit({ value: ethers.utils.parseEther("10").toString() })
+    } else {
+        tokenToSellContract = new ethers.Contract(tokenToSell, abi, accounts[0])
+    }
+
+    await tokenToSellContract.approve(nestedFactory.address, ethers.utils.parseEther("10").toString())
 
     const orders = [{
             sellToken: tokenToSell,
@@ -38,13 +45,6 @@ async function main() {
     responses.push(resp1)
     responses.push(resp2);
 
-    let ethAddress = false;
-    let wethAddress = false;
-    if(tokenToSell=="ETH"){
-        wethAddress = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2";
-        ethAddress = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
-    }
-
     let maximumSellAmount = 0;
     let tokensToBuy = [];
     let swapCallData = [];
@@ -58,35 +58,17 @@ async function main() {
     tokensToBuy.push(responses[1].data.buyTokenAddress);
     swapCallData.push(responses[1].data.data);
 
-    let tokenToSellContract = false;
-    if(tokenToSell=="ETH")
-        tokenToSellContract = new ethers.Contract(wethAddress, abi, accounts[0])
-    else
-        tokenToSellContract = new ethers.Contract(tokenToSell, abi, accounts[0])
-    await tokenToSellContract.approve(nestedFactory.address, ethers.utils.parseEther("100"))
-
     const uni = new ethers.Contract(orders[0].buyToken, abi, accounts[0])
     const link = new ethers.Contract(orders[1].buyToken, abi, accounts[0])
-    
-    if(tokenToSell == "ETH")
-    {
-      await nestedFactory.create(
-          ethAddress,
-          maximumSellAmount,
-          responses[0].data.to,
-          tokensToBuy,
-          swapCallData,{value:maximumSellAmount})
-    }
-    else
-    {
-      await nestedFactory.create(
-          tokenToSell,
-          maximumSellAmount,
-          responses[0].data.to,
-          tokensToBuy,
-          swapCallData
-      )
-    }
+
+    await nestedFactory.create(
+        tokenToSell,
+        maximumSellAmount,
+        responses[0].data.to,
+        tokensToBuy,
+        swapCallData
+    )
+
     const sellTokenUserBalance = await tokenToSellContract.balanceOf(accounts[0].address);
     const sellTokenFactoryBalance = await tokenToSellContract.balanceOf(nestedFactory.address);
     const sellTokenReserveBalance = await tokenToSellContract.balanceOf(nestedFactory.reserve());

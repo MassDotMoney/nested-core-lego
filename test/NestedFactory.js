@@ -2,6 +2,7 @@ const { expect } = require("chai")
 const axios = require("axios").default
 const qs = require("qs")
 const abi = require("./../mocks/ERC20.json")
+const weth = require("./../mocks/WETH.json")
 
 describe("NestedFactory", () => {
     before(async () => {
@@ -21,12 +22,12 @@ describe("NestedFactory", () => {
     })
 
     describe("#setFeeToSetter", () => {
-        it("should set feeToSetter", async () => {
+        it("set feeToSetter state variable", async () => {
             await this.factory.connect(this.feeToSetter).setFeeToSetter(this.bob.address)
             expect(await this.factory.feeToSetter()).to.equal(this.bob.address)
         })
 
-        it("should revert if not authorized", async () => {
+        it("reverts if unauthorized", async () => {
             await expect(this.factory.connect(this.alice).setFeeToSetter(this.bob.address)).to.be.revertedWith(
                 "NestedFactory: FORBIDDEN",
             )
@@ -34,12 +35,12 @@ describe("NestedFactory", () => {
     })
 
     describe("#setFeeTo", () => {
-        it("should set feeTo", async () => {
+        it("sets feeTo state variable", async () => {
             await this.factory.connect(this.feeToSetter).setFeeTo(this.bob.address)
             expect(await this.factory.feeTo()).to.equal(this.bob.address)
         })
 
-        it("should revert if not authorized", async () => {
+        it("reverts if unauthorized", async () => {
             await expect(this.factory.connect(this.alice).setFeeTo(this.bob.address)).to.be.revertedWith(
                 "NestedFactory: FORBIDDEN",
             )
@@ -49,11 +50,9 @@ describe("NestedFactory", () => {
     describe("#create", () => {
         before(async () => {
             this.tokenToSell = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2" // WETH
+            this.tokenToSellContract = new ethers.Contract(this.tokenToSell, weth, this.alice)
 
-            // TODO: wrap outside of factory
-            await this.factory.depositETH("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", {
-                value: ethers.utils.parseEther("10").toString(),
-            })
+            await this.tokenToSellContract.deposit({ value: ethers.utils.parseEther("10").toString() })
 
             this.orders = [
                 {
@@ -95,7 +94,7 @@ describe("NestedFactory", () => {
 
         beforeEach(async () => {})
 
-        it("revert if token to buy list is empty", async () => {
+        it("reverts if token to buy list is empty", async () => {
             await expect(
                 this.factory.create(
                     this.tokenToSell,
@@ -107,7 +106,7 @@ describe("NestedFactory", () => {
             ).to.be.revertedWith("BUY_ARG_MISSING")
         })
 
-        it("revert if no swapCall data for all token to buy", async () => {
+        it("reverts if no swapCall data for all token to buy", async () => {
             await expect(
                 this.factory.create(
                     this.tokenToSell,
@@ -119,7 +118,7 @@ describe("NestedFactory", () => {
             ).to.be.revertedWith("BUY_ARG_ERROR")
         })
 
-        it("revert if allowance was not set for sellToken", async () => {
+        it("reverts if allowance was not set for sellToken", async () => {
             await expect(
                 this.factory.create(
                     this.tokenToSell,
@@ -131,9 +130,8 @@ describe("NestedFactory", () => {
             ).to.be.revertedWith("USER_FUND_ALLOWANCE_ERROR")
         })
 
-        it("should swap tokens", async () => {
-            const tokenToSellContract = new ethers.Contract(this.tokenToSell, abi, this.alice)
-            await tokenToSellContract.approve(this.factory.address, ethers.utils.parseEther("100"))
+        it("creates the NFT with ERC2O provided", async () => {
+            await this.tokenToSellContract.approve(this.factory.address, ethers.utils.parseEther("100"))
             await this.factory.create(
                 this.tokenToSell,
                 this.maximumSellAmount,
@@ -145,10 +143,10 @@ describe("NestedFactory", () => {
             const uni = new ethers.Contract(this.orders[0].buyToken, abi, this.alice)
             const link = new ethers.Contract(this.orders[1].buyToken, abi, this.alice)
             // WETH balance of user should be 10 - 1 - 1 - 0.03 (for fees)
-            expect(await tokenToSellContract.balanceOf(this.alice.address)).to.equal(
+            expect(await this.tokenToSellContract.balanceOf(this.alice.address)).to.equal(
                 ethers.utils.parseEther("7.97").toString(),
             )
-            expect(await tokenToSellContract.balanceOf(this.factory.feeTo())).to.equal(
+            expect(await this.tokenToSellContract.balanceOf(this.factory.feeTo())).to.equal(
                 ethers.utils.parseEther("0.03").toString(),
             )
 
@@ -239,7 +237,19 @@ describe("NestedFactory", () => {
             ).to.be.revertedWith("SELL_AMOUNT_ERROR")
         })
 
-        it("should swap ETH", async () => {
+        it("reverts if insufficient funds sent in the transaction", async () => {
+            await expect(
+                this.factory.createFromETH(
+                    this.sellAmounts,
+                    this.responses[0].data.to,
+                    this.tokensToBuy,
+                    this.swapCallData,
+                    { value: this.sellAmounts[0] },
+                ),
+            ).to.be.revertedWith("INSUFFICIENT_FUNDS_RECEIVED")
+        })
+
+        it("creates the NFT with ETH provided", async () => {
             await this.factory.createFromETH(
                 this.sellAmounts,
                 this.responses[0].data.to,
@@ -261,7 +271,7 @@ describe("NestedFactory", () => {
                 .mul(ethers.utils.parseEther("1").toString())
                 .div(ethers.utils.parseEther("100").toString())
 
-            // reserve balance for token bought should be greater than within 1% of buy amount
+            // reserve balance for token bought should be within 1% of buy amount
             expect(await uni.balanceOf(this.factory.reserve())).to.within(
                 buyUniAmount.sub(buyUniSlippage).toString(),
                 buyUniAmount.add(buyUniSlippage).toString(),
