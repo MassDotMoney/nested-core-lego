@@ -142,7 +142,7 @@ contract NestedFactory {
         uint256 remainingBalance = ERC20(_sellToken).balanceOf(address(this)) - sellTokenBalanceBeforeDeposit;
         if(remainingBalance>0)
         {
-            WETH(_sellToken).withdraw(remainingBalance);
+            ERC20(_sellToken).transfer(msg.sender, remainingBalance);
         }
     }
 
