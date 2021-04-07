@@ -29,7 +29,6 @@ contract NestedFactory {
         address reserve;
     }
 
-    mapping(address => uint256[]) public usersTokenIds;
     mapping(uint256 => Holding[]) public usersHoldings;
 
     constructor(address _feeToSetter) {
@@ -71,7 +70,13 @@ contract NestedFactory {
     @return [<uint256>]
     */
     function tokensOf(address _address) public view virtual returns (uint256[] memory) {
-        return usersTokenIds[_address];
+        uint256 tokensCount = nestedAsset.balanceOf(_address);
+        uint256[] memory tokenIds = new uint256[](tokensCount);
+
+        for (uint256 i = 0; i < tokensCount; i++) {
+            tokenIds[i] = nestedAsset.tokenOfOwnerByIndex(_address, i);
+        }
+        return tokenIds;
     }
 
     /*
@@ -117,7 +122,6 @@ contract NestedFactory {
         uint256 sellTokenBalanceBeforePurchase = ERC20(_sellToken).balanceOf(address(this));
 
         uint256 tokenId = nestedAsset.mint(msg.sender);
-        usersTokenIds[msg.sender].push(tokenId);
 
         for (uint256 i = 0; i < buyCount; i++) {
             uint256 buyTokenInitialBalance = ERC20(_tokensToBuy[i]).balanceOf(address(this));
@@ -170,7 +174,6 @@ contract NestedFactory {
         uint256 ethBalanceBeforePurchase = address(this).balance;
 
         uint256 tokenId = nestedAsset.mint(msg.sender);
-        usersTokenIds[msg.sender].push(tokenId);
 
         uint256 totalSellAmount = 0;
 

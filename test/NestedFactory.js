@@ -91,8 +91,6 @@ describe("NestedFactory", () => {
             this.swapCallData.push(this.responses[1].data.data)
         })
 
-        beforeEach(async () => {})
-
         it("reverts if token to buy list is empty", async () => {
             await expect(
                 this.factory.create(
@@ -167,11 +165,15 @@ describe("NestedFactory", () => {
                 buyLinkAmount.add(buyLinkPercent).toString(),
             )
             // check if NFT was created
-            let NFTs = await this.factory.tokensOf(this.alice.address)
-            expect(NFTs.length).to.equal(1)
+            let alicetokens = await this.factory.tokensOf(this.alice.address)
+            expect(alicetokens.length).to.equal(1)
+
+            // check that Bob's balance did not increase
+            let bobTokens = await this.factory.tokensOf(this.bob.address)
+            expect(bobTokens.length).to.equal(0)
 
             // check number of assets in NFT token
-            let result = await this.factory.tokenHoldings(NFTs[0])
+            let result = await this.factory.tokenHoldings(alicetokens[0])
             expect(result.length).to.equal(this.tokensToBuy.length)
         })
         //TO DO : Add refund ERC20
@@ -281,11 +283,15 @@ describe("NestedFactory", () => {
             )
 
             // check if NFT was created
-            let NFTs = await this.factory.tokensOf(this.alice.address)
-            expect(NFTs.length).to.equal(1)
+            let alicetokens = await this.factory.tokensOf(this.alice.address)
+            expect(alicetokens.length).to.equal(1)
+
+            // check that Bob's balance did not increase
+            let bobTokens = await this.factory.tokensOf(this.bob.address)
+            expect(bobTokens.length).to.equal(0)
 
             // check number of assets in NFT token
-            let result = await this.factory.tokenHoldings(NFTs[0])
+            let result = await this.factory.tokenHoldings(alicetokens[0])
             expect(result.length).to.equal(this.tokensToBuy.length)
         })
 
