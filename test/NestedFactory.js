@@ -8,7 +8,6 @@ describe("NestedFactory", () => {
     before(async () => {
         this.NestedFactory = await ethers.getContractFactory("NestedFactory")
         this.NestedToken = await hre.ethers.getContractFactory("NestedToken")
-
         this.signers = await ethers.getSigners()
         // All transaction will be sent from Alice unless explicity specified
         this.alice = this.signers[0]
@@ -289,6 +288,25 @@ describe("NestedFactory", () => {
             let result = await this.factory.tokenHoldings(NFTs[0])
             expect(result.length).to.equal(this.tokensToBuy.length)
         })
-        //TO DO : Add refund ETH
+
+        it("should refund extra ETH sent", async () => {
+            const sellTokenUserBalanceBeforeSwap = await this.signers[0].getBalance()
+            this.totalSellAmount = ethers.BigNumber.from(this.totalSellAmount)
+
+            await this.factory.createFromETH(
+                this.sellAmounts,
+                this.responses[0].data.to,
+                this.tokensToBuy,
+                this.swapCallData,
+                {
+                    value: this.totalSellAmount.add(ethers.BigNumber.from(this.responses[1].data.sellAmount)),
+                },
+            )
+            const sellTokenUserBalanceAfterSwap = await this.signers[0].getBalance()
+            const ethUsedForTheSwap = sellTokenUserBalanceBeforeSwap.sub(sellTokenUserBalanceAfterSwap)
+
+            // the balance difference should have decreased only by totalSellAmount
+            expect(ethUsedForTheSwap).to.gte(this.totalSellAmount)
+        })
     })
 })

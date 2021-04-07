@@ -9,8 +9,6 @@ import "./NestedReserve.sol";
 // A partial WETH interface.
 interface WETH is IERC20 {
     function deposit() external payable;
-
-    function withdraw(uint256 amount) external;
 }
 
 contract NestedFactory {
@@ -70,7 +68,7 @@ contract NestedFactory {
     /*
     Returns the list of NestedAsset ids owned by an address
     @params account [address] address
-    @return [<uint256>] 
+    @return [<uint256>]
     */
     function tokensOf(address _address) public view virtual returns (uint256[] memory) {
         return usersTokenIds[_address];
@@ -79,16 +77,11 @@ contract NestedFactory {
     /*
     Returns the holdings associated to a NestedAsset
     @params _tokenId [uint256] the id of the NestedAsset
-    @return [<Holding>] 
+    @return [<Holding>]
     */
     function tokenHoldings(uint256 _tokenId) public view virtual returns (Holding[] memory) {
         return usersHoldings[_tokenId];
     }
-
-    /*
-    Fallback function
-    */
-    fallback() external payable {}
 
     /*
     Purchase and collect tokens for the user.
@@ -204,7 +197,7 @@ contract NestedFactory {
 
     /*
     TO THINK ABOUT:
-    1) [only for create, covered in createFromEth] 
+    1) [only for create, covered in createFromEth]
      Get estimate of required funds for the transaction to get through.
      Revert early if user can't afford the operation
      Hints: NDX uses chainlink to compute short term average cost of tokens
