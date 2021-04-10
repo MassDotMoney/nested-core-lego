@@ -31,6 +31,12 @@ describe("NestedFactory", () => {
                 "NestedFactory: FORBIDDEN",
             )
         })
+
+        it("reverts if the address is invalid", async () => {
+            await expect(
+                this.factory.connect(this.alice).setFeeToSetter("0x0000000000000000000000000000000000000000"),
+            ).to.be.revertedWith("NestedFactory: INVALID_ADDRESS")
+        })
     })
 
     describe("#setFeeTo", () => {
@@ -43,6 +49,12 @@ describe("NestedFactory", () => {
             await expect(this.factory.connect(this.alice).setFeeTo(this.bob.address)).to.be.revertedWith(
                 "NestedFactory: FORBIDDEN",
             )
+        })
+
+        it("reverts if the address is invalid", async () => {
+            await expect(
+                this.factory.connect(this.alice).setFeeTo("0x0000000000000000000000000000000000000000"),
+            ).to.be.revertedWith("NestedFactory: INVALID_ADDRESS")
         })
     })
 

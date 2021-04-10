@@ -42,7 +42,7 @@ contract NestedFactory {
     }
 
     modifier addressExists(address _address) {
-        require(_address != address(0), "NestedFactory: invalid address");
+        require(_address != address(0), "NestedFactory: INVALID_ADDRESS");
         _;
     }
 
@@ -164,7 +164,6 @@ contract NestedFactory {
         require(buyCount == _swapCallData.length, "BUY_ARG_ERROR");
         require(buyCount == _sellAmounts.length, "SELL_AMOUNT_ERROR");
 
-        // TODO: sanity check. User sends enough funds for every swaps
         uint256 amountToSell = 0;
         for (uint256 i = 0; i < _sellAmounts.length; i++) {
             amountToSell += _sellAmounts[i];

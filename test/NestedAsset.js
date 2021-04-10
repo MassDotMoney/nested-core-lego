@@ -52,7 +52,7 @@ describe("NestedAsset", () => {
         })
 
         it("should revert if the caller is not the factory", async () => {
-            // Alice tries to burn the token himself and bypass the factory
+            // Alice tries to burn the token herself and bypass the factory
             await expect(this.asset.connect(this.alice).burn(this.alice.address, 1)).to.be.revertedWith(
                 "NestedAsset: FORBIDDEN",
             )
@@ -62,9 +62,27 @@ describe("NestedAsset", () => {
             await this.asset.mint(this.bob.address)
 
             // Alice asked to burn Bob's token
-            await expect(this.asset.burn(this.alice.address, 1)).to.be.revertedWith(
-                "revert NestedAsset: only owner can burn",
-            )
+            await expect(this.asset.burn(this.alice.address, 1)).to.be.revertedWith("revert NestedAsset: FORBIDDEN")
         })
+    })
+
+    describe("#setFactory", () => {
+        before(async () => {
+            this.NestedFactory = await ethers.getContractFactory("NestedFactory")
+
+            this.otherFactory = await this.NestedFactory.deploy(this.alice.address)
+            await this.otherFactory.deployed()
+        })
+        it("sets the new factory", async () => {
+            await this.asset.setFactory(this.otherFactory.address)
+            expect(await this.asset.factory()).to.equal(this.otherFactory.address)
+        })
+
+        // TODO reverts if caller isn't factory
+        // it("reverts if unauthorized", async() => {
+        //     await expect(this.asset.setFactory(this.otherFactory.address)).to.be.revertedWith(
+        //         "revert NestedAsset: FORBIDDEN",
+        //     )
+        // })
     })
 })

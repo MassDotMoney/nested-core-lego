@@ -44,16 +44,17 @@ contract NestedAsset is ERC721, Ownable {
     @param tokenId The id of the NestedAsset
     */
     function burn(address _owner, uint256 _tokenId) public onlyFactory() {
-        require(_owner == ownerOf(_tokenId), "NestedAsset: only owner can burn");
+        require(_owner == ownerOf(_tokenId), "NestedAsset: FORBIDDEN");
         _burn(_tokenId);
     }
 
+    // TODO only allow the factory or a migrator to set the factory address
     /*
     Sets the factory for Nested assets
     @param factory the address of the new factory
     */
     function setFactory(address _factory) external {
-        require(factory != address(0), "NestedAsset: invalid address");
+        require(factory != address(0), "NestedAsset: INVALID_ADDRESS");
         factory = _factory;
     }
 }
