@@ -60,45 +60,134 @@ async function main() {
         swapCallData, { value: totalSellAmount }
     )
 
+    await nestedFactory.createFromETH(
+        sellAmounts,
+        responses[0].data.to,
+        tokensToBuy,
+        swapCallData, { value: totalSellAmount }
+    )
+
     let provider = ethers.getDefaultProvider();
 
-    const sellTokenUserBalance = await provider.getBalance(accounts[0].address);
-    const sellTokenFactoryBalance = await provider.getBalance(nestedFactory.address);
-    const sellTokenReserveBalance = await provider.getBalance(nestedFactory.reserve());
-    const sellTokenFeeBalance = await provider.getBalance(accounts[10].address);
+    let sellTokenUserBalance = await provider.getBalance(accounts[0].address);
+    let sellTokenFactoryBalance = await provider.getBalance(nestedFactory.address);
+    let sellTokenReserveBalance = await provider.getBalance(nestedFactory.reserve());
+    let sellTokenFeeBalance = await provider.getBalance(accounts[10].address);
 
-    const uniUserBalance = await uni.balanceOf(accounts[0].address);
-    const uniFactoryBalance = await uni.balanceOf(nestedFactory.address);
-    const uniReserveBalance = await uni.balanceOf(nestedFactory.reserve());
-    const uniFeeBalance = await uni.balanceOf(accounts[10].address);
+    let uniUserBalance = await uni.balanceOf(accounts[0].address);
+    let uniFactoryBalance = await uni.balanceOf(nestedFactory.address);
+    let uniReserveBalance = await uni.balanceOf(nestedFactory.reserve());
+    let uniFeeBalance = await uni.balanceOf(accounts[10].address);
 
-    const linkUserBalance = await link.balanceOf(accounts[0].address);
-    const linkFactoryBalance = await link.balanceOf(nestedFactory.address);
-    const linkReserveBalance = await link.balanceOf(nestedFactory.reserve());
-    const linkFeeBalance = await link.balanceOf(accounts[10].address);
+    let linkUserBalance = await link.balanceOf(accounts[0].address);
+    let linkFactoryBalance = await link.balanceOf(nestedFactory.address);
+    let linkReserveBalance = await link.balanceOf(nestedFactory.reserve());
+    let linkFeeBalance = await link.balanceOf(accounts[10].address);
 
-    console.log("Balance of user in ETH is ", sellTokenUserBalance.toString());
-    console.log("Balance of factory in ETH is ", sellTokenFactoryBalance.toString());
-    console.log("Balance of reserve in ETH is ", sellTokenReserveBalance.toString());
-    console.log("Balance of feeTo in ETH is ", sellTokenFeeBalance.toString());
+    console.log("Balance of user in ETH is ", ethers.utils.formatEther(sellTokenUserBalance.toString()));
+    console.log("Balance of factory in ETH is ", ethers.utils.formatEther(sellTokenFactoryBalance.toString()));
+    console.log("Balance of reserve in ETH is ", ethers.utils.formatEther(sellTokenReserveBalance.toString()));
+    console.log("Balance of feeTo in ETH is ", ethers.utils.formatEther(sellTokenFeeBalance.toString()));
     console.log('--')
 
-    console.log("Balance of user in UNI is ", uniUserBalance.toString());
-    console.log("Balance of factory in UNI is ", uniFactoryBalance.toString());
-    console.log("Balance of reserve in UNI is ", uniReserveBalance.toString());
-    console.log("Balance of feeTo in UNI is ", uniFeeBalance.toString());
+    console.log("Balance of user in UNI is ", ethers.utils.formatEther(uniUserBalance.toString()));
+    console.log("Balance of factory in UNI is ", ethers.utils.formatEther(uniFactoryBalance.toString()));
+    console.log("Balance of reserve in UNI is ", ethers.utils.formatEther(uniReserveBalance.toString()));
+    console.log("Balance of feeTo in UNI is ", ethers.utils.formatEther(uniFeeBalance.toString()));
     console.log('--')
 
-    console.log("Balance of user in LINK is ", linkUserBalance.toString());
-    console.log("Balance of factory in LINK is ", linkFactoryBalance.toString());
-    console.log("Balance of reserve in LINK is ", linkReserveBalance.toString());
-    console.log("Balance of feeTo in LINK is ", linkFeeBalance.toString());
+    console.log("Balance of user in LINK is ", ethers.utils.formatEther(linkUserBalance.toString()));
+    console.log("Balance of factory in LINK is ", ethers.utils.formatEther(linkFactoryBalance.toString()));
+    console.log("Balance of reserve in LINK is ", ethers.utils.formatEther(linkReserveBalance.toString()));
+    console.log("Balance of feeTo in LINK is ", ethers.utils.formatEther(linkFeeBalance.toString()));
 
-    let result = await nestedFactory.tokensOf(accounts[0].address);
-    console.log('result', result);
+    let assets = await nestedFactory.tokensOf(accounts[0].address);
+    console.log('assets: ', assets);
 
-    let holdings = await nestedFactory.tokenHoldings(result[0]);
-    console.log('holdings', holdings);
+    for(let i = 0; i < assets.length; i++) {
+        let holdings = await nestedFactory.tokenHoldings(assets[i]);
+        console.log('holdings token: ', holdings);
+    }
+    
+    // now try to destroy our NFT
+    console.log('now destroying our first asset to get all the ERC20s back');
+    await nestedFactory.destroy(assets[0]);
+
+    assets = await nestedFactory.tokensOf(accounts[0].address);
+    console.log('assets: ', assets);
+
+    let holdings = [];
+    for(let i = 0; i < assets.length; i++) {
+        holdings = await nestedFactory.tokenHoldings(assets[i]);
+        console.log('holdings token: ', holdings);
+    }
+
+    // destroy to single ERC20
+    // getting 0x quote for each of the tokens
+    
+    let quotes = [];
+    for(let i = 0; i < holdings.length; i++) {
+        let holding = holdings[i];
+        let order = {
+            sellToken: holding.token,
+            buyToken: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // WETH
+            sellAmount: holding.amount.toString(),
+            slippagePercentage: 0.05,
+        }
+        let quote = await axios.get(`https://api.0x.org/swap/v1/quote?${qs.stringify(order)}`);
+        quotes.push(quote);
+    }
+
+    let tokensToSell = [];
+    swapCallData = [];
+
+    for(let i = 0; i < quotes.length; i++) {
+        tokensToSell.push(quotes[i].data.sellTokenAddress);
+        swapCallData.push(quotes[i].data.data);
+    }
+    console.log('destroying our second asset to get WETH back');
+
+    await nestedFactory.destroyForERC20(
+        assets[0],
+        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // or quotes[0].data.buyTokenAddress -> WETH
+        quotes[0].data.to,
+        tokensToSell,
+        swapCallData
+    )
+    
+    
+
+    sellTokenUserBalance = await provider.getBalance(accounts[0].address);
+    sellTokenFactoryBalance = await provider.getBalance(nestedFactory.address);
+    sellTokenReserveBalance = await provider.getBalance(nestedFactory.reserve());
+    sellTokenFeeBalance = await provider.getBalance(accounts[10].address);
+
+    uniUserBalance = await uni.balanceOf(accounts[0].address);
+    uniFactoryBalance = await uni.balanceOf(nestedFactory.address);
+    uniReserveBalance = await uni.balanceOf(nestedFactory.reserve());
+    uniFeeBalance = await uni.balanceOf(accounts[10].address);
+
+    linkUserBalance = await link.balanceOf(accounts[0].address);
+    linkFactoryBalance = await link.balanceOf(nestedFactory.address);
+    linkReserveBalance = await link.balanceOf(nestedFactory.reserve());
+    linkFeeBalance = await link.balanceOf(accounts[10].address);
+
+    console.log("Balance of user in ETH is ", ethers.utils.formatEther(sellTokenUserBalance.toString()));
+    console.log("Balance of factory in ETH is ", ethers.utils.formatEther(sellTokenFactoryBalance.toString()));
+    console.log("Balance of reserve in ETH is ", ethers.utils.formatEther(sellTokenReserveBalance.toString()));
+    console.log("Balance of feeTo in ETH is ", ethers.utils.formatEther(sellTokenFeeBalance.toString()));
+    console.log('--')
+
+    console.log("Balance of user in UNI is ", ethers.utils.formatEther(uniUserBalance.toString()));
+    console.log("Balance of factory in UNI is ", ethers.utils.formatEther(uniFactoryBalance.toString()));
+    console.log("Balance of reserve in UNI is ", ethers.utils.formatEther(uniReserveBalance.toString()));
+    console.log("Balance of feeTo in UNI is ", ethers.utils.formatEther(uniFeeBalance.toString()));
+    console.log('--')
+
+    console.log("Balance of user in LINK is ", ethers.utils.formatEther(linkUserBalance.toString()));
+    console.log("Balance of factory in LINK is ", ethers.utils.formatEther(linkFactoryBalance.toString()));
+    console.log("Balance of reserve in LINK is ", ethers.utils.formatEther(linkReserveBalance.toString()));
+    console.log("Balance of feeTo in LINK is ", ethers.utils.formatEther(linkFeeBalance.toString()));
 
 }
 

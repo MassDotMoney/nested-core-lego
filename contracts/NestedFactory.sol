@@ -6,17 +6,12 @@ import "hardhat/console.sol";
 import "./NestedAsset.sol";
 import "./NestedReserve.sol";
 
-// A partial WETH interface.
-interface WETH is IERC20 {
-    function deposit() external payable;
-}
-
 contract NestedFactory {
     event NestedCreated(uint256 indexed tokenId, address indexed owner);
 
     address public feeTo;
     address public feeToSetter;
-    address public reserve;
+    NestedReserve public reserve;
 
     NestedAsset public immutable nestedAsset;
 
@@ -37,12 +32,20 @@ contract NestedFactory {
 
         nestedAsset = new NestedAsset();
         // TODO: do this outside of constructor. Think about reserve architecture
-        NestedReserve reserveContract = new NestedReserve();
-        reserve = address(reserveContract);
+        reserve = new NestedReserve();
     }
 
     modifier addressExists(address _address) {
         require(_address != address(0), "NestedFactory: INVALID_ADDRESS");
+        _;
+    }
+
+    /*
+    Reverts the transaction if the caller is not the factory
+    @param tokenId uint256 the NFT Id
+    */
+    modifier onlyOwner(uint256 tokenId) {
+        require(nestedAsset.ownerOf(tokenId) == msg.sender, "NestedFactory: Only Owner");
         _;
     }
 
@@ -129,9 +132,9 @@ contract NestedFactory {
             swapTokens(_sellToken, _swapTarget, _swapCallData[i]);
             uint256 amountBought = ERC20(_tokensToBuy[i]).balanceOf(address(this)) - buyTokenInitialBalance;
 
-            usersHoldings[tokenId].push(Holding({ token: _tokensToBuy[i], amount: amountBought, reserve: reserve }));
+            usersHoldings[tokenId].push(Holding({ token: _tokensToBuy[i], amount: amountBought, reserve: address(reserve) }));
 
-            require(ERC20(_tokensToBuy[i]).transfer(reserve, amountBought) == true, "TOKEN_TRANSFER_ERROR");
+            require(ERC20(_tokensToBuy[i]).transfer(address(reserve), amountBought) == true, "TOKEN_TRANSFER_ERROR");
         }
 
         require(
@@ -182,9 +185,9 @@ contract NestedFactory {
             swapFromETH(_sellAmounts[i], _swapTarget, _swapCallData[i]);
             uint256 amountBought = ERC20(_tokensToBuy[i]).balanceOf(address(this)) - buyTokenInitialBalance;
 
-            usersHoldings[tokenId].push(Holding({ token: _tokensToBuy[i], amount: amountBought, reserve: reserve }));
+            usersHoldings[tokenId].push(Holding({ token: _tokensToBuy[i], amount: amountBought, reserve: address(reserve) }));
 
-            require(ERC20(_tokensToBuy[i]).transfer(reserve, amountBought) == true, "TOKEN_TRANSFER_ERROR");
+            require(ERC20(_tokensToBuy[i]).transfer(address(reserve), amountBought) == true, "TOKEN_TRANSFER_ERROR");
             // TODO: compute sold amount by looking at balance difference, pre and post swap
             totalSellAmount = totalSellAmount + _sellAmounts[i];
         }
@@ -247,5 +250,64 @@ contract NestedFactory {
     ) internal {
         (bool success, bytes memory resultData) = _swapTarget.call{ value: _sellAmount }(_swapCallData);
         require(success, "SWAP_CALL_FAILED");
+    }
+
+    /*
+    burn NFT and return tokens to the user.
+    @param _tokenId uint256 NFT token Id
+    */
+    function destroy(uint256 _tokenId) external onlyOwner(_tokenId) {
+        // get Holdings for this token
+        Holding[] memory holdings = usersHoldings[_tokenId];
+
+        // send back all ERC20 to user
+        for (uint256 i = 0; i < holdings.length; i++) {
+            NestedReserve(holdings[i].reserve).transfer(msg.sender, holdings[i].token, holdings[i].amount);
+        }
+
+        // burn token
+        delete usersHoldings[_tokenId];
+        nestedAsset.burn(msg.sender, _tokenId);
+    }
+
+    /*
+    Burn NFT and Sell all tokens for a specific ERC20 then send it back to the user
+    @param  _tokenId uint256 NFT token Id
+    @param _buyToken [address] token used to make swaps
+    @param _swapTarget [address] the address of the contract that will swap tokens
+    @param _tokensToSell [<address>] the list of tokens to sell
+    @param _swapCallData [<bytes>] the list of call data provided by 0x to fill quotes
+    */
+    function destroyForERC20 (
+        uint256 _tokenId,
+        address _buyToken,
+        address payable _swapTarget,
+        address[] calldata _tokensToSell,
+        bytes[] calldata _swapCallData
+    ) external onlyOwner(_tokenId) {
+        // get Holdings for this token
+        Holding[] memory holdings = usersHoldings[_tokenId];
+
+        // first transfer holdings from reserve to factory
+        for (uint256 i = 0; i < holdings.length; i++) {
+            NestedReserve(holdings[i].reserve).transfer(address(this), holdings[i].token, holdings[i].amount);
+        }
+
+        uint256 buyTokenInitialBalance = ERC20(_buyToken).balanceOf(address(this));
+
+        // swap tokens
+        for (uint256 i = 0; i < _tokensToSell.length; i++) {
+            swapTokens(_tokensToSell[i], _swapTarget, _swapCallData[i]);
+        }
+
+        // send swapped ERC20 to user minus fees
+        uint256 amountBought = ERC20(_buyToken).balanceOf(address(this)) - buyTokenInitialBalance;
+        uint256 amountFees = amountBought / 100;
+        amountBought = amountBought - amountFees;
+        require(ERC20(_buyToken).transfer(feeTo, amountFees) == true, "FEES_TRANSFER_ERROR");
+        require(ERC20(_buyToken).transfer(msg.sender, amountBought) == true, "TOKEN_TRANSFER_ERROR");
+
+        delete usersHoldings[_tokenId];
+        nestedAsset.burn(msg.sender, _tokenId);
     }
 }

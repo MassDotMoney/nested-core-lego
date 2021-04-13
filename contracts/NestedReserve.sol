@@ -1,6 +1,14 @@
 pragma solidity ^0.7.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+//import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+// A partial ERC20 interface.
+interface ERC20 {
+    function allowance(address _owner, address _spender) external view returns (uint remaining);
+    function transfer(address _to, uint _value) external returns (bool success);
+    function balanceOf(address _owner) external view returns (uint balance);
+    function transferFrom(address _from, address _to, uint256 _value) external returns (bool success);
+    function approve(address _spender, uint256 _value) external returns (bool success);
+}
 
 contract NestedReserve {
     address public factory;
