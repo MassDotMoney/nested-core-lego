@@ -19,7 +19,7 @@ contract NestedAsset is ERC721, Ownable {
     /*
     Reverts the transaction if the caller is not the factory
     */
-    modifier onlyFactory() {
+    modifier onlyFactory {
         require(msg.sender == factory, "NestedAsset: FORBIDDEN");
         _;
     }
@@ -29,7 +29,7 @@ contract NestedAsset is ERC721, Ownable {
     @param owner The account address that signed the transaction
     @return [uint256] the minted token's id
     */
-    function mint(address _owner) public onlyFactory() returns (uint256) {
+    function mint(address _owner) public onlyFactory returns (uint256) {
         _tokenIds.increment();
 
         uint256 newNestedId = _tokenIds.current();
@@ -43,7 +43,7 @@ contract NestedAsset is ERC721, Ownable {
     @param owner The account address that signed the transaction
     @param tokenId The id of the NestedAsset
     */
-    function burn(address _owner, uint256 _tokenId) public onlyFactory() {
+    function burn(address _owner, uint256 _tokenId) public onlyFactory {
         require(_owner == ownerOf(_tokenId), "NestedAsset: FORBIDDEN");
         _burn(_tokenId);
     }

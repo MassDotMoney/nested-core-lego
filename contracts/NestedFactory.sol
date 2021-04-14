@@ -9,14 +9,14 @@ import "./NestedReserve.sol";
 contract NestedFactory {
     event NestedCreated(uint256 indexed tokenId, address indexed owner);
 
-    address public feeTo;
+    address payable public feeTo;
     address public feeToSetter;
     NestedReserve public reserve;
 
     NestedAsset public immutable nestedAsset;
 
     /*
-    Represents custody from Nested over an asset
+    Info about assets stored in reserves
     */
     struct Holding {
         address token;
@@ -26,6 +26,18 @@ contract NestedFactory {
 
     mapping(uint256 => Holding[]) public usersHoldings;
 
+    /*
+    Reverts if the address does not exist
+    @param _address [address]
+    */
+    modifier addressExists(address _address) {
+        require(_address != address(0), "NestedFactory: INVALID_ADDRESS");
+        _;
+    }
+
+    /*
+    @param _feeToSetter [address] The address which will be allowed to choose where the fees go
+    */
     constructor(address payable _feeToSetter) {
         feeToSetter = _feeToSetter;
         feeTo = _feeToSetter;
@@ -33,11 +45,6 @@ contract NestedFactory {
         nestedAsset = new NestedAsset();
         // TODO: do this outside of constructor. Think about reserve architecture
         reserve = new NestedReserve();
-    }
-
-    modifier addressExists(address _address) {
-        require(_address != address(0), "NestedFactory: INVALID_ADDRESS");
-        _;
     }
 
     /*
@@ -111,41 +118,31 @@ contract NestedFactory {
         require(buyCount > 0, "BUY_ARG_MISSING");
         require(buyCount == _swapCallData.length, "BUY_ARG_ERROR");
 
-        uint256 fees = (_sellAmount * 15) / 1000;
+        uint256 fees = _sellAmount / 100;
+        uint256 sellAmountWithFees = _sellAmount + fees;
+        require(ERC20(_sellToken).allowance(msg.sender, address(this)) >= sellAmountWithFees, "ALLOWANCE_ERROR");
+        require(ERC20(_sellToken).balanceOf(msg.sender) >= sellAmountWithFees, "INSUFFICIENT_FUNDS");
 
-        require(
-            ERC20(_sellToken).allowance(msg.sender, address(this)) > _sellAmount + fees,
-            "USER_FUND_ALLOWANCE_ERROR"
-        );
-        uint256 sellTokenBalanceBeforeDeposit = ERC20(_sellToken).balanceOf(address(this));
-
-        require(ERC20(_sellToken).transferFrom(msg.sender, address(this), _sellAmount), "USER_FUND_TRANSFER_ERROR");
-        require(ERC20(_sellToken).transferFrom(msg.sender, feeTo, fees) == true, "FEE_TRANSFER_ERROR");
+        ERC20(_sellToken).transferFrom(msg.sender, address(this), sellAmountWithFees);
 
         uint256 sellTokenBalanceBeforePurchase = ERC20(_sellToken).balanceOf(address(this));
 
         uint256 tokenId = nestedAsset.mint(msg.sender);
 
         for (uint256 i = 0; i < buyCount; i++) {
-            uint256 buyTokenInitialBalance = ERC20(_tokensToBuy[i]).balanceOf(address(this));
-
             swapTokens(_sellToken, _swapTarget, _swapCallData[i]);
-            uint256 amountBought = ERC20(_tokensToBuy[i]).balanceOf(address(this)) - buyTokenInitialBalance;
+            uint256 amountBought = ERC20(_tokensToBuy[i]).balanceOf(address(this));
 
-            usersHoldings[tokenId].push(Holding({ token: _tokensToBuy[i], amount: amountBought, reserve: address(reserve) }));
-
+            usersHoldings[tokenId].push(
+                Holding({ token: _tokensToBuy[i], amount: amountBought, reserve: address(reserve) })
+            );
             require(ERC20(_tokensToBuy[i]).transfer(address(reserve), amountBought) == true, "TOKEN_TRANSFER_ERROR");
         }
 
-        require(
-            sellTokenBalanceBeforePurchase - ERC20(_sellToken).balanceOf(address(this)) <= _sellAmount,
-            "EXCHANGE_ERROR"
-        );
-
-        uint256 remainingBalance = ERC20(_sellToken).balanceOf(address(this)) - sellTokenBalanceBeforeDeposit;
-        if (remainingBalance > 0) {
-            ERC20(_sellToken).transfer(msg.sender, remainingBalance);
-        }
+        uint256 remainingSellToken =
+            sellAmountWithFees - (sellTokenBalanceBeforePurchase - ERC20(_sellToken).balanceOf(address(this)));
+        require(remainingSellToken >= fees, "INSUFFICIENT_FUNDS");
+        require(ERC20(_sellToken).transferFrom(address(this), feeTo, remainingSellToken) == true, "FEE_TRANSFER_ERROR");
     }
 
     /*
@@ -171,53 +168,27 @@ contract NestedFactory {
         for (uint256 i = 0; i < _sellAmounts.length; i++) {
             amountToSell += _sellAmounts[i];
         }
-        require(msg.value >= amountToSell, "INSUFFICIENT_FUNDS_RECEIVED");
+        uint256 fees = amountToSell / 100;
+        require(msg.value >= amountToSell + fees, "INSUFFICIENT_FUNDS");
 
         uint256 ethBalanceBeforePurchase = address(this).balance;
 
         uint256 tokenId = nestedAsset.mint(msg.sender);
 
-        uint256 totalSellAmount = 0;
-
         for (uint256 i = 0; i < buyCount; i++) {
-            uint256 buyTokenInitialBalance = ERC20(_tokensToBuy[i]).balanceOf(address(this));
-
             swapFromETH(_sellAmounts[i], _swapTarget, _swapCallData[i]);
-            uint256 amountBought = ERC20(_tokensToBuy[i]).balanceOf(address(this)) - buyTokenInitialBalance;
+            uint256 amountBought = ERC20(_tokensToBuy[i]).balanceOf(address(this));
 
-            usersHoldings[tokenId].push(Holding({ token: _tokensToBuy[i], amount: amountBought, reserve: address(reserve) }));
-
+            usersHoldings[tokenId].push(
+                Holding({ token: _tokensToBuy[i], amount: amountBought, reserve: address(reserve) })
+            );
             require(ERC20(_tokensToBuy[i]).transfer(address(reserve), amountBought) == true, "TOKEN_TRANSFER_ERROR");
-            // TODO: compute sold amount by looking at balance difference, pre and post swap
-            totalSellAmount = totalSellAmount + _sellAmounts[i];
         }
-        
-        uint256 balanceDeltaBeforeAfterSwap = ethBalanceBeforePurchase - address(this).balance;
-        uint256 fees = (balanceDeltaBeforeAfterSwap * 10) / 1000;
-        feeTo.transfer(fees);
-        require(ethBalanceBeforePurchase - address(this).balance - fees <= totalSellAmount, "EXCHANGE_ERROR");
 
-        uint256 remainingETH = address(this).balance + msg.value - ethBalanceBeforePurchase;
-        if (remainingETH > 0) {
-            msg.sender.transfer(remainingETH);
-        }
+        uint256 remainingETH = msg.value - (ethBalanceBeforePurchase - address(this).balance);
+        require(remainingETH >= fees, "INSUFFICIENT_FUNDS");
+        feeTo.transfer(remainingETH);
     }
-
-    /*
-    TO THINK ABOUT:
-    1) [only for create, covered in createFromEth]
-     Get estimate of required funds for the transaction to get through.
-     Revert early if user can't afford the operation
-     Hints: NDX uses chainlink to compute short term average cost of tokens
-        I think Uniswap Oracle would be cheaper here if we want to do this on chain. To verify.
-        If we want to do it offchain, pass a normalized value of ETH, provided by the front by 0x
-
-    TO DO:
-
-    5) Emit events. TBD which are necessary.
-
-    7) IMPORTANT: Optimise gas
-    */
 
     /*
     Purchase a token
@@ -235,8 +206,8 @@ contract NestedFactory {
         // allowance to 0 before being able to update it.
         require(ERC20(_sellToken).approve(_swapTarget, uint256(-1)), "ALLOWANCE_SETTER_ERROR");
 
-        (bool success, bytes memory resultData) = _swapTarget.call{ value: msg.value }(_swapCallData);
-
+        // solhint-disable-next-line avoid-low-level-calls
+        (bool success, ) = _swapTarget.call{ value: msg.value }(_swapCallData);
         require(success, "SWAP_CALL_FAILED");
     }
 
@@ -251,7 +222,8 @@ contract NestedFactory {
         address payable _swapTarget,
         bytes calldata _swapCallData
     ) internal {
-        (bool success, bytes memory resultData) = _swapTarget.call{ value: _sellAmount }(_swapCallData);
+        // solhint-disable-next-line avoid-low-level-calls
+        (bool success, ) = _swapTarget.call{ value: _sellAmount }(_swapCallData);
         require(success, "SWAP_CALL_FAILED");
     }
 
@@ -281,7 +253,7 @@ contract NestedFactory {
     @param _tokensToSell [<address>] the list of tokens to sell
     @param _swapCallData [<bytes>] the list of call data provided by 0x to fill quotes
     */
-    function destroyForERC20 (
+    function destroyForERC20(
         uint256 _tokenId,
         address _buyToken,
         address payable _swapTarget,
