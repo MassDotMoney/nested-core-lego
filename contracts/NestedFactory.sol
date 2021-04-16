@@ -26,7 +26,7 @@ contract NestedFactory {
 
     mapping(uint256 => Holding[]) public usersHoldings;
 
-    constructor(address _feeToSetter) {
+    constructor(address payable _feeToSetter) {
         feeToSetter = _feeToSetter;
         feeTo = _feeToSetter;
 
@@ -53,7 +53,7 @@ contract NestedFactory {
    Sets the address receiving the fees
    @param feeTo The address of the receiver
    */
-    function setFeeTo(address _feeTo) external addressExists(_feeTo) {
+    function setFeeTo(address payable _feeTo) external addressExists(_feeTo) {
         require(msg.sender == feeToSetter, "NestedFactory: FORBIDDEN");
         feeTo = _feeTo;
     }
@@ -62,7 +62,7 @@ contract NestedFactory {
     Sets the address that can redirect the fees to a new receiver
     @param _feeToSetter The address that decides where the fees go
     */
-    function setFeeToSetter(address _feeToSetter) external addressExists(_feeToSetter) {
+    function setFeeToSetter(address payable _feeToSetter) external addressExists(_feeToSetter) {
         require(msg.sender == feeToSetter, "NestedFactory: FORBIDDEN");
         feeToSetter = _feeToSetter;
     }
@@ -191,10 +191,13 @@ contract NestedFactory {
             // TODO: compute sold amount by looking at balance difference, pre and post swap
             totalSellAmount = totalSellAmount + _sellAmounts[i];
         }
+        
+        uint256 balanceDeltaBeforeAfterSwap = ethBalanceBeforePurchase - address(this).balance;
+        uint256 fees = (balanceDeltaBeforeAfterSwap * 10) / 1000;
+        feeTo.transfer(fees);
+        require(ethBalanceBeforePurchase - address(this).balance - fees <= totalSellAmount, "EXCHANGE_ERROR");
 
-        require(ethBalanceBeforePurchase - address(this).balance <= totalSellAmount, "EXCHANGE_ERROR");
         uint256 remainingETH = address(this).balance + msg.value - ethBalanceBeforePurchase;
-
         if (remainingETH > 0) {
             msg.sender.transfer(remainingETH);
         }

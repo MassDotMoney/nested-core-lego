@@ -8,11 +8,13 @@ describe("NestedFactory", () => {
     before(async () => {
         this.NestedFactory = await ethers.getContractFactory("NestedFactory")
         this.NestedToken = await hre.ethers.getContractFactory("NestedToken")
+
         this.signers = await ethers.getSigners()
         // All transaction will be sent from Alice unless explicity specified
         this.alice = this.signers[0]
         this.bob = this.signers[1]
         this.feeToSetter = this.signers[2]
+        this.feeTo = this.signers[2]
     })
 
     beforeEach(async () => {
@@ -271,12 +273,23 @@ describe("NestedFactory", () => {
         })
 
         it("creates the NFT with ETH provided", async () => {
+
+            const factoryFeesBalanceBeforeSwap = await this.feeToSetter.getBalance()
+            //calculate markup
+            const margin = 0.015
+            let markup = 1 / (1 - margin)
+            markup = Math.ceil(markup * 1000) / 1000
+            let ethAmount = 2 * markup
+            let calculatedFees = (ethAmount * 15) / 1000
+            calculatedFees = ethers.utils.parseEther(calculatedFees.toString())
+            let ethAmountWithFees = ethers.utils.parseEther(ethAmount.toString())
+
             await this.factory.createFromETH(
                 this.sellAmounts,
                 this.responses[0].data.to,
                 this.tokensToBuy,
                 this.swapCallData,
-                { value: this.totalSellAmount },
+                { value: ethAmountWithFees },
             )
 
             const uni = new ethers.Contract(this.orders[0].buyToken, abi, this.alice)
@@ -333,6 +346,33 @@ describe("NestedFactory", () => {
 
             // the balance difference should have decreased only by totalSellAmount
             expect(ethUsedForTheSwap).to.gte(this.totalSellAmount)
+        })
+        it("should collect fees in ETH", async () => {
+            const feeToBalanceBeforeSwap = await this.feeTo.getBalance()
+            
+            this.totalSellAmount = 2;
+            const margin = 0.01
+            //calculate markup
+            let markup = 1 / (1 - margin)
+            markup = Math.ceil(markup * 1000) / 1000
+            let ethAmount = this.totalSellAmount * markup
+            let calculatedFees = (this.totalSellAmount * 10) / 1000
+            calculatedFees = ethers.utils.parseEther(calculatedFees.toString())
+            let ethAmountWithFees = ethers.utils.parseEther(ethAmount.toString())
+
+            await this.factory.createFromETH(
+                this.sellAmounts,
+                this.responses[0].data.to,
+                this.tokensToBuy,
+                this.swapCallData,
+                { value: ethAmountWithFees },
+            )
+
+            const feeToBalanceAfterSwap = await this.feeTo.getBalance()
+            const feesCollected = feeToBalanceAfterSwap.sub(feeToBalanceBeforeSwap)
+
+            //check fees are collected properly in the factory
+            expect(calculatedFees).to.equal(feesCollected)
         })
     })
 
