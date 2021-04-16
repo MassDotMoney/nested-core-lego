@@ -415,7 +415,7 @@ describe("NestedFactory", () => {
 
         it("destroys NFT and send ERC20 to user", async () => {
             let aliceTokens = await this.factory.tokensOf(this.alice.address)
-            this.factory.connect(this.alice).destroyForERC20(
+            this.factory.destroyForERC20(
                 this.assets[0],
                 "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // or quotes[0].data.buyTokenAddress -> WETH
                 this.quotes[0].data.to,
