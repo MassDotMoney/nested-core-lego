@@ -1,12 +1,13 @@
 //SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.7.0;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.8.3;
 
 import "hardhat/console.sol";
 import "./NestedAsset.sol";
 import "./NestedReserve.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract NestedFactory {
+contract NestedFactory is ReentrancyGuard {
     event NestedCreated(uint256 indexed tokenId, address indexed owner);
 
     address payable public feeTo;
@@ -113,36 +114,39 @@ contract NestedFactory {
         address payable _swapTarget,
         address[] calldata _tokensToBuy,
         bytes[] calldata _swapCallData
-    ) external payable {
+    ) external payable nonReentrant {
         uint256 buyCount = _tokensToBuy.length;
         require(buyCount > 0, "BUY_ARG_MISSING");
         require(buyCount == _swapCallData.length, "BUY_ARG_ERROR");
 
         uint256 fees = _sellAmount / 100;
         uint256 sellAmountWithFees = _sellAmount + fees;
-        require(ERC20(_sellToken).allowance(msg.sender, address(this)) >= sellAmountWithFees, "ALLOWANCE_ERROR");
-        require(ERC20(_sellToken).balanceOf(msg.sender) >= sellAmountWithFees, "INSUFFICIENT_FUNDS");
+        require(IERC20(_sellToken).allowance(msg.sender, address(this)) >= sellAmountWithFees, "ALLOWANCE_ERROR");
+        require(IERC20(_sellToken).balanceOf(msg.sender) >= sellAmountWithFees, "INSUFFICIENT_FUNDS");
 
-        ERC20(_sellToken).transferFrom(msg.sender, address(this), sellAmountWithFees);
+        IERC20(_sellToken).transferFrom(msg.sender, address(this), sellAmountWithFees);
 
-        uint256 sellTokenBalanceBeforePurchase = ERC20(_sellToken).balanceOf(address(this));
+        uint256 sellTokenBalanceBeforePurchase = IERC20(_sellToken).balanceOf(address(this));
 
         uint256 tokenId = nestedAsset.mint(msg.sender);
 
         for (uint256 i = 0; i < buyCount; i++) {
             swapTokens(_sellToken, _swapTarget, _swapCallData[i]);
-            uint256 amountBought = ERC20(_tokensToBuy[i]).balanceOf(address(this));
+            uint256 amountBought = IERC20(_tokensToBuy[i]).balanceOf(address(this));
 
             usersHoldings[tokenId].push(
                 Holding({ token: _tokensToBuy[i], amount: amountBought, reserve: address(reserve) })
             );
-            require(ERC20(_tokensToBuy[i]).transfer(address(reserve), amountBought) == true, "TOKEN_TRANSFER_ERROR");
+            require(IERC20(_tokensToBuy[i]).transfer(address(reserve), amountBought) == true, "TOKEN_TRANSFER_ERROR");
         }
 
         uint256 remainingSellToken =
-            sellAmountWithFees - (sellTokenBalanceBeforePurchase - ERC20(_sellToken).balanceOf(address(this)));
+            sellAmountWithFees - (sellTokenBalanceBeforePurchase - IERC20(_sellToken).balanceOf(address(this)));
         require(remainingSellToken >= fees, "INSUFFICIENT_FUNDS");
-        require(ERC20(_sellToken).transferFrom(address(this), feeTo, remainingSellToken) == true, "FEE_TRANSFER_ERROR");
+        require(
+            IERC20(_sellToken).transferFrom(address(this), feeTo, remainingSellToken) == true,
+            "FEE_TRANSFER_ERROR"
+        );
     }
 
     /*
@@ -158,7 +162,7 @@ contract NestedFactory {
         address payable _swapTarget,
         address[] calldata _tokensToBuy,
         bytes[] calldata _swapCallData
-    ) external payable {
+    ) external payable nonReentrant {
         uint256 buyCount = _tokensToBuy.length;
         require(buyCount > 0, "BUY_ARG_MISSING");
         require(buyCount == _swapCallData.length, "BUY_ARG_ERROR");
@@ -177,12 +181,12 @@ contract NestedFactory {
 
         for (uint256 i = 0; i < buyCount; i++) {
             swapFromETH(_sellAmounts[i], _swapTarget, _swapCallData[i]);
-            uint256 amountBought = ERC20(_tokensToBuy[i]).balanceOf(address(this));
+            uint256 amountBought = IERC20(_tokensToBuy[i]).balanceOf(address(this));
 
             usersHoldings[tokenId].push(
                 Holding({ token: _tokensToBuy[i], amount: amountBought, reserve: address(reserve) })
             );
-            require(ERC20(_tokensToBuy[i]).transfer(address(reserve), amountBought) == true, "TOKEN_TRANSFER_ERROR");
+            require(IERC20(_tokensToBuy[i]).transfer(address(reserve), amountBought) == true, "TOKEN_TRANSFER_ERROR");
         }
 
         uint256 remainingETH = msg.value - (ethBalanceBeforePurchase - address(this).balance);
@@ -204,7 +208,7 @@ contract NestedFactory {
     ) internal {
         // Note that for some tokens (e.g., USDT, KNC), you must first reset any existing
         // allowance to 0 before being able to update it.
-        require(ERC20(_sellToken).approve(_swapTarget, uint256(-1)), "ALLOWANCE_SETTER_ERROR");
+        require(IERC20(_sellToken).approve(_swapTarget, type(uint256).max), "ALLOWANCE_SETTER_ERROR");
 
         // solhint-disable-next-line avoid-low-level-calls
         (bool success, ) = _swapTarget.call{ value: msg.value }(_swapCallData);
@@ -238,6 +242,7 @@ contract NestedFactory {
         // send back all ERC20 to user
         for (uint256 i = 0; i < holdings.length; i++) {
             NestedReserve(holdings[i].reserve).transfer(msg.sender, holdings[i].token, holdings[i].amount);
+            // TODO take fees
         }
 
         // burn token
@@ -259,7 +264,7 @@ contract NestedFactory {
         address payable _swapTarget,
         address[] calldata _tokensToSell,
         bytes[] calldata _swapCallData
-    ) external onlyOwner(_tokenId) {
+    ) external onlyOwner(_tokenId) nonReentrant {
         // get Holdings for this token
         Holding[] memory holdings = usersHoldings[_tokenId];
 
@@ -268,7 +273,7 @@ contract NestedFactory {
             NestedReserve(holdings[i].reserve).transfer(address(this), holdings[i].token, holdings[i].amount);
         }
 
-        uint256 buyTokenInitialBalance = ERC20(_buyToken).balanceOf(address(this));
+        uint256 buyTokenInitialBalance = IERC20(_buyToken).balanceOf(address(this));
 
         // swap tokens
         for (uint256 i = 0; i < _tokensToSell.length; i++) {
@@ -276,11 +281,11 @@ contract NestedFactory {
         }
 
         // send swapped ERC20 to user minus fees
-        uint256 amountBought = ERC20(_buyToken).balanceOf(address(this)) - buyTokenInitialBalance;
+        uint256 amountBought = IERC20(_buyToken).balanceOf(address(this)) - buyTokenInitialBalance;
         uint256 amountFees = amountBought / 100;
         amountBought = amountBought - amountFees;
-        require(ERC20(_buyToken).transfer(feeTo, amountFees) == true, "FEES_TRANSFER_ERROR");
-        require(ERC20(_buyToken).transfer(msg.sender, amountBought) == true, "TOKEN_TRANSFER_ERROR");
+        require(IERC20(_buyToken).transfer(feeTo, amountFees) == true, "FEES_TRANSFER_ERROR");
+        require(IERC20(_buyToken).transfer(msg.sender, amountBought) == true, "TOKEN_TRANSFER_ERROR");
 
         delete usersHoldings[_tokenId];
         nestedAsset.burn(msg.sender, _tokenId);
