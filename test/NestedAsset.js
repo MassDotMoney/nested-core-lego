@@ -19,22 +19,35 @@ describe("NestedAsset", () => {
     })
 
     describe("#mint", () => {
-        it("should create ERC-721 tokens with relevant tokenIds", async () => {
-            await this.asset.mint(this.alice.address, this.metadataUri)
-            await this.asset.mint(this.alice.address, this.metadataUri)
-            await this.asset.mint(this.bob.address, this.metadataUri)
-            expect(await this.asset.balanceOf(this.alice.address)).to.equal("2")
-            expect(await this.asset.balanceOf(this.bob.address)).to.equal("1")
-            expect(await this.asset.tokenOfOwnerByIndex(this.alice.address, 0)).to.equal("1")
-            expect(await this.asset.tokenOfOwnerByIndex(this.alice.address, 1)).to.equal("2")
-            expect(await this.asset.tokenOfOwnerByIndex(this.bob.address, 0)).to.equal("3")
+        describe("when creating an NFT from scratch", async () => {
+            it("should create ERC-721 tokens with relevant tokenIds", async () => {
+                await this.asset.mint(this.alice.address, this.metadataUri, 0)
+                await this.asset.mint(this.alice.address, this.metadataUri, 0)
+                await this.asset.mint(this.bob.address, this.metadataUri, 0)
+                expect(await this.asset.balanceOf(this.alice.address)).to.equal("2")
+                expect(await this.asset.balanceOf(this.bob.address)).to.equal("1")
+                expect(await this.asset.tokenOfOwnerByIndex(this.alice.address, 0)).to.equal("1")
+                expect(await this.asset.tokenOfOwnerByIndex(this.alice.address, 1)).to.equal("2")
+                expect(await this.asset.tokenOfOwnerByIndex(this.bob.address, 0)).to.equal("3")
+            })
+        })
+
+        describe("when replicating an NFT", async () => {
+            it("should create ERC-721s and store the original asset used for replication", async () => {
+                await this.asset.mint(this.alice.address, this.metadataUri, 0)
+                await this.asset.mint(this.alice.address, this.metadataUri, 1)
+                await this.asset.mint(this.bob.address, this.metadataUri, 2)
+                expect(await this.asset.originalAsset(1)).to.equal(0)
+                expect(await this.asset.originalAsset(2)).to.equal(1)
+                expect(await this.asset.originalAsset(3)).to.equal(1)
+            })
         })
 
         it("should revert if the caller is not the factory", async () => {
             // Alice tries to mint a token for herself and bypass the factory
-            await expect(this.asset.connect(this.alice).mint(this.alice.address, this.metadataUri)).to.be.revertedWith(
-                "NestedAsset: FORBIDDEN",
-            )
+            await expect(
+                this.asset.connect(this.alice).mint(this.alice.address, this.metadataUri, 0),
+            ).to.be.revertedWith("NestedAsset: FORBIDDEN")
         })
     })
 
@@ -44,7 +57,7 @@ describe("NestedAsset", () => {
         })
 
         it("should display NFT metadata", async () => {
-            await this.asset.mint(this.alice.address, this.metadataUri)
+            await this.asset.mint(this.alice.address, this.metadataUri, 0)
             let nft = await this.asset.tokenOfOwnerByIndex(this.alice.address, 0)
             expect(await this.asset.tokenURI(nft)).to.equal(this.metadataUri)
         })
@@ -52,11 +65,11 @@ describe("NestedAsset", () => {
 
     describe("#burn", () => {
         it("should burn the user's ERC-721 token", async () => {
-            await this.asset.mint(this.alice.address, this.metadataUri)
+            await this.asset.mint(this.alice.address, this.metadataUri, 0)
             expect(await this.asset.balanceOf(this.alice.address)).to.equal("1")
             await this.asset.burn(this.alice.address, 1)
             expect(await this.asset.balanceOf(this.alice.address)).to.equal("0")
-            await expect(this.asset.ownerOf(1)).to.be.revertedWith("revert ERC721: owner query for nonexistent token")
+            expect(await this.asset.lastOwnerBeforeBurn(1)).to.eq(this.alice.address)
         })
 
         it("should revert when burning non existing token", async () => {
@@ -73,10 +86,21 @@ describe("NestedAsset", () => {
         })
 
         it("should revert when burning someone else's token", async () => {
-            await this.asset.mint(this.bob.address, this.metadataUri)
+            await this.asset.mint(this.bob.address, this.metadataUri, 0)
 
             // Alice asked to burn Bob's token
             await expect(this.asset.burn(this.alice.address, 1)).to.be.revertedWith("revert NestedAsset: FORBIDDEN")
+        })
+    })
+
+    describe("#originalOwner", () => {
+        it("returns the owner address of the original asset", async () => {
+            await this.asset.mint(this.alice.address, this.metadataUri, 0)
+            await this.asset.mint(this.bob.address, this.metadataUri, 1)
+            expect(await this.asset.originalOwner(2)).to.eq(this.alice.address)
+
+            await this.asset.burn(this.alice.address, 1)
+            expect(await this.asset.originalOwner(2)).to.eq(this.alice.address)
         })
     })
 

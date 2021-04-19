@@ -1,8 +1,8 @@
 const { expect } = require("chai")
 const axios = require("axios").default
 const qs = require("qs")
-const abi = require("./../mocks/ERC20.json")
-const weth = require("./../mocks/WETH.json")
+const ierc20Abi = require("./../mocks/IERC20.json")
+const wethAbi = require("./../mocks/IWETH.json")
 
 describe("NestedFactory", () => {
     before(async () => {
@@ -73,6 +73,12 @@ describe("NestedFactory", () => {
         before(async () => {
             this.tokenToSell = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2" // WETH
             this.tokenToSellContract = new ethers.Contract(this.tokenToSell, weth, this.alice)
+            this.tokenToSellContract.approve(
+                this.alice.address,
+                this.factory.address,
+                ethers.utils.parseEther("1000").toString(),
+            )
+            await this.tokenToSellContract.deposit({ value: ethers.utils.parseEther("10").toString() })
 
             this.orders = [
                 {
@@ -97,30 +103,34 @@ describe("NestedFactory", () => {
             this.responses.push(resp1)
             this.responses.push(resp2)
 
-            this.maximumSellAmount = 0
+            this.totalSellAmount = 0
             this.tokensToBuy = []
             this.swapCallData = []
 
-            this.maximumSellAmount = ethers.BigNumber.from(this.maximumSellAmount).add(
+            this.totalSellAmount = ethers.BigNumber.from(this.totalSellAmount).add(
                 ethers.BigNumber.from(this.responses[0].data.sellAmount),
             )
 
             this.tokensToBuy.push(this.responses[0].data.buyTokenAddress)
             this.swapCallData.push(this.responses[0].data.data)
 
-            this.maximumSellAmount = ethers.BigNumber.from(this.maximumSellAmount).add(
+            this.totalSellAmount = ethers.BigNumber.from(this.totalSellAmount).add(
                 ethers.BigNumber.from(this.responses[1].data.sellAmount),
             )
+
             this.tokensToBuy.push(this.responses[1].data.buyTokenAddress)
             this.swapCallData.push(this.responses[1].data.data)
+
+            this.expectedFee = this.totalSellAmount.div(100)
         })
 
         it("reverts if tokenToBuy list is empty", async () => {
             await expect(
                 this.factory.create(
+                    0,
                     this.metadataUri,
                     this.tokenToSell,
-                    this.maximumSellAmount,
+                    this.totalSellAmount.add(this.expectedFee),
                     this.responses[0].data.to,
                     [],
                     this.swapCallData,
@@ -131,9 +141,10 @@ describe("NestedFactory", () => {
         it("reverts if no swapCall data for all token to buy", async () => {
             await expect(
                 this.factory.create(
+                    0,
                     this.metadataUri,
                     this.tokenToSell,
-                    this.maximumSellAmount,
+                    this.totalSellAmount.add(this.expectedFee),
                     this.responses[0].data.to,
                     this.tokensToBuy,
                     [],
@@ -141,217 +152,172 @@ describe("NestedFactory", () => {
             ).to.be.revertedWith("BUY_ARG_ERROR")
         })
 
-        it("reverts if allowance was not set for sellToken", async () => {
+        it("reverts if user had no allowance for sellToken", async () => {
+            await this.tokenToSellContract
+                .connect(this.bob)
+                .deposit({ value: ethers.utils.parseEther("10").toString() })
+
             await expect(
-                this.factory.create(
-                    this.metadataUri,
-                    this.tokenToSell,
-                    this.maximumSellAmount,
-                    this.responses[0].data.to,
-                    this.tokensToBuy,
-                    this.swapCallData,
-                ),
-            ).to.be.revertedWith("ALLOWANCE_ERROR")
+                this.factory
+                    .connect(this.bob)
+                    .create(
+                        0,
+                        this.metadataUri,
+                        this.tokenToSell,
+                        this.totalSellAmount.add(this.expectedFee),
+                        this.responses[0].data.to,
+                        this.tokensToBuy,
+                        this.swapCallData,
+                    ),
+            ).to.be.revertedWith("FUNDS_TRANSFER_ERROR")
         })
 
         it("reverts if the user does not have enough funds", async () => {
-            await this.tokenToSellContract.approve(this.factory.address, ethers.utils.parseEther("100").toString())
+            const aliceBalance = await this.tokenToSellContract.balanceOf(this.bob.address)
+
             await expect(
-                this.factory.create(
+                this.factory
+                    .connect(this.bob)
+                    .create(
+                        0,
+                        this.metadataUri,
+                        this.tokenToSell,
+                        aliceBalance.add(ethers.BigNumber.from("1")),
+                        this.responses[0].data.to,
+                        this.tokensToBuy,
+                        this.swapCallData,
+                    ),
+            ).to.be.revertedWith("INSUFFICIENT_FUNDS")
+        })
+
+        describe("creating from ERC20 tokens", async () => {
+            it("creates the NFT", async () => {
+                this.initialWethBalance = await this.tokenToSellContract.balanceOf(this.alice.address)
+                console.log("initialWethBalance: ", initialWethBalance)
+
+                await this.factory.create(
+                    0,
                     this.metadataUri,
                     this.tokenToSell,
-                    this.maximumSellAmount,
+                    this.totalSellAmount.add(this.expectedFee),
                     this.responses[0].data.to,
                     this.tokensToBuy,
                     this.swapCallData,
-                ),
-            ).to.be.revertedWith("INSUFFICIENT_FUNDS")
+                )
+
+                const uni = new ethers.Contract(this.orders[0].buyToken, abi, this.alice)
+                const link = new ethers.Contract(this.orders[1].buyToken, abi, this.alice)
+
+                const expectedAliceWethBalance = this.initialWethBalance.sub(this.totalSellAmount).sub(this.expectedFee)
+
+                expect(await this.tokenToSellContract.balanceOf(this.alice.address)).to.equal(
+                    expectedAliceWethBalance.toString(),
+                )
+                expect(await this.tokenToSellContract.balanceOf(this.factory.feeTo())).to.equal(
+                    this.expectedFee.toString(),
+                )
+
+                let buyUniAmount = ethers.BigNumber.from(this.responses[0].data.buyAmount)
+                let buyLinkAmount = ethers.BigNumber.from(this.responses[1].data.buyAmount)
+
+                expect(await uni.balanceOf(this.factory.reserve())).to.be.closeTo(buyUniAmount, buyUniAmount.div(100))
+                expect(await link.balanceOf(this.factory.reserve())).to.be.closeTo(
+                    buyLinkAmount,
+                    buyLinkAmount.div(100),
+                )
+
+                // check if NFT was created
+                let aliceTokens = await this.factory.tokensOf(this.alice.address)
+                expect(aliceTokens.length).to.equal(1)
+
+                // check that Bob's balance did not increase
+                let bobTokens = await this.factory.tokensOf(this.bob.address)
+                expect(bobTokens.length).to.equal(0)
+
+                // check number of assets in NFT token
+                let result = await this.factory.tokenHoldings(aliceTokens[0])
+                expect(result.length).to.equal(this.tokensToBuy.length)
+            })
         })
 
-        it("creates the NFT with ERC2O provided", async () => {
-            this.initialWethBalance = ethers.utils.parseEther("10")
-            await this.tokenToSellContract.deposit({ value: this.initialWethBalance.toString() })
+        describe("creating from ETH", async () => {
+            it("reverts if insufficient funds sent in the transaction", async () => {
+                await expect(
+                    this.factory.create(
+                        0,
+                        this.metadataUri,
+                        this.tokenToSell,
+                        0,
+                        this.responses[0].data.to,
+                        this.tokensToBuy,
+                        this.swapCallData,
+                        { value: this.totalSellAmount },
+                    ),
+                ).to.be.revertedWith("INSUFFICIENT_FUNDS")
+            })
 
-            await this.tokenToSellContract.approve(this.factory.address, ethers.utils.parseEther("100").toString())
-            await this.factory.create(
-                this.metadataUri,
-                this.tokenToSell,
-                this.maximumSellAmount,
-                this.responses[0].data.to,
-                this.tokensToBuy,
-                this.swapCallData,
-            )
+            it("creates the NFT", async () => {
+                const feeToInitialBalance = await this.tokenToSellContract.balanceOf(this.feeTo.address)
 
-            const uni = new ethers.Contract(this.orders[0].buyToken, abi, this.alice)
-            const link = new ethers.Contract(this.orders[1].buyToken, abi, this.alice)
-
-            const expectedFee = this.maximumSellAmount.div(100)
-            const expectedAliceWethBalance = this.initialWethBalance.sub(this.maximumSellAmount).sub(expectedFee)
-
-            expect(await this.tokenToSellContract.balanceOf(this.alice.address)).to.equal(
-                expectedAliceWethBalance.toString(),
-            )
-            expect(await this.tokenToSellContract.balanceOf(this.factory.feeTo())).to.equal(expectedFee.toString())
-
-            let buyUniAmount = ethers.BigNumber.from(this.responses[0].data.buyAmount)
-            let buyLinkAmount = ethers.BigNumber.from(this.responses[1].data.buyAmount)
-
-            expect(await uni.balanceOf(this.factory.reserve())).to.be.closeTo(buyUniAmount, buyUniAmount.div(100))
-            expect(await link.balanceOf(this.factory.reserve())).to.be.closeTo(buyLinkAmount, buyLinkAmount.div(100))
-
-            // check if NFT was created
-            let aliceTokens = await this.factory.tokensOf(this.alice.address)
-            expect(aliceTokens.length).to.equal(1)
-
-            // check that Bob's balance did not increase
-            let bobTokens = await this.factory.tokensOf(this.bob.address)
-            expect(bobTokens.length).to.equal(0)
-
-            // check number of assets in NFT token
-            let result = await this.factory.tokenHoldings(aliceTokens[0])
-            expect(result.length).to.equal(this.tokensToBuy.length)
-        })
-    })
-
-    describe("#createFromETH", () => {
-        before(async () => {
-            this.tokenToSell = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
-            this.orders = [
-                {
-                    sellToken: this.tokenToSell,
-                    buyToken: "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", // Uni
-                    sellAmount: ethers.utils.parseEther("1").toString(),
-                    slippagePercentage: 0.3,
-                },
-                {
-                    sellToken: this.tokenToSell,
-                    buyToken: "0x6b175474e89094c44da98b954eedeac495271d0f", // DAI
-                    sellAmount: ethers.utils.parseEther("2").toString(),
-                    slippagePercentage: 0.3,
-                },
-            ]
-
-            this.responses = []
-            // TODO mock external call
-            const resp1 = await axios.get(`https://api.0x.org/swap/v1/quote?${qs.stringify(this.orders[0])}`)
-            const resp2 = await axios.get(`https://api.0x.org/swap/v1/quote?${qs.stringify(this.orders[1])}`)
-
-            this.responses.push(resp1)
-            this.responses.push(resp2)
-
-            this.sellAmounts = []
-            this.tokensToBuy = []
-            this.swapCallData = []
-
-            this.sellAmounts.push(ethers.BigNumber.from(this.responses[0].data.sellAmount))
-            this.tokensToBuy.push(this.responses[0].data.buyTokenAddress)
-            this.swapCallData.push(this.responses[0].data.data)
-
-            this.sellAmounts.push(ethers.BigNumber.from(this.responses[1].data.sellAmount))
-            this.tokensToBuy.push(this.responses[1].data.buyTokenAddress)
-            this.swapCallData.push(this.responses[1].data.data)
-
-            this.totalSellAmount = ethers.BigNumber.from(this.sellAmounts[0]).add(
-                ethers.BigNumber.from(this.sellAmounts[1]),
-            )
-
-            this.expectedFee = this.totalSellAmount.div(100)
-        })
-
-        it("reverts if token to buy list is empty", async () => {
-            await expect(
-                this.factory.createFromETH(
+                await this.tokenToSellContract.approve(this.factory.address, ethers.utils.parseEther("100").toString())
+                await this.factory.create(
+                    0,
                     this.metadataUri,
-                    this.sellAmounts,
-                    this.responses[0].data.to,
-                    [],
-                    this.swapCallData,
-                ),
-            ).to.be.revertedWith("BUY_ARG_MISSING")
-        })
-
-        it("reverts if no swapCall data for all token to buy", async () => {
-            await expect(
-                this.factory.createFromETH(
-                    this.metadataUri,
-                    this.sellAmounts,
-                    this.responses[0].data.to,
-                    this.tokensToBuy,
-                    [],
-                ),
-            ).to.be.revertedWith("BUY_ARG_ERROR")
-        })
-
-        it("reverts if no sellAmount for each token to buy", async () => {
-            await expect(
-                this.factory.createFromETH(
-                    this.metadataUri,
-                    [],
+                    this.tokenToSell,
+                    this.totalSellAmount.add(this.expectedFee),
                     this.responses[0].data.to,
                     this.tokensToBuy,
                     this.swapCallData,
-                ),
-            ).to.be.revertedWith("SELL_AMOUNT_ERROR")
-        })
+                    { value: this.totalSellAmount.add(this.expectedFee) },
+                )
 
-        it("reverts if insufficient funds sent in the transaction", async () => {
-            await expect(
-                this.factory.createFromETH(
-                    this.metadataUri,
-                    this.sellAmounts,
-                    this.responses[0].data.to,
-                    this.tokensToBuy,
-                    this.swapCallData,
-                    { value: this.sellAmounts[0] },
-                ),
-            ).to.be.revertedWith("INSUFFICIENT_FUNDS")
-        })
+                const uni = new ethers.Contract(this.orders[0].buyToken, abi, this.alice)
+                const link = new ethers.Contract(this.orders[1].buyToken, abi, this.alice)
 
-        it("creates the NFT with ETH provided", async () => {
-            const weth = new ethers.Contract(this.tokenToSell, abi, this.alice)
-            const feeToInitialBalance = await weth.balanceOf(this.feeTo.address)
+                const expectedAliceWethBalance = this.initialWethBalance.sub(this.totalSellAmount).sub(this.expectedFee)
 
-            await this.factory.createFromETH(
-                this.metadataUri,
-                this.sellAmounts,
-                this.responses[0].data.to,
-                this.tokensToBuy,
-                this.swapCallData,
-                { value: this.totalSellAmount.add(this.expectedFee) },
-            )
+                expect(await this.tokenToSellContract.balanceOf(this.alice.address)).to.equal(
+                    expectedAliceWethBalance.toString(),
+                )
 
-            const uni = new ethers.Contract(this.orders[0].buyToken, abi, this.alice)
-            const link = new ethers.Contract(this.orders[1].buyToken, abi, this.alice)
+                expect(await this.tokenToSellContract.balanceOf(this.factory.feeTo())).to.equal(
+                    this.expectedFee.toString(),
+                )
 
-            const buyAmount1 = ethers.BigNumber.from(this.responses[0].data.buyAmount)
-            const buyAmount2 = ethers.BigNumber.from(this.responses[1].data.buyAmount)
+                let buyUniAmount = ethers.BigNumber.from(this.responses[0].data.buyAmount)
+                let buyLinkAmount = ethers.BigNumber.from(this.responses[1].data.buyAmount)
 
-            const feeToFinalBalance = await weth.balanceOf(this.feeTo.address)
-            expect(feeToFinalBalance.sub(feeToInitialBalance)).to.be.equal(this.expectedFee)
+                expect(await uni.balanceOf(this.factory.reserve())).to.be.closeTo(buyUniAmount, buyUniAmount.div(100))
+                expect(await link.balanceOf(this.factory.reserve())).to.be.closeTo(
+                    buyLinkAmount,
+                    buyLinkAmount.div(100),
+                )
 
-            // reserve balance for token bought should be within 1% of buy amount
-            expect(await uni.balanceOf(this.factory.reserve())).to.be.closeTo(buyAmount1, buyAmount1.div(100))
-            expect(await link.balanceOf(this.factory.reserve())).to.be.closeTo(buyAmount2, buyAmount2.div(100))
+                const feeToFinalBalance = await tokenToSellContract.balanceOf(this.feeTo.address)
+                expect(feeToFinalBalance.sub(feeToInitialBalance)).to.be.equal(this.expectedFee)
 
-            // check if NFT was created
-            const aliceTokens = await this.factory.tokensOf(this.alice.address)
-            expect(aliceTokens.length).to.equal(1)
+                // check if NFT was created
+                let aliceTokens = await this.factory.tokensOf(this.alice.address)
+                expect(aliceTokens.length).to.equal(1)
 
-            // check that Bob's balance did not increase
-            const bobTokens = await this.factory.tokensOf(this.bob.address)
-            expect(bobTokens.length).to.equal(0)
+                // check that Bob's balance did not increase
+                let bobTokens = await this.factory.tokensOf(this.bob.address)
+                expect(bobTokens.length).to.equal(0)
 
-            // check number of assets in NFT token
-            const result = await this.factory.tokenHoldings(aliceTokens[0])
-            expect(result.length).to.equal(this.tokensToBuy.length)
+                // check number of assets in NFT token
+                let result = await this.factory.tokenHoldings(aliceTokens[0])
+                expect(result.length).to.equal(this.tokensToBuy.length)
+            })
         })
     })
 
     describe("#destroy", () => {
         beforeEach(async () => {
-            await this.factory.createFromETH(
+            await this.factory.create(
+                0,
                 this.metadataUri,
-                this.sellAmounts,
+                this.tokenToSell,
+                this.totalSellAmount.add(this.expectedFee),
                 this.responses[0].data.to,
                 this.tokensToBuy,
                 this.swapCallData,
@@ -382,9 +348,14 @@ describe("NestedFactory", () => {
 
     describe("#destroyForERC20", () => {
         beforeEach(async () => {
-            await this.factory.createFromETH(
+            console.log(this.expectedFee)
+            console.log(this.totalSellAmount)
+            console.log(this.totalSellAmount.add(this.expectedFee))
+            await this.factory.create(
+                0,
                 this.metadataUri,
-                this.sellAmounts,
+                this.tokenToSell,
+                this.totalSellAmount.add(this.expectedFee),
                 this.responses[0].data.to,
                 this.tokensToBuy,
                 this.swapCallData,
@@ -471,9 +442,11 @@ describe("NestedFactory", () => {
 
     describe("#destroyForETH", () => {
         beforeEach(async () => {
-            await this.factory.createFromETH(
+            await this.factory.create(
+                0,
                 this.metadataUri,
-                this.sellAmounts,
+                this.tokenToSell,
+                this.totalSellAmount.add(this.expectedFee),
                 this.responses[0].data.to,
                 this.tokensToBuy,
                 this.swapCallData,
