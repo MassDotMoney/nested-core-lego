@@ -208,7 +208,7 @@ describe("NestedFactory", () => {
 
     describe("#createFromETH", () => {
         before(async () => {
-            this.tokenToSell = "ETH"
+            this.tokenToSell = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
             this.orders = [
                 {
                     sellToken: this.tokenToSell,
@@ -282,7 +282,8 @@ describe("NestedFactory", () => {
         })
 
         it("creates the NFT with ETH provided", async () => {
-            const feeToInitialBalance = await this.feeTo.getBalance()
+            const weth = new ethers.Contract(this.tokenToSell, abi, this.alice)
+            const feeToInitialBalance = await weth.balanceOf(this.feeTo.address)
 
             await this.factory.createFromETH(
                 this.sellAmounts,
@@ -298,7 +299,7 @@ describe("NestedFactory", () => {
             const buyAmount1 = ethers.BigNumber.from(this.responses[0].data.buyAmount)
             const buyAmount2 = ethers.BigNumber.from(this.responses[1].data.buyAmount)
 
-            const feeToFinalBalance = await this.feeTo.getBalance()
+            const feeToFinalBalance = await weth.balanceOf(this.feeTo.address)
             expect(feeToFinalBalance.sub(feeToInitialBalance)).to.be.equal(this.expectedFee)
 
             // reserve balance for token bought should be within 1% of buy amount
@@ -413,6 +414,18 @@ describe("NestedFactory", () => {
             ).to.be.revertedWith("revert NestedFactory: Only Owner")
         })
 
+        it("reverts if sell args missing", async () => {
+            await expect(
+                this.factory.destroyForERC20(
+                    this.assets[0],
+                    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // or quotes[0].data.buyTokenAddress -> WETH
+                    this.quotes[0].data.to,
+                    [],
+                    this.swapData,
+                ),
+            ).to.be.revertedWith("MISSING_SELL_ARGS")
+        })
+
         it("destroys NFT and send ERC20 to user", async () => {
             let aliceTokens = await this.factory.tokensOf(this.alice.address)
             this.factory.destroyForERC20(
@@ -424,6 +437,77 @@ describe("NestedFactory", () => {
             )
             aliceTokens = await this.factory.tokensOf(this.alice.address)
             expect(aliceTokens.length).to.equal(0)
+        })
+    })
+
+    describe("#destroyForETH", () => {
+        beforeEach(async () => {
+            await this.factory.createFromETH(
+                this.sellAmounts,
+                this.responses[0].data.to,
+                this.tokensToBuy,
+                this.swapCallData,
+                { value: this.totalSellAmount.add(this.expectedFee) },
+            )
+
+            this.assets = await this.factory.tokensOf(this.alice.address)
+            let holdings = []
+            for (let i = 0; i < this.assets.length; i++) {
+                holdings = await this.factory.tokenHoldings(this.assets[i])
+            }
+            // getting 0x quote for each of the tokens
+            this.quotes = []
+            for (let i = 0; i < holdings.length; i++) {
+                let order = {
+                    sellToken: holdings[i].token,
+                    buyToken: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // WETH
+                    sellAmount: holdings[i].amount.toString(),
+                    slippagePercentage: 0.05,
+                }
+                let quote = await axios.get(`https://api.0x.org/swap/v1/quote?${qs.stringify(order)}`)
+                this.quotes.push(quote)
+            }
+
+            this.tokensToSell = []
+            this.swapData = []
+
+            for (let i = 0; i < this.quotes.length; i++) {
+                this.tokensToSell.push(this.quotes[i].data.sellTokenAddress)
+                this.swapData.push(this.quotes[i].data.data)
+            }
+        })
+
+        it("reverts if token id is invalid", async () => {
+            await expect(
+                this.factory.destroyForETH(
+                    ethers.utils.parseEther("999").toString(),
+                    this.quotes[0].data.to,
+                    this.tokensToSell,
+                    this.swapData,
+                ),
+            ).to.be.revertedWith("revert ERC721: owner query for nonexistent token")
+        })
+
+        it("reverts if not owner", async () => {
+            await expect(
+                this.factory
+                    .connect(this.bob)
+                    .destroyForETH(this.assets[0], this.quotes[0].data.to, this.tokensToSell, this.swapData),
+            ).to.be.revertedWith("revert NestedFactory: Only Owner")
+        })
+
+        it("reverts if sell args missing", async () => {
+            await expect(
+                this.factory.destroyForETH(this.assets[0], this.quotes[0].data.to, [], this.swapData),
+            ).to.be.revertedWith("MISSING_SELL_ARGS")
+        })
+
+        it("destroys NFT and send ETH to user", async () => {
+            let aliceTokens = await this.factory.tokensOf(this.alice.address)
+            this.factory.destroyForETH(this.assets[0], this.quotes[0].data.to, this.tokensToSell, this.swapData)
+            aliceTokens = await this.factory.tokensOf(this.alice.address)
+            expect(aliceTokens.length).to.equal(0)
+            // TODO: also check user and reserve balance
         })
     })
 })

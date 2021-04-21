@@ -10,7 +10,10 @@ async function main() {
     const nestedFactory = await NestedFactory.deploy(accounts[10].address)
     await nestedFactory.deployed()
 
-    const tokenToSell = "ETH"; // ETH for 0x
+    // we request quotes for WETH: 
+    // we will first wrap ETH and then do the swaps because 0x will wrap ETH for each tokens 
+
+    const tokenToSell = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"; // WETH
 
     const orders = [{
             sellToken: tokenToSell,
@@ -49,6 +52,7 @@ async function main() {
     maximumSellAmount = ethers.BigNumber.from(maximumSellAmount).add(ethers.BigNumber.from(responses[1].data.sellAmount));
 
     let totalSellAmount = ethers.BigNumber.from(sellAmounts[0]).add(ethers.BigNumber.from(sellAmounts[1]));
+    let expectedFee = totalSellAmount.div(100);
 
     const uni = new ethers.Contract(orders[0].buyToken, abi, accounts[0])
     const link = new ethers.Contract(orders[1].buyToken, abi, accounts[0])
@@ -57,14 +61,14 @@ async function main() {
         sellAmounts,
         responses[0].data.to,
         tokensToBuy,
-        swapCallData, { value: totalSellAmount }
+        swapCallData, { value: totalSellAmount.add(expectedFee) }
     )
 
     await nestedFactory.createFromETH(
         sellAmounts,
         responses[0].data.to,
         tokensToBuy,
-        swapCallData, { value: totalSellAmount }
+        swapCallData, { value: totalSellAmount.add(expectedFee) }
     )
 
     let provider = ethers.getDefaultProvider();
@@ -147,9 +151,8 @@ async function main() {
     }
     console.log('destroying our second asset to get WETH back');
 
-    await nestedFactory.destroyForERC20(
+    await nestedFactory.destroyForETH(
         assets[0],
-        "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", // or quotes[0].data.buyTokenAddress -> WETH
         quotes[0].data.to,
         tokensToSell,
         swapCallData
