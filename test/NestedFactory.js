@@ -14,6 +14,8 @@ describe("NestedFactory", () => {
         this.bob = this.signers[1]
         this.feeToSetter = this.signers[2]
         this.feeTo = this.signers[2]
+
+        this.metadataUri = "ipfs://bafybeiam5u4xc5527tv6ghlwamd6azfthmcuoa6uwnbbvqbtsyne4p7khq/metadata.json"
     })
 
     beforeEach(async () => {
@@ -116,6 +118,7 @@ describe("NestedFactory", () => {
         it("reverts if tokenToBuy list is empty", async () => {
             await expect(
                 this.factory.create(
+                    this.metadataUri,
                     this.tokenToSell,
                     this.maximumSellAmount,
                     this.responses[0].data.to,
@@ -128,6 +131,7 @@ describe("NestedFactory", () => {
         it("reverts if no swapCall data for all token to buy", async () => {
             await expect(
                 this.factory.create(
+                    this.metadataUri,
                     this.tokenToSell,
                     this.maximumSellAmount,
                     this.responses[0].data.to,
@@ -140,6 +144,7 @@ describe("NestedFactory", () => {
         it("reverts if allowance was not set for sellToken", async () => {
             await expect(
                 this.factory.create(
+                    this.metadataUri,
                     this.tokenToSell,
                     this.maximumSellAmount,
                     this.responses[0].data.to,
@@ -153,6 +158,7 @@ describe("NestedFactory", () => {
             await this.tokenToSellContract.approve(this.factory.address, ethers.utils.parseEther("100").toString())
             await expect(
                 this.factory.create(
+                    this.metadataUri,
                     this.tokenToSell,
                     this.maximumSellAmount,
                     this.responses[0].data.to,
@@ -168,6 +174,7 @@ describe("NestedFactory", () => {
 
             await this.tokenToSellContract.approve(this.factory.address, ethers.utils.parseEther("100").toString())
             await this.factory.create(
+                this.metadataUri,
                 this.tokenToSell,
                 this.maximumSellAmount,
                 this.responses[0].data.to,
@@ -253,25 +260,44 @@ describe("NestedFactory", () => {
 
         it("reverts if token to buy list is empty", async () => {
             await expect(
-                this.factory.createFromETH(this.sellAmounts, this.responses[0].data.to, [], this.swapCallData),
+                this.factory.createFromETH(
+                    this.metadataUri,
+                    this.sellAmounts,
+                    this.responses[0].data.to,
+                    [],
+                    this.swapCallData,
+                ),
             ).to.be.revertedWith("BUY_ARG_MISSING")
         })
 
         it("reverts if no swapCall data for all token to buy", async () => {
             await expect(
-                this.factory.createFromETH(this.sellAmounts, this.responses[0].data.to, this.tokensToBuy, []),
+                this.factory.createFromETH(
+                    this.metadataUri,
+                    this.sellAmounts,
+                    this.responses[0].data.to,
+                    this.tokensToBuy,
+                    [],
+                ),
             ).to.be.revertedWith("BUY_ARG_ERROR")
         })
 
         it("reverts if no sellAmount for each token to buy", async () => {
             await expect(
-                this.factory.createFromETH([], this.responses[0].data.to, this.tokensToBuy, this.swapCallData),
+                this.factory.createFromETH(
+                    this.metadataUri,
+                    [],
+                    this.responses[0].data.to,
+                    this.tokensToBuy,
+                    this.swapCallData,
+                ),
             ).to.be.revertedWith("SELL_AMOUNT_ERROR")
         })
 
         it("reverts if insufficient funds sent in the transaction", async () => {
             await expect(
                 this.factory.createFromETH(
+                    this.metadataUri,
                     this.sellAmounts,
                     this.responses[0].data.to,
                     this.tokensToBuy,
@@ -286,6 +312,7 @@ describe("NestedFactory", () => {
             const feeToInitialBalance = await weth.balanceOf(this.feeTo.address)
 
             await this.factory.createFromETH(
+                this.metadataUri,
                 this.sellAmounts,
                 this.responses[0].data.to,
                 this.tokensToBuy,
@@ -323,6 +350,7 @@ describe("NestedFactory", () => {
     describe("#destroy", () => {
         beforeEach(async () => {
             await this.factory.createFromETH(
+                this.metadataUri,
                 this.sellAmounts,
                 this.responses[0].data.to,
                 this.tokensToBuy,
@@ -355,6 +383,7 @@ describe("NestedFactory", () => {
     describe("#destroyForERC20", () => {
         beforeEach(async () => {
             await this.factory.createFromETH(
+                this.metadataUri,
                 this.sellAmounts,
                 this.responses[0].data.to,
                 this.tokensToBuy,
@@ -443,6 +472,7 @@ describe("NestedFactory", () => {
     describe("#destroyForETH", () => {
         beforeEach(async () => {
             await this.factory.createFromETH(
+                this.metadataUri,
                 this.sellAmounts,
                 this.responses[0].data.to,
                 this.tokensToBuy,
