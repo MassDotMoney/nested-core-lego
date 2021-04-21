@@ -8,6 +8,7 @@ describe("Fee distribution", () => {
         // All transactions will be sent from Alice unless explicity specified
         this.alice = this.signers[0]
         this.bob = this.signers[1]
+        this.wallet3 = this.signers[2]
         this.feeToSetter = this.signers[2]
         this.feeTo = this.signers[2]
     })
@@ -16,6 +17,7 @@ describe("Fee distribution", () => {
         this.PaymentSplitter = await this.PaymentSplitterFactory.deploy(
             [this.alice.address, this.bob.address],
             [5000, 3000],
+            2000,
         )
     })
 
@@ -36,7 +38,7 @@ describe("Fee distribution", () => {
             })
 
             const amount2 = ethers.utils.parseEther("5")
-            await this.PaymentSplitter.sendFees(this.bob.address, {
+            await this.PaymentSplitter.sendFees(this.wallet3.address, {
                 value: amount2.toString(),
             })
         })
@@ -46,14 +48,15 @@ describe("Fee distribution", () => {
             const tx = await this.PaymentSplitter.release(this.alice.address)
             const spentOnTx = await getTxGasSpent(tx)
             const balanceAfter = await this.alice.getBalance()
+            // Why 4.375? Alice has 5000 shares, we had two payments of 3 (no royalties) and 5ETH (has royalties). 0.625*3+0.5*3=4.375
             expect(balanceAfter.sub(balanceBefore)).to.equal(ethers.utils.parseEther("4.375").sub(spentOnTx))
         })
 
         it("claims fees as NFT owner", async () => {
             const balanceBefore = await this.bob.getBalance()
-            const tx = await this.PaymentSplitter.connect(this.bob).claim()
+            const tx = await this.PaymentSplitter.connect(this.wallet3).release(this.wallet3.address)
             const spentOnTx = await getTxGasSpent(tx)
-            const balanceAfter = await this.bob.getBalance()
+            const balanceAfter = await this.wallet3.getBalance()
             expect(balanceAfter.sub(balanceBefore)).to.equal(ethers.utils.parseEther("1").sub(spentOnTx))
         })
     })

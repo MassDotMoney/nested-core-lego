@@ -4,30 +4,44 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "hardhat/console.sol";
 
-contract PaymentSplitter is ReentrancyGuard {
-    event PayeeAdded(address account, uint256 shares);
+/**
+ * @title Receives fees collected by the NestedFactory, and splits the income among
+ * shareholders (the NFT owners, Nested treasury and a NST buybacker contract).
+ */
+contract PaymentSplitter is ReentrancyGuard, Ownable {
     event PaymentReleased(address to, uint256 amount);
     event PaymentReceived(address from, uint256 amount);
 
+    struct Shareholder {
+        address account;
+        uint256 weight;
+    }
+
+    Shareholder[] private _shareholders;
+
     uint256 private _totalShares;
     uint256 private _totalReleased;
+    uint256 private _royaltiesWeight;
+    uint256 private _totalWeights;
 
     mapping(address => uint256) private _shares;
     mapping(address => uint256) private _released;
-    mapping(address => uint256) private _balances;
-    address[] private _payees;
-    uint256 public pendingRoyalties = 0;
 
-    constructor(address[] memory initialPayees, uint256[] memory initialShares) {
-        require(initialPayees.length == initialShares.length, "PaymentSplitter: ARRAY_LENGTHS_MISMATCH");
-
-        for (uint256 i = 0; i < initialPayees.length; i++) {
-            _shares[initialPayees[i]] = initialShares[i];
-            _payees.push(initialPayees[i]);
-            _totalShares += initialShares[i];
-        }
+    /**
+     * @param accounts [address[]] inital shareholders addresses that can receive income
+     * @param weights [uint256[]] initial weights for these shareholders. Weight determines share allocation
+     * @param royaltiesWeight_ [uint256] royalties part weights when applicable
+     */
+    constructor(
+        address[] memory accounts,
+        uint256[] memory weights,
+        uint256 royaltiesWeight_
+    ) {
+        setShareholders(accounts, weights);
+        setRoyaltiesWeight(royaltiesWeight_);
     }
 
     receive() external payable {
@@ -35,7 +49,8 @@ contract PaymentSplitter is ReentrancyGuard {
     }
 
     /**
-     * @dev Getter for the total shares held by payees.
+     * @dev Getter for the total shares held by shareholders.
+     * @return the total shares count
      */
     function totalShares() public view returns (uint256) {
         return _totalShares;
@@ -43,35 +58,44 @@ contract PaymentSplitter is ReentrancyGuard {
 
     /**
      * @dev Getter for the total amount of Ether already released.
+     * @return the total amount release to shareholders
      */
     function totalReleased() public view returns (uint256) {
         return _totalReleased;
     }
 
     /**
+     * @dev Getter for the total amount of Ether already released.
+     * @return the total amount release to shareholders
+     */
+    function royaltiesWeight() public view returns (uint256) {
+        return _royaltiesWeight;
+    }
+
+    /**
      * @dev Getter for the amount of shares held by an account.
+     * @param account [address] account the shares belong to
+     * @return the shares owned by the account
      */
     function shares(address account) public view returns (uint256) {
         return _shares[account];
     }
 
     /**
-     * @dev Getter for the amount of Ether already released to a payee.
+     * @dev Getter for the amount of Ether already released to a shareholders.
+     * @param account [address] the target account for this request
+     * @return the amount already released to this account
      */
     function released(address account) public view returns (uint256) {
         return _released[account];
     }
 
     /**
-     * @dev Getter for the address of the payee number `index`.
+     * @dev Sends a fee to this contract for splitting, as an ERC20 token
+     * @param amount [uint256] amount of token as fee to be claimed by this contract
+     * @param royaltiesTarget [address] an account that can claim some of the fees
+     * @param token [address] currency for the fee as an ERC20 token
      */
-    function payee(uint256 index) public view returns (address) {
-        return _payees[index];
-    }
-
-    /**
-    Sends a fee to this contract for splitting, as an ERC20 token
-    */
     function sendFeeToken(
         uint256 amount,
         address royaltiesTarget,
@@ -82,41 +106,39 @@ contract PaymentSplitter is ReentrancyGuard {
     }
 
     /**
-    Sends an ETH fee to this contract
-    */
+     * @dev Sends an ETH fee to this contract. Allocates shares to shareholders and royalties target
+     * corresponding to their weights
+     * @param royaltiesTarget [address] account that can claim some of the fees
+     */
     function sendFees(address royaltiesTarget) external payable {
+        uint256 amount = msg.value;
+        uint256 totalUsedWeights = _totalWeights;
         if (royaltiesTarget != address(0)) {
-            // 20% fee for NFT owner
-            assignRoyalties(msg.value / 5, royaltiesTarget);
+            _addShares(royaltiesTarget, _computeShareCount(amount, _royaltiesWeight, _totalWeights));
+        } else totalUsedWeights -= _royaltiesWeight;
+
+        for (uint256 i = 0; i < _shareholders.length; i++) {
+            _addShares(_shareholders[i].account, _computeShareCount(amount, _shareholders[i].weight, totalUsedWeights));
         }
         emit PaymentReceived(msg.sender, msg.value);
     }
 
-    /**
-    Assigns royalties to the NFT owner
-    */
-    function assignRoyalties(uint256 fee, address royaltiesTarget) private returns (uint256) {
-        _balances[royaltiesTarget] += fee;
-        pendingRoyalties += fee;
-        return fee;
+    function _computeShareCount(
+        uint256 amount,
+        uint256 weight,
+        uint256 totalWeights
+    ) private pure returns (uint256) {
+        return (amount * weight) / totalWeights;
     }
 
     /**
-    As a royalties receipient, claim all pending ETH collected from fees
-    */
-    function claim() external nonReentrant {
-        Address.sendValue(payable(msg.sender), _balances[msg.sender]);
-        pendingRoyalties -= _balances[msg.sender];
-        _balances[msg.sender] = 0;
-    }
-
-    /**
-     * @dev Triggers a transfer to `account` of the amount of Ether they are owed, according to their percentage of the
-     * total shares and their previous withdrawals.
+     * @dev Triggers a transfer to `account` of the amount of Ether they are owed, according to
+     * their percentage of the total shares and their previous withdrawals.
+     * @param account [address] account to send the amount due to
      */
     function release(address payable account) external {
         uint256 totalReceived = address(this).balance + _totalReleased;
-        uint256 payment = ((totalReceived - pendingRoyalties) * _shares[account]) / _totalShares - _released[account];
+        uint256 payment = (totalReceived * _shares[account]) / _totalShares - _released[account];
         require(payment != 0, "PaymentSplitter: ACCOUNT_NOT_DUE_PAYMENT");
 
         _released[account] = _released[account] + payment;
@@ -126,19 +148,37 @@ contract PaymentSplitter is ReentrancyGuard {
         emit PaymentReleased(account, payment);
     }
 
-    /**
-     * @dev Add a new payee to the contract.
-     * @param account The address of the payee to add.
-     * @param shares_ The number of shares owned by the payee.
-     */
-    function _addPayee(address account, uint256 shares_) private {
-        require(account != address(0), "PaymentSplitter: account is the zero address");
-        require(shares_ > 0, "PaymentSplitter: shares are 0");
-        require(_shares[account] == 0, "PaymentSplitter: account already has shares");
-
-        _payees.push(account);
-        _shares[account] = shares_;
+    function _addShares(address account, uint256 shares_) private {
+        _shares[account] += shares_;
         _totalShares = _totalShares + shares_;
-        emit PayeeAdded(account, shares_);
+    }
+
+    /**
+     * @dev sets a new list of shareholders describing how to split fees
+     * @param accounts [address[]] shareholders accounts list
+     * @param weights [address[]] weight for each shareholder. Determines part of the payment allocated to them
+     */
+    function setShareholders(address[] memory accounts, uint256[] memory weights) public onlyOwner {
+        delete _shareholders;
+        require(accounts.length > 0 && accounts.length == weights.length, "PaymentSplitter: ARRAY_LENGTHS_ERR");
+
+        for (uint256 i = 0; i < accounts.length; i++) {
+            _addShareholder(accounts[i], weights[i]);
+        }
+    }
+
+    function _addShareholder(address account, uint256 weight) private {
+        require(weight > 0, "PaymentSplitter: ZERO_WEIGHT");
+        _shareholders.push(Shareholder(account, weight));
+        _totalWeights += weight;
+    }
+
+    /**
+     * @dev sets the weight assigned to the royalties part for the fee
+     * @param weight [uint256] the new royalties weight
+     */
+    function setRoyaltiesWeight(uint256 weight) public onlyOwner {
+        _royaltiesWeight = weight;
+        _totalWeights += weight;
     }
 }
