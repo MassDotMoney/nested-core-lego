@@ -12,6 +12,8 @@ contract NestedAsset is ERC721Enumerable, Ownable {
 
     address public factory;
 
+    mapping (uint256 => string) private _tokenURIs;
+
     constructor() ERC721("NestedAsset", "NESTED") {
         factory = msg.sender;
     }
@@ -25,16 +27,37 @@ contract NestedAsset is ERC721Enumerable, Ownable {
     }
 
     /*
+    Returns the Uniform Resource Identifier (URI) for `tokenId` token.
+    @param _tokenId The id of the NestedAsset
+    */
+    function tokenURI(uint256 _tokenId) public view virtual override returns (string memory) {
+        require(_exists(_tokenId), "URI query for nonexistent token");
+
+        return _tokenURIs[_tokenId]; 
+    }
+
+    /*
+    Sets the Uniform Resource Identifier (URI) for `tokenId` token.
+    @param _tokenId The id of the NestedAsset
+    @param _metadataURI The metadata URI string
+    */
+    function _setTokenURI(uint256 _tokenId, string memory _metadataURI) internal virtual {
+        require(_exists(_tokenId), "URI set of nonexistent token");
+        _tokenURIs[_tokenId] = _metadataURI;
+    }
+
+    /*
     Mints an ERC721 token for the user
     @param owner The account address that signed the transaction
+    @param _metadataURI The metadata URI string
     @return [uint256] the minted token's id
     */
-    function mint(address _owner) public onlyFactory returns (uint256) {
+    function mint(address _owner, string memory _metadataURI) public onlyFactory returns (uint256) {
         _tokenIds.increment();
 
         uint256 newNestedId = _tokenIds.current();
         _safeMint(_owner, newNestedId);
-
+        _setTokenURI(newNestedId, _metadataURI);
         return newNestedId;
     }
 
@@ -46,6 +69,10 @@ contract NestedAsset is ERC721Enumerable, Ownable {
     function burn(address _owner, uint256 _tokenId) public onlyFactory {
         require(_owner == ownerOf(_tokenId), "NestedAsset: FORBIDDEN");
         _burn(_tokenId);
+
+        if (bytes(_tokenURIs[_tokenId]).length != 0) {
+            delete _tokenURIs[_tokenId];
+        }
     }
 
     // TODO only allow the factory or a migrator to set the factory address

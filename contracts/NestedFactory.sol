@@ -109,6 +109,7 @@ contract NestedFactory is ReentrancyGuard {
     /*
     Purchase and collect tokens for the user.
     Take custody of user's tokens against fees and issue an NFT in return.
+    @param _metadataURI The metadata URI string
     @param _sellToken [address] token used to make swaps
     @param _sellAmount [uint] value of sell tokens to exchange
     @param _swapTarget [address] the address of the contract that will swap tokens
@@ -116,6 +117,7 @@ contract NestedFactory is ReentrancyGuard {
     @param _swapCallData [<bytes>] the list of call data provided by 0x to fill quotes
     */
     function create(
+        string memory _metadataURI,
         address _sellToken,
         uint256 _sellAmount,
         address payable _swapTarget,
@@ -135,7 +137,7 @@ contract NestedFactory is ReentrancyGuard {
 
         uint256 sellTokenBalanceBeforePurchase = IERC20(_sellToken).balanceOf(address(this));
 
-        uint256 tokenId = nestedAsset.mint(msg.sender);
+        uint256 tokenId = nestedAsset.mint(msg.sender, _metadataURI);
 
         for (uint256 i = 0; i < buyCount; i++) {
             swapTokens(_sellToken, _swapTarget, _swapCallData[i]);
@@ -156,12 +158,14 @@ contract NestedFactory is ReentrancyGuard {
     /*
     Purchase and collect tokens for the user with ETH.
     Take custody of user's tokens against fees and issue an NFT in return.
+    @param _metadataURI The metadata URI string
     @param _sellAmounts [<uint>] values of ETH to exchange for each _tokensToBuy
     @param _swapTarget [address] the address of the contract that will swap tokens
     @param _tokensToBuy [<address>] the list of tokens to purchase
     @param _swapCallData [<bytes>] the list of call data provided by 0x to fill quotes
     */
     function createFromETH(
+        string memory _metadataURI,
         uint256[] calldata _sellAmounts,
         address payable _swapTarget,
         address[] calldata _tokensToBuy,
@@ -179,7 +183,7 @@ contract NestedFactory is ReentrancyGuard {
         uint256 fees = amountToSell / 100;
         require(msg.value >= amountToSell + fees, "INSUFFICIENT_FUNDS");
 
-        uint256 tokenId = nestedAsset.mint(msg.sender);
+        uint256 tokenId = nestedAsset.mint(msg.sender, _metadataURI);
 
         // we wrap ETH first
         IWETH(weth).deposit{ value: msg.value }();
