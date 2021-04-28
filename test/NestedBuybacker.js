@@ -40,7 +40,7 @@ describe("NestedBuybacker", () => {
     it("sends fees as token", async () => {
         await this.mockNST.transfer(this.dummyRouter.address, ethers.utils.parseEther("100000"))
 
-        const abi = ["function dummyswapToken(address inputToken, uint256 amount, address payable to)"]
+        const abi = ["function dummyswapToken(address _inputToken, uint256 _amount, address payable _to)"]
         const iface = new Interface(abi)
         const data = iface.encodeFunctionData("dummyswapToken", [
             this.mockUSDT.address,

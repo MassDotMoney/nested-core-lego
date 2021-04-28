@@ -19,11 +19,11 @@ contract DummyRouter {
 
     // send a token, get the token
     function dummyswapToken(
-        address inputToken,
-        uint256 amount,
-        address payable to
+        address _inputToken,
+        uint256 _amount,
+        address payable _to
     ) public {
-        IERC20(inputToken).transferFrom(msg.sender, address(this), amount);
-        token.transfer(to, amount);
+        IERC20(_inputToken).transferFrom(msg.sender, address(this), _amount);
+        token.transfer(_to, _amount);
     }
 }

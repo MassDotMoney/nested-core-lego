@@ -13,24 +13,24 @@ import "contracts/interfaces/INestedToken.sol";
  * 75% is sent to the Nested reserve contract
  */
 contract NestedBuybacker is Ownable {
-    INestedToken public immutable _NST;
-    address public _nestedReserve;
+    INestedToken public immutable NST;
+    address public nestedReserve;
 
     /**
-     * @param NST [address] address for the Nested project token
-     * @param nestedReserve [address] contract where user assets are stored
+     * @param _NST [address] address for the Nested project token
+     * @param _nestedReserve [address] contract where user assets are stored
      */
-    constructor(address NST, address nestedReserve) {
-        _NST = INestedToken(NST);
-        setNestedReserve(nestedReserve);
+    constructor(address _NST, address _nestedReserve) {
+        NST = INestedToken(_NST);
+        setNestedReserve(_nestedReserve);
     }
 
     /**
      * @dev update the nested reserve address
-     * @param nestedReserve [address] reserve contract address
+     * @param _nestedReserve [address] reserve contract address
      */
-    function setNestedReserve(address nestedReserve) public onlyOwner {
-        _nestedReserve = nestedReserve;
+    function setNestedReserve(address _nestedReserve) public onlyOwner {
+        nestedReserve = _nestedReserve;
     }
 
     /**
@@ -62,10 +62,10 @@ contract NestedBuybacker is Ownable {
      * @dev burns 25% of the bought NST and send the rest to the reserve
      */
     function trigger() internal {
-        uint256 balance = _NST.balanceOf(address(this));
+        uint256 balance = NST.balanceOf(address(this));
         _burnNST(balance / 4); // let's burn 25% of our NST
-        balance = _NST.balanceOf(address(this));
-        _NST.transfer(_nestedReserve, balance);
+        balance = NST.balanceOf(address(this));
+        NST.transfer(nestedReserve, balance);
     }
 
     /*
@@ -104,7 +104,7 @@ contract NestedBuybacker is Ownable {
         require(success, "SWAP_CALL_FAILED");
     }
 
-    function _burnNST(uint256 amount) private {
-        _NST.burn(amount);
+    function _burnNST(uint256 _amount) private {
+        NST.burn(_amount);
     }
 }
