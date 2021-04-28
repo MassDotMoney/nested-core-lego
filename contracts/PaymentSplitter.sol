@@ -113,7 +113,7 @@ contract PaymentSplitter is ReentrancyGuard, Ownable {
     /**
      * @dev Sends a fee to this contract for splitting, as an ERC20 token
      * @param _amount [uint256] amount of token as fee to be claimed by this contract
-     * @param _royaltiesTarget [address] an account that can claim some royalties
+     * @param _royaltiesTarget [address] the account that can claim royalties
      * @param _token [address] currency for the fee as an ERC20 token
      */
     function sendFeesToken(
@@ -169,20 +169,20 @@ contract PaymentSplitter is ReentrancyGuard, Ownable {
 
     /**
      * @dev Triggers a transfer to `account` of the amount of Ether they are owed, according to
-     * their percentage of the total shares and their previous withdrawals.
+     * the amount of shares they own and their previous withdrawals.
      * @param _account [address] account to send the amount due to
      * @param _token [address] payment token address
      */
     function releaseToken(address _account, address _token) external {
         TokenRecords storage _tokenRecords = tokenRecords[_token];
-        uint256 payment = getAmountDue(_account, _token);
+        uint256 amountToRelease = getAmountDue(_account, _token);
 
-        _tokenRecords.released[_account] = _tokenRecords.released[_account] + payment;
-        _tokenRecords.totalReleased = _tokenRecords.totalReleased + payment;
+        _tokenRecords.released[_account] = _tokenRecords.released[_account] + amountToRelease;
+        _tokenRecords.totalReleased = _tokenRecords.totalReleased + amountToRelease;
 
-        require(payment != 0, "PaymentSplitter: NO_PAYMENT_DUE");
-        IERC20(_token).transfer(_account, payment);
-        emit PaymentReleased(_account, _token, payment);
+        require(amountToRelease != 0, "PaymentSplitter: NO_PAYMENT_DUE");
+        IERC20(_token).transfer(_account, amountToRelease);
+        emit PaymentReleased(_account, _token, amountToRelease);
     }
 
     /**
@@ -196,11 +196,11 @@ contract PaymentSplitter is ReentrancyGuard, Ownable {
         uint256 totalReceived = _tokenRecords.totalReleased;
         if (_token == ETH_ADDR) totalReceived += address(this).balance;
         else totalReceived += IERC20(_token).balanceOf(address(this));
-        uint256 payment =
+        uint256 amountDue =
             (totalReceived * _tokenRecords.shares[_account]) /
                 _tokenRecords.totalShares -
                 _tokenRecords.released[_account];
-        return payment;
+        return amountDue;
     }
 
     function _addShares(
