@@ -20,35 +20,35 @@ contract PaymentSplitter is ReentrancyGuard, Ownable {
         uint256 weight;
     }
 
-    Shareholder[] private _shareholders;
+    Shareholder[] private shareholders;
 
     // fake ETH address used to treat tokens and ETH the same way
     address private constant ETH_ADDR = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     // registers shares and amount release for a specific token or ETH
     struct TokenRecords {
-        uint256 _totalShares;
-        uint256 _totalReleased;
-        mapping(address => uint256) _shares;
-        mapping(address => uint256) _released;
+        uint256 totalShares;
+        uint256 totalReleased;
+        mapping(address => uint256) shares;
+        mapping(address => uint256) released;
     }
-    mapping(address => TokenRecords) private _tokenRecords;
+    mapping(address => TokenRecords) private tokenRecords;
 
-    uint256 private _royaltiesWeight;
-    uint256 private _totalWeights;
+    uint256 private royaltiesWeight;
+    uint256 private totalWeights;
 
     /**
-     * @param accounts [address[]] inital shareholders addresses that can receive income
-     * @param weights [uint256[]] initial weights for these shareholders. Weight determines share allocation
-     * @param royaltiesWeight_ [uint256] royalties part weights when applicable
+     * @param _accounts [address[]] inital shareholders addresses that can receive income
+     * @param _weights [uint256[]] initial weights for these shareholders. Weight determines share allocation
+     * @param _royaltiesWeight [uint256] royalties part weights when applicable
      */
     constructor(
-        address[] memory accounts,
-        uint256[] memory weights,
-        uint256 royaltiesWeight_
+        address[] memory _accounts,
+        uint256[] memory _weights,
+        uint256 _royaltiesWeight
     ) {
-        setShareholders(accounts, weights);
-        setRoyaltiesWeight(royaltiesWeight_);
+        setShareholders(_accounts, _weights);
+        setRoyaltiesWeight(_royaltiesWeight);
     }
 
     receive() external payable {
@@ -57,188 +57,188 @@ contract PaymentSplitter is ReentrancyGuard, Ownable {
 
     /**
      * @dev Getter for the total shares held by shareholders.
-     * @param token [address] payment token address, use ETH_ADDR for ETH
+     * @param _token [address] payment token address, use ETH_ADDR for ETH
      * @return the total shares count
      */
-    function totalShares(address token) public view returns (uint256) {
-        return _tokenRecords[token]._totalShares;
+    function totalShares(address _token) public view returns (uint256) {
+        return tokenRecords[_token].totalShares;
     }
 
     /**
      * @dev Getter for the total amount of token already released.
-     * @param token [address] payment token address, use ETH_ADDR for ETH
+     * @param _token [address] payment token address, use ETH_ADDR for ETH
      * @return the total amount release to shareholders
      */
-    function totalReleased(address token) public view returns (uint256) {
-        return _tokenRecords[token]._totalReleased;
+    function totalReleased(address _token) public view returns (uint256) {
+        return tokenRecords[_token].totalReleased;
     }
 
     /**
      * @dev Getter for the total amount of Ether already released.
      * @return the total amount release to shareholders
      */
-    function royaltiesWeight() public view returns (uint256) {
-        return _royaltiesWeight;
+    function getRoyaltiesWeight() public view returns (uint256) {
+        return royaltiesWeight;
     }
 
     /**
      * @dev Getter for the amount of shares held by an account.
-     * @param account [address] account the shares belong to
-     * @param token [address] payment token address, use ETH_ADDR for ETH
+     * @param _account [address] account the shares belong to
+     * @param _token [address] payment token address, use ETH_ADDR for ETH
      * @return the shares owned by the account
      */
-    function shares(address account, address token) public view returns (uint256) {
-        return _tokenRecords[token]._shares[account];
+    function shares(address _account, address _token) public view returns (uint256) {
+        return tokenRecords[_token].shares[_account];
     }
 
     /**
      * @dev Getter for the amount of Ether already released to a shareholders.
-     * @param account [address] the target account for this request
-     * @param token [address] payment token address, use ETH_ADDR for ETH
+     * @param _account [address] the target account for this request
+     * @param _token [address] payment token address, use ETH_ADDR for ETH
      * @return the amount already released to this account
      */
-    function released(address account, address token) public view returns (uint256) {
-        return _tokenRecords[token]._released[account];
+    function released(address _account, address _token) public view returns (uint256) {
+        return tokenRecords[_token].released[_account];
     }
 
     /**
      * @dev Sends an ETH fee to this contract. Allocates shares to shareholders and royalties target
      * corresponding to their weights
-     * @param royaltiesTarget [address] account that can claim some of the fees
+     * @param _royaltiesTarget [address] account that can claim some of the fees
      */
-    function sendFees(address royaltiesTarget) external payable {
-        sendFeesToken(royaltiesTarget, msg.value, ETH_ADDR);
+    function sendFees(address _royaltiesTarget) external payable {
+        sendFeesToken(_royaltiesTarget, msg.value, ETH_ADDR);
     }
 
     /**
      * @dev Sends a fee to this contract for splitting, as an ERC20 token
-     * @param amount [uint256] amount of token as fee to be claimed by this contract
-     * @param royaltiesTarget [address] an account that can claim some royalties
-     * @param token [address] currency for the fee as an ERC20 token
+     * @param _amount [uint256] amount of token as fee to be claimed by this contract
+     * @param _royaltiesTarget [address] an account that can claim some royalties
+     * @param _token [address] currency for the fee as an ERC20 token
      */
     function sendFeesToken(
-        address royaltiesTarget,
-        uint256 amount,
-        address token
+        address _royaltiesTarget,
+        uint256 _amount,
+        address _token
     ) public {
-        if (token != ETH_ADDR) IERC20(token).transferFrom(msg.sender, address(this), amount);
+        if (_token != ETH_ADDR) IERC20(_token).transferFrom(msg.sender, address(this), _amount);
 
-        uint256 tradeTotalWeights = _totalWeights;
+        uint256 tradeTotalWeights = totalWeights;
 
-        if (royaltiesTarget != address(0)) {
-            _addShares(royaltiesTarget, _computeShareCount(amount, _royaltiesWeight, _totalWeights), token);
+        if (_royaltiesTarget != address(0)) {
+            _addShares(_royaltiesTarget, _computeShareCount(_amount, royaltiesWeight, totalWeights), _token);
         } else {
             // no need to count the weight for the royalties recipient if there's no recipient
-            tradeTotalWeights -= _royaltiesWeight;
+            tradeTotalWeights -= royaltiesWeight;
         }
 
-        for (uint256 i = 0; i < _shareholders.length; i++) {
+        for (uint256 i = 0; i < shareholders.length; i++) {
             _addShares(
-                _shareholders[i].account,
-                _computeShareCount(amount, _shareholders[i].weight, tradeTotalWeights),
-                token
+                shareholders[i].account,
+                _computeShareCount(_amount, shareholders[i].weight, tradeTotalWeights),
+                _token
             );
         }
-        emit PaymentReceived(msg.sender, token, amount);
+        emit PaymentReceived(msg.sender, _token, _amount);
     }
 
     function _computeShareCount(
-        uint256 amount,
-        uint256 weight,
-        uint256 totalWeights
+        uint256 _amount,
+        uint256 _weight,
+        uint256 _totalWeights
     ) private pure returns (uint256) {
-        return (amount * weight) / totalWeights;
+        return (_amount * _weight) / _totalWeights;
     }
 
     /**
      * @dev Triggers a transfer to `account` of the amount of Ether they are owed, according to
      * their percentage of the total shares and their previous withdrawals.
-     * @param account [address] account to send the amount due to
+     * @param _account [address] account to send the amount due to
      */
-    function release(address payable account) external {
-        TokenRecords storage tokenRecords = _tokenRecords[ETH_ADDR];
-        uint256 payment = getAmountDue(account, ETH_ADDR);
+    function release(address payable _account) external {
+        TokenRecords storage _tokenRecords = tokenRecords[ETH_ADDR];
+        uint256 payment = getAmountDue(_account, ETH_ADDR);
 
-        tokenRecords._released[account] = tokenRecords._released[account] + payment;
-        tokenRecords._totalReleased = tokenRecords._totalReleased + payment;
+        _tokenRecords.released[_account] = _tokenRecords.released[_account] + payment;
+        _tokenRecords.totalReleased = _tokenRecords.totalReleased + payment;
 
         require(payment != 0, "PaymentSplitter: NO_PAYMENT_DUE");
-        Address.sendValue(account, payment);
-        emit PaymentReleased(account, ETH_ADDR, payment);
+        Address.sendValue(_account, payment);
+        emit PaymentReleased(_account, ETH_ADDR, payment);
     }
 
     /**
      * @dev Triggers a transfer to `account` of the amount of Ether they are owed, according to
      * their percentage of the total shares and their previous withdrawals.
-     * @param account [address] account to send the amount due to
-     * @param token [address] payment token address
+     * @param _account [address] account to send the amount due to
+     * @param _token [address] payment token address
      */
-    function releaseToken(address account, address token) external {
-        TokenRecords storage tokenRecords = _tokenRecords[token];
-        uint256 payment = getAmountDue(account, token);
+    function releaseToken(address _account, address _token) external {
+        TokenRecords storage _tokenRecords = tokenRecords[_token];
+        uint256 payment = getAmountDue(_account, _token);
 
-        tokenRecords._released[account] = tokenRecords._released[account] + payment;
-        tokenRecords._totalReleased = tokenRecords._totalReleased + payment;
+        _tokenRecords.released[_account] = _tokenRecords.released[_account] + payment;
+        _tokenRecords.totalReleased = _tokenRecords.totalReleased + payment;
 
         require(payment != 0, "PaymentSplitter: NO_PAYMENT_DUE");
-        IERC20(token).transfer(account, payment);
-        emit PaymentReleased(account, token, payment);
+        IERC20(_token).transfer(_account, payment);
+        emit PaymentReleased(_account, _token, payment);
     }
 
     /**
      * @dev Returns the amount due to an account. Call releaseToken to withdraw the amount.
-     * @param account [address] account address to check the amount due for
-     * @param token [address] ERC20 payment token address (or ETH_ADDR)
+     * @param _account [address] account address to check the amount due for
+     * @param _token [address] ERC20 payment token address (or ETH_ADDR)
      * @return the total amount due for the requested currency
      */
-    function getAmountDue(address account, address token) public view returns (uint256) {
-        TokenRecords storage tokenRecords = _tokenRecords[token];
-        uint256 totalReceived = tokenRecords._totalReleased;
-        if (token == ETH_ADDR) totalReceived += address(this).balance;
-        else totalReceived += IERC20(token).balanceOf(address(this));
+    function getAmountDue(address _account, address _token) public view returns (uint256) {
+        TokenRecords storage _tokenRecords = tokenRecords[_token];
+        uint256 totalReceived = _tokenRecords.totalReleased;
+        if (_token == ETH_ADDR) totalReceived += address(this).balance;
+        else totalReceived += IERC20(_token).balanceOf(address(this));
         uint256 payment =
-            (totalReceived * tokenRecords._shares[account]) /
-                tokenRecords._totalShares -
-                tokenRecords._released[account];
+            (totalReceived * _tokenRecords.shares[_account]) /
+                _tokenRecords.totalShares -
+                _tokenRecords.released[_account];
         return payment;
     }
 
     function _addShares(
-        address account,
-        uint256 shares_,
-        address token
+        address _account,
+        uint256 _shares,
+        address _token
     ) private {
-        TokenRecords storage tokenRecords = _tokenRecords[token];
-        tokenRecords._shares[account] += shares_;
-        tokenRecords._totalShares = tokenRecords._totalShares + shares_;
+        TokenRecords storage _tokenRecords = tokenRecords[_token];
+        _tokenRecords.shares[_account] += _shares;
+        _tokenRecords.totalShares = _tokenRecords.totalShares + _shares;
     }
 
     /**
      * @dev sets a new list of shareholders
-     * @param accounts [address[]] shareholders accounts list
-     * @param weights [address[]] weight for each shareholder. Determines part of the payment allocated to them
+     * @param _accounts [address[]] shareholders accounts list
+     * @param _weights [address[]] weight for each shareholder. Determines part of the payment allocated to them
      */
-    function setShareholders(address[] memory accounts, uint256[] memory weights) public onlyOwner {
-        delete _shareholders;
-        require(accounts.length > 0 && accounts.length == weights.length, "PaymentSplitter: ARRAY_LENGTHS_ERR");
+    function setShareholders(address[] memory _accounts, uint256[] memory _weights) public onlyOwner {
+        delete shareholders;
+        require(_accounts.length > 0 && _accounts.length == _weights.length, "PaymentSplitter: ARRAY_LENGTHS_ERR");
 
-        for (uint256 i = 0; i < accounts.length; i++) {
-            _addShareholder(accounts[i], weights[i]);
+        for (uint256 i = 0; i < _accounts.length; i++) {
+            _addShareholder(_accounts[i], _weights[i]);
         }
     }
 
-    function _addShareholder(address account, uint256 weight) private {
-        require(weight > 0, "PaymentSplitter: ZERO_WEIGHT");
-        _shareholders.push(Shareholder(account, weight));
-        _totalWeights += weight;
+    function _addShareholder(address _account, uint256 _weight) private {
+        require(_weight > 0, "PaymentSplitter: ZERO_WEIGHT");
+        shareholders.push(Shareholder(_account, _weight));
+        totalWeights += _weight;
     }
 
     /**
      * @dev sets the weight assigned to the royalties part for the fee
-     * @param weight [uint256] the new royalties weight
+     * @param _weight [uint256] the new royalties weight
      */
-    function setRoyaltiesWeight(uint256 weight) public onlyOwner {
-        _royaltiesWeight = weight;
-        _totalWeights += weight;
+    function setRoyaltiesWeight(uint256 _weight) public onlyOwner {
+        royaltiesWeight = _weight;
+        totalWeights += _weight;
     }
 }
