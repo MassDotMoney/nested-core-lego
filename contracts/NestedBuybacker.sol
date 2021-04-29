@@ -3,34 +3,63 @@ pragma solidity ^0.8.3;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "contracts/interfaces/INestedToken.sol";
 
 // import "hardhat/console.sol";
 
 /**
  * Token and ETH sent to this contract are used to purchase NST.
- * 25% of it is  burned.
- * 75% is sent to the Nested reserve contract
+ * some of it is burned, the rest is sent to the Nested reserve contract
+ * (community reserve, not user assets reserve)
  */
-contract NestedBuybacker is Ownable {
+contract NestedBuybacker is Ownable, ReentrancyGuard {
     INestedToken public immutable NST;
-    address public nestedReserve;
+    address public nstReserve;
+
+    // part of the bought tokens to be burned
+    uint256 public burnPart;
+    // part of the bought tokens to be sent to the reserve contract
+    uint256 public reservePart;
 
     /**
      * @param _NST [address] address for the Nested project token
-     * @param _nestedReserve [address] contract where user assets are stored
+     * @param _nstReserve [address] contract where user assets are stored
+     * @param _burnPart [uint] burn part
+     * @param _reservePart [uint] reserve part
      */
-    constructor(address _NST, address _nestedReserve) {
+    constructor(
+        address _NST,
+        address _nstReserve,
+        uint256 _burnPart,
+        uint256 _reservePart
+    ) {
         NST = INestedToken(_NST);
-        setNestedReserve(_nestedReserve);
+        setNestedReserve(_nstReserve);
+        burnPart = _burnPart;
+        reservePart = _reservePart;
     }
 
     /**
      * @dev update the nested reserve address
-     * @param _nestedReserve [address] reserve contract address
+     * @param _nstReserve [address] reserve contract address
      */
-    function setNestedReserve(address _nestedReserve) public onlyOwner {
-        nestedReserve = _nestedReserve;
+    function setNestedReserve(address _nstReserve) public onlyOwner {
+        nstReserve = _nstReserve;
+    }
+
+    /**
+     * @dev update parts deciding what amount is sent to reserve or burned
+     * @param _burnPart [uint] burn part
+     * @param _reservePart [uint] reserve part
+     */
+    function setParts(uint256 _burnPart, uint256 _reservePart) public onlyOwner {
+        burnPart = _burnPart;
+        reservePart = _reservePart;
+    }
+
+    function totalParts() private view returns (uint256) {
+        return burnPart + reservePart;
     }
 
     /**
@@ -43,7 +72,7 @@ contract NestedBuybacker is Ownable {
         bytes calldata _swapCallData,
         address payable _swapTarget,
         address _sellToken
-    ) external {
+    ) external nonReentrant {
         _swapTokens(_sellToken, _swapTarget, _swapCallData);
         trigger();
     }
@@ -53,19 +82,21 @@ contract NestedBuybacker is Ownable {
      * @param _swapCallData call data provided by 0x to fill quotes
      * @param _swapTarget [address] contract to interact with for the swap
      */
-    function triggerForETH(bytes calldata _swapCallData, address payable _swapTarget) external payable {
+    function triggerForETH(bytes calldata _swapCallData, address payable _swapTarget) external payable nonReentrant {
         swapFromETH(address(this).balance, _swapTarget, _swapCallData);
         trigger();
     }
 
     /**
-     * @dev burns 25% of the bought NST and send the rest to the reserve
+     * @dev burns part of the bought NST and send the rest to the reserve
      */
     function trigger() internal {
         uint256 balance = NST.balanceOf(address(this));
-        _burnNST(balance / 4); // let's burn 25% of our NST
-        balance = NST.balanceOf(address(this));
-        NST.transfer(nestedReserve, balance);
+        uint256 _totalParts = burnPart + reservePart;
+        uint256 toBurn = (balance * burnPart) / _totalParts;
+        uint256 toSendToReserve = balance - toBurn;
+        _burnNST(toBurn);
+        NST.transfer(nstReserve, toSendToReserve);
     }
 
     /*

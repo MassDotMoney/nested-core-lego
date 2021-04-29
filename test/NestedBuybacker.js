@@ -18,7 +18,12 @@ describe("NestedBuybacker", () => {
 
     beforeEach(async () => {
         const NestedBuybackerFactory = await ethers.getContractFactory("NestedBuybacker")
-        this.buyBacker = await NestedBuybackerFactory.deploy(this.mockNST.address, this.nestedReserve.address)
+        this.buyBacker = await NestedBuybackerFactory.deploy(
+            this.mockNST.address,
+            this.nestedReserve.address,
+            2500,
+            7500,
+        )
         // before each, empty the reserve NST balance
         await this.mockNST.connect(this.nestedReserve).burn(await this.mockNST.balanceOf(this.nestedReserve.address))
     })
