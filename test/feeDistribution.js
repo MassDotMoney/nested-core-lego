@@ -1,3 +1,4 @@
+const { BigNumber } = require("@ethersproject/bignumber")
 const { expect } = require("chai")
 const { ethers } = require("hardhat")
 
@@ -104,6 +105,38 @@ describe("Fee distribution", () => {
         })
     })
 
+    describe("Changing weights", () => {
+        it("updates the weights for fees distribution", async () => {
+            await this.PaymentSplitter.setRoyaltiesWeight(3000)
+            const bobIndex = await this.PaymentSplitter.findShareholder(this.bob.address)
+            await this.PaymentSplitter.updateShareholder(bobIndex, 8000)
+            await this.PaymentSplitter.updateShareholder(0, 2000)
+            await clearBalance(this.bob, this.ERC20Mocks[0])
+            await clearBalance(this.wallet3, this.ERC20Mocks[0])
+
+            const releaseBob = () =>
+                this.PaymentSplitter.connect(this.bob).releaseToken(this.bob.address, this.ERC20Mocks[0].address)
+
+            await sendFees("5", this.wallet3.address)
+            await sendFees("1", ethers.constants.AddressZero)
+            await sendFees("12", this.wallet3.address)
+
+            await releaseBob()
+
+            const bobBalance = await this.ERC20Mocks[0].balanceOf(this.bob.address)
+            const toEther = n => ethers.utils.parseEther(n.toString())
+            const totalWeights = await this.PaymentSplitter.totalWeights()
+            expect(totalWeights).to.equal(13000)
+            // calculate expected bob's balance by manually adding fees for each transaction above
+            const expectedBalance = toEther(5)
+                .mul(8000)
+                .div(totalWeights)
+                .add(toEther(1).mul(8000).div(10000))
+                .add(toEther(12).mul(8000).div(totalWeights))
+            expect(bobBalance).to.equal(expectedBalance.add(1)) // adding 1 because of a rounding difference between js and solidity
+        })
+    })
+
     const getTxGasSpent = async tx => {
         const receipt = await tx.wait()
         return receipt.gasUsed.mul(tx.gasPrice)
@@ -112,5 +145,17 @@ describe("Fee distribution", () => {
     const deployMockToken = async (name, symbol, owner) => {
         const TokenFactory = await ethers.getContractFactory("MockERC20")
         return TokenFactory.connect(owner).deploy(name, symbol, ethers.utils.parseEther("1000000"))
+    }
+
+    const sendFees = async (amountEther, royaltiesTarget) => {
+        const token = this.ERC20Mocks[0]
+        const amount = ethers.utils.parseEther(amountEther)
+        await token.approve(this.PaymentSplitter.address, amount)
+        await this.PaymentSplitter.sendFeesToken(royaltiesTarget, amount, token.address)
+    }
+
+    const clearBalance = async (account, token) => {
+        const balance = await token.balanceOf(account.address)
+        return token.connect(account).burn(balance)
     }
 })
