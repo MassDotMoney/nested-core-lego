@@ -18,26 +18,22 @@ contract NestedBuybacker is Ownable, ReentrancyGuard {
     address public nstReserve;
 
     // part of the bought tokens to be burned
-    uint256 public burnPart;
-    // part of the bought tokens to be sent to the reserve contract
-    uint256 public reservePart;
+    uint256 public burnPercentage;
 
     /**
      * @param _NST [address] address for the Nested project token
      * @param _nstReserve [address] contract where user assets are stored
-     * @param _burnPart [uint] burn part
-     * @param _reservePart [uint] reserve part
+     * @param _burnPercentage [uint] burn part 100% = 1000
      */
     constructor(
         address _NST,
         address _nstReserve,
-        uint256 _burnPart,
-        uint256 _reservePart
+        uint256 _burnPercentage
     ) {
+        require(burnPercentage <= 1000, "NestedBuybacker: BURN_PART_TOO_HIGH");
         NST = INestedToken(_NST);
         setNestedReserve(_nstReserve);
-        burnPart = _burnPart;
-        reservePart = _reservePart;
+        burnPercentage = _burnPercentage;
     }
 
     /**
@@ -50,16 +46,10 @@ contract NestedBuybacker is Ownable, ReentrancyGuard {
 
     /**
      * @dev update parts deciding what amount is sent to reserve or burned
-     * @param _burnPart [uint] burn part
-     * @param _reservePart [uint] reserve part
+     * @param _burnPercentage [uint] burn part
      */
-    function setParts(uint256 _burnPart, uint256 _reservePart) public onlyOwner {
-        burnPart = _burnPart;
-        reservePart = _reservePart;
-    }
-
-    function totalParts() private view returns (uint256) {
-        return burnPart + reservePart;
+    function setBurnPart(uint256 _burnPercentage) public onlyOwner {
+        burnPercentage = _burnPercentage;
     }
 
     /**
@@ -92,8 +82,7 @@ contract NestedBuybacker is Ownable, ReentrancyGuard {
      */
     function trigger() internal {
         uint256 balance = NST.balanceOf(address(this));
-        uint256 _totalParts = burnPart + reservePart;
-        uint256 toBurn = (balance * burnPart) / _totalParts;
+        uint256 toBurn = (balance * burnPercentage) / 1000;
         uint256 toSendToReserve = balance - toBurn;
         _burnNST(toBurn);
         NST.transfer(nstReserve, toSendToReserve);
