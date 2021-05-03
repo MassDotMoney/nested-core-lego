@@ -1,8 +1,8 @@
-const { expect } = require("chai")
-const axios = require("axios").default
-const qs = require("qs")
-const ierc20Abi = require("./../mocks/IERC20.json")
-const wethAbi = require("./../mocks/IWETH.json")
+import axios from "axios"
+import { expect } from "chai"
+import ierc20Abi from "./../mocks/IERC20.json"
+import qs from "qs"
+import wethAbi from "./../mocks/IWETH.json"
 
 describe("NestedFactory", () => {
     before(async () => {

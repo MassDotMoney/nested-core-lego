@@ -177,9 +177,9 @@ contract NestedFactory is ReentrancyGuard {
         }
         uint256 balanceBeforePurchase = IERC20(_sellToken).balanceOf(address(this));
         exchangeAndStoreTokens(tokenId, _sellToken, _swapTarget, _tokenOrders);
-        uint256 remainingTokens =
-            _sellTokenAmount - (balanceBeforePurchase - IERC20(_sellToken).balanceOf(address(this)));
-        require(IERC20(_sellToken).transfer(feeTo, remainingTokens + fees), "FEE_TRANSFER_ERROR");
+        uint256 amountSpent = balanceBeforePurchase - IERC20(_sellToken).balanceOf(address(this));
+        require(amountSpent <= _sellTokenAmount, "OVERSPENT_ERROR");
+        require(IERC20(_sellToken).transfer(feeTo, _sellTokenAmount - amountSpent + fees), "FEE_TRANSFER_ERROR");
     }
 
     /*
