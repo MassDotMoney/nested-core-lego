@@ -88,7 +88,7 @@ describe("NestedFactory", () => {
         beforeEach(async () => {
             const mockERC20Factory = await ethers.getContractFactory("MockERC20")
             mockUNI = await mockERC20Factory.deploy("Mocked UNI", "INU", appendDecimals(3000000))
-            mockKNC = await mockERC20Factory.deploy("Mcoked KNC", "CNK", appendDecimals(3000000))
+            mockKNC = await mockERC20Factory.deploy("Mocked KNC", "CNK", appendDecimals(3000000))
 
             mockUNI.transfer(dummyRouter.address, appendDecimals(1000))
             mockKNC.transfer(dummyRouter.address, appendDecimals(1000))
