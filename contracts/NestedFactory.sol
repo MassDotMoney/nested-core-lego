@@ -121,6 +121,7 @@ contract NestedFactory is ReentrancyGuard {
     @param _sellToken [address] token used to make swaps
     @param _swapTarget [address] the address of the contract that will swap tokens
     @param _tokenOrders [<TokenOrder>] orders for token swaps
+    @param _maxAllowance [<uint256>] maximum allowance needed to perform a swap
     */
     function exchangeAndStoreTokens(
         uint256 _tokenId,
@@ -138,7 +139,7 @@ contract NestedFactory is ReentrancyGuard {
             usersHoldings[_tokenId].push(
                 Holding({ token: _tokenOrders[i].token, amount: amountBought, reserve: address(reserve) })
             );
-            require(IERC20(_tokenOrders[i].token).transfer(address(reserve), amountBought), "TOKEN_TRANSFER_ERROR");
+            IERC20(_tokenOrders[i].token).safeTransfer(address(reserve), amountBought);
         }
     }
 
@@ -194,8 +195,9 @@ contract NestedFactory is ReentrancyGuard {
         address payable _swapTarget,
         bytes calldata _swapCallData
     ) internal {
-        require(IERC20(_sellToken).approve(_swapTarget, type(uint256).max), "ALLOWANCE_SETTER_ERROR");
-
+        if (IERC20(_sellToken).allowance(address(this), _swapTarget) < type(uint256).max) {
+            IERC20(_sellToken).approve(_swapTarget, type(uint256).max);
+        }
         // solhint-disable-next-line avoid-low-level-calls
         (bool success, ) = _swapTarget.call(_swapCallData);
         require(success, "SWAP_CALL_FAILED");
@@ -221,23 +223,21 @@ contract NestedFactory is ReentrancyGuard {
     }
 
     /*
-    Burn NFT and Sell all tokens for a specific ERC20 then send it back to the user
+    Burn NFT and Sell all tokens for a specific ERC20
     @param  _tokenId uint256 NFT token Id
     @param _buyToken [address] token used to make swaps
     @param _swapTarget [address] the address of the contract that will swap tokens
-    @param _tokensToSell [<address>] the list of tokens to sell
-    @param _swapCallData [<bytes>] the list of call data provided by 0x to fill quotes
+    @param _tokenOrders [<TokenOrder>] orders for token swaps
     */
-    function destroyForERC20(
+    function _destroyForERC20(
         uint256 _tokenId,
         address _buyToken,
         address payable _swapTarget,
-        address[] calldata _tokensToSell,
-        bytes[] calldata _swapCallData
-    ) public onlyOwner(_tokenId) nonReentrant returns (uint256) {
+        TokenOrder[] calldata _tokenOrders
+    ) internal onlyOwner(_tokenId) returns (uint256) {
         // get Holdings for this token
         Holding[] memory holdings = usersHoldings[_tokenId];
-        require(holdings.length == _tokensToSell.length, "MISSING_SELL_ARGS");
+        require(holdings.length == _tokenOrders.length, "MISSING_SELL_ARGS");
 
         // first transfer holdings from reserve to factory
         for (uint256 i = 0; i < holdings.length; i++) {
@@ -247,8 +247,8 @@ contract NestedFactory is ReentrancyGuard {
         uint256 buyTokenInitialBalance = IERC20(_buyToken).balanceOf(address(this));
 
         // swap tokens
-        for (uint256 i = 0; i < _tokensToSell.length; i++) {
-            fillQuote(_tokensToSell[i], _swapTarget, _swapCallData[i]);
+        for (uint256 i = 0; i < _tokenOrders.length; i++) {
+            fillQuote(_tokenOrders[i].token, _swapTarget, _tokenOrders[i].callData);
         }
 
         // send swapped ERC20 to user minus fees
@@ -256,7 +256,6 @@ contract NestedFactory is ReentrancyGuard {
         uint256 amountFees = amountBought / 100;
         amountBought = amountBought - amountFees;
         require(IERC20(_buyToken).transfer(feeTo, amountFees), "FEES_TRANSFER_ERROR");
-        require(IERC20(_buyToken).transfer(msg.sender, amountBought), "TOKEN_TRANSFER_ERROR");
 
         delete usersHoldings[_tokenId];
         nestedAsset.burn(msg.sender, _tokenId);
@@ -265,19 +264,36 @@ contract NestedFactory is ReentrancyGuard {
     }
 
     /*
+    Burn NFT and Sell all tokens for a specific ERC20 then send it back to the user
+    @param  _tokenId uint256 NFT token Id
+    @param _buyToken [address] token used to make swaps
+    @param _swapTarget [address] the address of the contract that will swap tokens
+    @param _tokenOrders [<TokenOrder>] orders for token swaps
+    */
+    function destroyForERC20(
+        uint256 _tokenId,
+        address _buyToken,
+        address payable _swapTarget,
+        TokenOrder[] calldata _tokenOrders
+    ) external onlyOwner(_tokenId) returns (uint256) {
+        uint256 amountBought = _destroyForERC20(_tokenId, _buyToken, _swapTarget, _tokenOrders);
+        require(IERC20(_buyToken).transfer(msg.sender, amountBought), "TOKEN_TRANSFER_ERROR");
+        return amountBought;
+    }
+
+    /*
     Burn NFT and Sell all tokens for WETH, unwrap it and then send ETH back to the user
     @param  _tokenId uint256 NFT token Id
     @param _swapTarget [address] the address of the contract that will swap tokens
-    @param _tokensToSell [<address>] the list of tokens to sell
-    @param _swapCallData [<bytes>] the list of call data provided by 0x to fill quotes
+    @param _tokenOrders [<TokenOrder>] orders for token swaps
     */
     function destroyForETH(
         uint256 _tokenId,
         address payable _swapTarget,
-        address[] calldata _tokensToSell,
-        bytes[] calldata _swapCallData
-    ) external payable onlyOwner(_tokenId) nonReentrant {
-        uint256 amountBought = destroyForERC20(_tokenId, weth, _swapTarget, _tokensToSell, _swapCallData);
+        TokenOrder[] calldata _tokenOrders
+    ) external payable onlyOwner(_tokenId) {
+        // no need to check for reeentrancy because destroyForERC20 checks it
+        uint256 amountBought = _destroyForERC20(_tokenId, weth, _swapTarget, _tokenOrders);
         IWETH(weth).withdraw(amountBought);
 
         (bool success, ) = msg.sender.call{ value: amountBought }("");
