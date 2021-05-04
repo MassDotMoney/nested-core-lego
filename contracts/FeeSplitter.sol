@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * @title Receives fees collected by the NestedFactory, and splits the income among
  * shareholders (the NFT owners, Nested treasury and a NST buybacker contract).
  */
-contract PaymentSplitter is ReentrancyGuard, Ownable {
+contract FeeSplitter is ReentrancyGuard, Ownable {
     event PaymentReleased(address to, address token, uint256 amount);
     event PaymentReceived(address from, address token, uint256 amount);
 
@@ -165,7 +165,7 @@ contract PaymentSplitter is ReentrancyGuard, Ownable {
         _tokenRecords.released[_account] = _tokenRecords.released[_account] + payment;
         _tokenRecords.totalReleased = _tokenRecords.totalReleased + payment;
 
-        require(payment != 0, "PaymentSplitter: NO_PAYMENT_DUE");
+        require(payment != 0, "FeeSplitter: NO_PAYMENT_DUE");
         Address.sendValue(_account, payment);
         emit PaymentReleased(_account, ETH_ADDR, payment);
     }
@@ -183,7 +183,7 @@ contract PaymentSplitter is ReentrancyGuard, Ownable {
         _tokenRecords.released[_account] = _tokenRecords.released[_account] + amountToRelease;
         _tokenRecords.totalReleased = _tokenRecords.totalReleased + amountToRelease;
 
-        require(amountToRelease != 0, "PaymentSplitter: NO_PAYMENT_DUE");
+        require(amountToRelease != 0, "FeeSplitter: NO_PAYMENT_DUE");
         IERC20(_token).transfer(_account, amountToRelease);
         emit PaymentReleased(_account, _token, amountToRelease);
     }
@@ -224,7 +224,7 @@ contract PaymentSplitter is ReentrancyGuard, Ownable {
      */
     function setShareholders(address[] memory _accounts, uint256[] memory _weights) public onlyOwner {
         delete shareholders;
-        require(_accounts.length > 0 && _accounts.length == _weights.length, "PaymentSplitter: ARRAY_LENGTHS_ERR");
+        require(_accounts.length > 0 && _accounts.length == _weights.length, "FeeSplitter: ARRAY_LENGTHS_ERR");
         totalWeights = royaltiesWeight;
 
         for (uint256 i = 0; i < _accounts.length; i++) {
@@ -243,7 +243,7 @@ contract PaymentSplitter is ReentrancyGuard, Ownable {
         shareholders[_accountIndex].weight = _weight;
         _totalWeights += _weight;
         totalWeights = _totalWeights;
-        require(_totalWeights > 0, "PaymentSplitter: TOTAL_WEIGHTS_ZERO");
+        require(_totalWeights > 0, "FeeSplitter: TOTAL_WEIGHTS_ZERO");
     }
 
     /**
@@ -255,11 +255,11 @@ contract PaymentSplitter is ReentrancyGuard, Ownable {
         for (uint256 i = 0; i < shareholders.length; i++) {
             if (shareholders[i].account == _account) return i;
         }
-        revert("PaymentSplitter: NOT_FOUND");
+        revert("FeeSplitter: NOT_FOUND");
     }
 
     function _addShareholder(address _account, uint256 _weight) private {
-        require(_weight > 0, "PaymentSplitter: ZERO_WEIGHT");
+        require(_weight > 0, "FeeSplitter: ZERO_WEIGHT");
         shareholders.push(Shareholder(_account, _weight));
         totalWeights += _weight;
     }
