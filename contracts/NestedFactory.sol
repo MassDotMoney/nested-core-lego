@@ -234,10 +234,9 @@ contract NestedFactory is ReentrancyGuard {
         address payable _swapTarget,
         address[] calldata _tokensToSell,
         bytes[] calldata _swapCallData
-    ) external onlyOwner(_tokenId) nonReentrant {
+    ) public onlyOwner(_tokenId) nonReentrant returns (uint256) {
         // get Holdings for this token
         Holding[] memory holdings = usersHoldings[_tokenId];
-
         require(holdings.length == _tokensToSell.length, "MISSING_SELL_ARGS");
 
         // first transfer holdings from reserve to factory
@@ -261,6 +260,8 @@ contract NestedFactory is ReentrancyGuard {
 
         delete usersHoldings[_tokenId];
         nestedAsset.burn(msg.sender, _tokenId);
+
+        return amountBought;
     }
 
     /*
@@ -276,33 +277,10 @@ contract NestedFactory is ReentrancyGuard {
         address[] calldata _tokensToSell,
         bytes[] calldata _swapCallData
     ) external payable onlyOwner(_tokenId) nonReentrant {
-        // get Holdings for this token
-        Holding[] memory holdings = usersHoldings[_tokenId];
-        require(holdings.length == _tokensToSell.length, "MISSING_SELL_ARGS");
-
-        // first transfer holdings from reserve to factory
-        for (uint256 i = 0; i < holdings.length; i++) {
-            NestedReserve(holdings[i].reserve).transfer(address(this), holdings[i].token, holdings[i].amount);
-        }
-
-        uint256 buyTokenInitialBalance = IERC20(weth).balanceOf(address(this));
-
-        // swap tokens
-        for (uint256 i = 0; i < _tokensToSell.length; i++) {
-            fillQuote(_tokensToSell[i], _swapTarget, _swapCallData[i]);
-        }
-
-        // send to user minus fees
-        uint256 amountBought = IERC20(weth).balanceOf(address(this)) - buyTokenInitialBalance;
-        uint256 amountFees = amountBought / 100;
-        amountBought = amountBought - amountFees;
-        require(IERC20(weth).transfer(feeTo, amountFees), "FEES_TRANSFER_ERROR");
+        uint256 amountBought = destroyForERC20(_tokenId, weth, _swapTarget, _tokensToSell, _swapCallData);
         IWETH(weth).withdraw(amountBought);
 
         (bool success, ) = msg.sender.call{ value: amountBought }("");
         require(success, "ETH_TRANSFER_ERROR");
-
-        delete usersHoldings[_tokenId];
-        nestedAsset.burn(msg.sender, _tokenId);
     }
 }
