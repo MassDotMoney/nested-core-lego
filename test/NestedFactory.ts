@@ -8,7 +8,7 @@ import { ethers } from "hardhat"
 import { Contract, ContractFactory } from "@ethersproject/contracts"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { Interface } from "@ethersproject/abi"
-import { appendDecimals } from "./helpers"
+import { appendDecimals, getTxGasSpent } from "./helpers"
 import { BigNumber } from "@ethersproject/bignumber"
 
 describe("NestedFactory", () => {
@@ -161,16 +161,18 @@ describe("NestedFactory", () => {
         //         ).to.be.revertedWith("FUNDS_TRANSFER_ERROR")
         //     })
 
-        it.only("reverts if the user does not have enough funds", async () => {
-            await mockWETH.withdraw(1)
-            await expect(createNFTFromERC20(tokenOrders, totalSellAmount)).to.be.revertedWith("INSUFFICIENT_BALANCE")
-        })
-
-        it.only("reverts if the sell amount is less than total sum of token sales", async () => {
+        it("reverts if the sell amount is less than total sum of token sales", async () => {
             await expect(createNFTFromERC20(tokenOrders, totalSellAmount.sub(1))).to.be.revertedWith("OVERSPENT_ERROR")
         })
 
         describe("creating from ERC20 tokens", async () => {
+            it("reverts if the user does not have enough funds", async () => {
+                await mockWETH.withdraw(1)
+                await expect(createNFTFromERC20(tokenOrders, totalSellAmount)).to.be.revertedWith(
+                    "INSUFFICIENT_BALANCE",
+                )
+            })
+
             it("creates the NFT", async () => {
                 const initialWethBalance = await mockWETH.balanceOf(alice.address)
 
@@ -178,8 +180,8 @@ describe("NestedFactory", () => {
 
                 const expectedAliceWethBalance = initialWethBalance.sub(totalSellAmount).sub(expectedFee)
 
-                expect(await mockWETH.balanceOf(alice.address)).to.equal(expectedAliceWethBalance.toString())
-                expect(await mockWETH.balanceOf(factory.feeTo())).to.equal(expectedFee.toString())
+                expect(await mockWETH.balanceOf(alice.address)).to.equal(expectedAliceWethBalance)
+                expect(await mockWETH.balanceOf(factory.feeTo())).to.equal(expectedFee)
 
                 const buyUNIAmount = appendDecimals(4)
                 const buyKNCAmount = appendDecimals(6)
@@ -197,76 +199,31 @@ describe("NestedFactory", () => {
             })
         })
 
-        //     describe("creating from ETH", async () => {
-        //         it("reverts if insufficient funds sent in the transaction", async () => {
-        //             await expect(
-        //                 factory.create(
-        //                     0,
-        //                     metadataUri,
-        //                     tokenToSell,
-        //                     0,
-        //                     responses[0].data.to,
-        //                     tokensToBuy,
-        //                     swapCallData,
-        //                     { value: totalSellAmount },
-        //                 ),
-        //             ).to.be.revertedWith("INSUFFICIENT_FUNDS")
-        //         })
+        describe("creating from ETH", async () => {
+            it("reverts if insufficient funds sent in the transaction", async () => {
+                await expect(createNFTFromETH(tokenOrders, totalSellAmount, totalSellAmount.sub(1))).to.be.revertedWith(
+                    "INSUFFICIENT_AMOUNT_IN",
+                )
+            })
 
-        //         it("creates the NFT", async () => {
-        //             const feeToInitialBalance = await tokenToSellContract.balanceOf(feeTo.address)
+            it("creates the NFT", async () => {
+                const initialAliceBalance = await alice.getBalance()
 
-        //             await tokenToSellContract.approve(factory.address, ethers.utils.parseEther("100").toString())
-        //             await factory.create(
-        //                 0,
-        //                 metadataUri,
-        //                 tokenToSell,
-        //                 totalSellAmount.add(expectedFee),
-        //                 responses[0].data.to,
-        //                 tokensToBuy,
-        //                 swapCallData,
-        //                 { value: totalSellAmount.add(expectedFee) },
-        //             )
+                const tx = await createNFTFromETH(tokenOrders, totalSellAmount, totalSellAmount.add(expectedFee))
 
-        //             const uni = new ethers.Contract(orders[0].buyToken, abi, alice)
-        //             const link = new ethers.Contract(orders[1].buyToken, abi, alice)
+                const expectedAliceETHBalance = initialAliceBalance
+                    .sub(totalSellAmount)
+                    .sub(expectedFee)
+                    .sub(await getTxGasSpent(tx))
 
-        //             const expectedAliceWethBalance = initialWethBalance.sub(totalSellAmount).sub(expectedFee)
+                expect(await alice.getBalance()).to.equal(expectedAliceETHBalance)
+                expect(await mockWETH.balanceOf(factory.feeTo())).to.equal(expectedFee.toString())
 
-        //             expect(await tokenToSellContract.balanceOf(alice.address)).to.equal(
-        //                 expectedAliceWethBalance.toString(),
-        //             )
-
-        //             expect(await tokenToSellContract.balanceOf(factory.feeTo())).to.equal(
-        //                 expectedFee.toString(),
-        //             )
-
-        //             let buyUniAmount = ethers.BigNumber.from(responses[0].data.buyAmount)
-        //             let buyLinkAmount = ethers.BigNumber.from(responses[1].data.buyAmount)
-
-        //             expect(await uni.balanceOf(factory.reserve())).to.be.closeTo(buyUniAmount, buyUniAmount.div(100))
-        //             expect(await link.balanceOf(factory.reserve())).to.be.closeTo(
-        //                 buyLinkAmount,
-        //                 buyLinkAmount.div(100),
-        //             )
-
-        //             const feeToFinalBalance = await tokenToSellContract.balanceOf(feeTo.address)
-        //             expect(feeToFinalBalance.sub(feeToInitialBalance)).to.be.equal(expectedFee)
-
-        //             // check if NFT was created
-        //             let aliceTokens = await factory.tokensOf(alice.address)
-        //             expect(aliceTokens.length).to.equal(1)
-
-        //             // check that Bob's balance did not increase
-        //             let bobTokens = await factory.tokensOf(bob.address)
-        //             expect(bobTokens.length).to.equal(0)
-
-        //             // check number of assets in NFT token
-        //             let result = await factory.tokenHoldings(aliceTokens[0])
-        //             expect(result.length).to.equal(tokensToBuy.length)
-        //         })
-        //     })
-        // })
+                // check if NFT was created
+                let aliceTokens = await factory.tokensOf(alice.address)
+                expect(aliceTokens.length).to.equal(1)
+            })
+        })
 
         // describe("#destroy", () => {
         //     beforeEach(async () => {
@@ -480,7 +437,25 @@ describe("NestedFactory", () => {
             .connect(signer)
             .create(0, metadataUri, mockWETH.address, totalSellAmount, dummyRouter.address, tokenOrders)
 
-    const createNFTFromETH = () => {}
+    const createNFTFromETH = (
+        tokenOrders: TokenOrder[],
+        totalSellAmount: BigNumber,
+        ethValue: BigNumber,
+        signer: SignerWithAddress = alice,
+    ) =>
+        factory
+            .connect(signer)
+            .create(
+                0,
+                metadataUri,
+                "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+                totalSellAmount,
+                dummyRouter.address,
+                tokenOrders,
+                {
+                    value: ethValue,
+                },
+            )
 
     interface TokenOrder {
         token: string

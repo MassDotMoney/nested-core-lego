@@ -6,9 +6,10 @@ import "./NestedAsset.sol";
 import "./NestedReserve.sol";
 import "./interfaces/IWETH.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract NestedFactory is ReentrancyGuard {
+    using SafeERC20 for IERC20;
     event NestedCreated(uint256 indexed tokenId, address indexed owner);
 
     address public immutable weth;
@@ -166,20 +167,19 @@ contract NestedFactory is ReentrancyGuard {
         uint256 tokenId = nestedAsset.mint(msg.sender, _metadataURI, _originalTokenId);
 
         // pays with ETH
-        if (_sellToken == weth && msg.value >= sellAmountWithFees) {
+        if (_sellToken == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
+            require(msg.value >= sellAmountWithFees, "INSUFFICIENT_AMOUNT_IN");
             IWETH(weth).deposit{ value: msg.value }();
+            _sellToken = weth;
         } else {
             // pays with an ERC20
-            require(
-                IERC20(_sellToken).transferFrom(msg.sender, address(this), sellAmountWithFees),
-                "FUNDS_TRANSFER_ERROR"
-            );
+            IERC20(_sellToken).safeTransferFrom(msg.sender, address(this), sellAmountWithFees);
         }
         uint256 balanceBeforePurchase = IERC20(_sellToken).balanceOf(address(this));
         exchangeAndStoreTokens(tokenId, _sellToken, _swapTarget, _tokenOrders);
         uint256 amountSpent = balanceBeforePurchase - IERC20(_sellToken).balanceOf(address(this));
         require(amountSpent <= _sellTokenAmount, "OVERSPENT_ERROR");
-        require(IERC20(_sellToken).transfer(feeTo, _sellTokenAmount - amountSpent + fees), "FEE_TRANSFER_ERROR");
+        IERC20(_sellToken).safeTransfer(feeTo, _sellTokenAmount - amountSpent + fees);
     }
 
     /*

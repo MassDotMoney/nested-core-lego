@@ -1,6 +1,7 @@
 const { BigNumber } = require("@ethersproject/bignumber")
 const { expect } = require("chai")
 const { ethers } = require("hardhat")
+const { getTxGasSpent } = require("./helpers")
 
 describe("Fee distribution", () => {
     before(async () => {
@@ -136,11 +137,6 @@ describe("Fee distribution", () => {
             expect(bobBalance).to.equal(expectedBalance.add(1)) // adding 1 because of a rounding difference between js and solidity
         })
     })
-
-    const getTxGasSpent = async tx => {
-        const receipt = await tx.wait()
-        return receipt.gasUsed.mul(tx.gasPrice)
-    }
 
     const deployMockToken = async (name, symbol, owner) => {
         const TokenFactory = await ethers.getContractFactory("MockERC20")
