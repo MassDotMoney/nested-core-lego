@@ -8,7 +8,7 @@ import { ethers } from "hardhat"
 import { Contract, ContractFactory } from "@ethersproject/contracts"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { Interface } from "@ethersproject/abi"
-import { appendDecimals, getTxGasSpent } from "./helpers"
+import { appendDecimals, getETHSpentOnGas } from "./helpers"
 import { BigNumber } from "@ethersproject/bignumber"
 
 describe("NestedFactory", () => {
@@ -34,11 +34,11 @@ describe("NestedFactory", () => {
     })
 
     beforeEach(async () => {
-        factory = await nestedFactory.deploy(feeToSetter.address)
-        await factory.deployed()
-
         const MockWETHFactory = await ethers.getContractFactory("WETH9")
         mockWETH = await MockWETHFactory.deploy()
+
+        factory = await nestedFactory.deploy(feeToSetter.address, mockWETH.address)
+        await factory.deployed()
     })
 
     describe("#initialization", () => {
@@ -90,9 +90,6 @@ describe("NestedFactory", () => {
         const expectedFee = totalSellAmount.div(100)
 
         beforeEach(async () => {
-            const mockWETHFactory = await ethers.getContractFactory("WETH9")
-            mockWETH = await mockWETHFactory.deploy()
-
             const mockERC20Factory = await ethers.getContractFactory("MockERC20")
             mockUNI = await mockERC20Factory.deploy("Mocked UNI", "INU", appendDecimals(3000000))
             mockKNC = await mockERC20Factory.deploy("Mcoked KNC", "CNK", appendDecimals(3000000))
@@ -101,9 +98,6 @@ describe("NestedFactory", () => {
             mockKNC.transfer(dummyRouter.address, appendDecimals(1000))
 
             tokensToBuy = [mockUNI.address, mockKNC.address]
-
-            mockWETH.approve(factory.address, appendDecimals(10.1))
-            await mockWETH.deposit({ value: appendDecimals(10.1) })
 
             const abi = ["function dummyswapToken(address _inputToken, address _outputToken, uint256 _amount)"]
             const iface = new Interface(abi)
@@ -128,19 +122,6 @@ describe("NestedFactory", () => {
             ]
         })
 
-        it("reverts if tokenOrders list is empty", async () => {
-            await expect(
-                factory.create(
-                    0,
-                    metadataUri,
-                    mockWETH.address,
-                    totalSellAmount.add(expectedFee),
-                    dummyRouter.address,
-                    [],
-                ),
-            ).to.be.revertedWith("BUY_ARG_MISSING")
-        })
-
         //     it("reverts if user had no allowance for sellToken", async () => {
         //         await tokenToSellContract
         //             .connect(bob)
@@ -161,11 +142,23 @@ describe("NestedFactory", () => {
         //         ).to.be.revertedWith("FUNDS_TRANSFER_ERROR")
         //     })
 
-        it("reverts if the sell amount is less than total sum of token sales", async () => {
-            await expect(createNFTFromERC20(tokenOrders, totalSellAmount.sub(1))).to.be.revertedWith("OVERSPENT_ERROR")
-        })
-
         describe("creating from ERC20 tokens", async () => {
+            beforeEach(async () => {
+                mockWETH.approve(factory.address, appendDecimals(10.1))
+                await mockWETH.deposit({ value: appendDecimals(10.1) })
+            })
+
+            it("reverts if the sell amount is less than total sum of token sales", async () => {
+                await expect(createNFTFromERC20(tokenOrders, totalSellAmount.sub(1))).to.be.revertedWith(
+                    "OVERSPENT_ERROR",
+                )
+            })
+
+            it("reverts if tokenOrders list is empty", async () => {
+                await expect(createNFTFromERC20([], totalSellAmount.add(expectedFee))).to.be.revertedWith(
+                    "BUY_ARG_MISSING",
+                )
+            })
             it("reverts if the user does not have enough funds", async () => {
                 await mockWETH.withdraw(1)
                 await expect(createNFTFromERC20(tokenOrders, totalSellAmount)).to.be.revertedWith(
@@ -206,21 +199,21 @@ describe("NestedFactory", () => {
                 )
             })
 
+            // TODO: figure out why we can't calculate gas spending for alice
             it("creates the NFT", async () => {
-                const initialAliceBalance = await alice.getBalance()
+                const initialBobBalance = await bob.getBalance()
+                const tx = await createNFTFromETH(tokenOrders, totalSellAmount, totalSellAmount.add(expectedFee), bob)
 
-                const tx = await createNFTFromETH(tokenOrders, totalSellAmount, totalSellAmount.add(expectedFee))
-
-                const expectedAliceETHBalance = initialAliceBalance
+                const expectedBobBalance = initialBobBalance
                     .sub(totalSellAmount)
                     .sub(expectedFee)
-                    .sub(await getTxGasSpent(tx))
+                    .sub(await getETHSpentOnGas(tx))
 
-                expect(await alice.getBalance()).to.equal(expectedAliceETHBalance)
+                expect(await bob.getBalance()).to.equal(expectedBobBalance)
                 expect(await mockWETH.balanceOf(factory.feeTo())).to.equal(expectedFee.toString())
 
                 // check if NFT was created
-                let aliceTokens = await factory.tokensOf(alice.address)
+                let aliceTokens = await factory.tokensOf(bob.address)
                 expect(aliceTokens.length).to.equal(1)
             })
         })

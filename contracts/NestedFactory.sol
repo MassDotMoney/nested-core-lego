@@ -50,10 +50,10 @@ contract NestedFactory is ReentrancyGuard {
     /*
     @param _feeToSetter [address] The address which will be allowed to choose where the fees go
     */
-    constructor(address payable _feeToSetter) {
+    constructor(address payable _feeToSetter, address _weth) {
         feeToSetter = _feeToSetter;
         feeTo = _feeToSetter;
-        weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+        weth = _weth;
         nestedAsset = new NestedAsset();
         // TODO: do this outside of constructor. Think about reserve architecture
         reserve = new NestedReserve();
@@ -69,9 +69,9 @@ contract NestedFactory is ReentrancyGuard {
     }
 
     /*
-    Fallback function 
+    Receive function 
     */
-    fallback() external payable {}
+    receive() external payable {}
 
     /*
    Sets the address receiving the fees

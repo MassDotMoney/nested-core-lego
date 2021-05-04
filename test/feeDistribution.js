@@ -1,7 +1,7 @@
 const { BigNumber } = require("@ethersproject/bignumber")
 const { expect } = require("chai")
 const { ethers } = require("hardhat")
-const { getTxGasSpent } = require("./helpers")
+const { getETHSpentOnGas } = require("./helpers")
 
 describe("Fee distribution", () => {
     before(async () => {
@@ -55,7 +55,7 @@ describe("Fee distribution", () => {
         it("retrieves split ETH fees", async () => {
             const balanceBefore = await this.alice.getBalance()
             const tx = await this.PaymentSplitter.release(this.alice.address)
-            const spentOnTx = await getTxGasSpent(tx)
+            const spentOnTx = await getETHSpentOnGas(tx)
             const balanceAfter = await this.alice.getBalance()
             // Why 4.375? Alice has 5000 shares, we had two payments of 3 (no royalties) and 5ETH (has royalties). 0.625*3+0.5*3=4.375
             expect(balanceAfter.sub(balanceBefore)).to.equal(ethers.utils.parseEther("4.375").sub(spentOnTx))
@@ -64,7 +64,7 @@ describe("Fee distribution", () => {
         it("claims fees as NFT owner", async () => {
             const balanceBefore = await this.bob.getBalance()
             const tx = await this.PaymentSplitter.connect(this.wallet3).release(this.wallet3.address)
-            const spentOnTx = await getTxGasSpent(tx)
+            const spentOnTx = await getETHSpentOnGas(tx)
             const balanceAfter = await this.wallet3.getBalance()
             expect(balanceAfter.sub(balanceBefore)).to.equal(ethers.utils.parseEther("1").sub(spentOnTx))
         })
