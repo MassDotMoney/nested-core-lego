@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.3;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "contracts/interfaces/INestedToken.sol";
@@ -14,6 +14,8 @@ import "contracts/interfaces/INestedToken.sol";
  * (community reserve, not user assets reserve)
  */
 contract NestedBuybacker is Ownable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+
     INestedToken public immutable NST;
     address public nstReserve;
 
@@ -63,6 +65,8 @@ contract NestedBuybacker is Ownable, ReentrancyGuard {
         address payable _swapTarget,
         address _sellToken
     ) external nonReentrant {
+        uint256 balance = IERC20(_sellToken).balanceOf(address(this));
+        IERC20(_sellToken).approve(_swapTarget, balance);
         _swapTokens(_sellToken, _swapTarget, _swapCallData);
         trigger();
     }
