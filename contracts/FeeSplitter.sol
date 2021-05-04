@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -12,7 +11,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * @title Receives fees collected by the NestedFactory, and splits the income among
  * shareholders (the NFT owners, Nested treasury and a NST buybacker contract).
  */
-contract FeeSplitter is ReentrancyGuard, Ownable {
+contract FeeSplitter is Ownable {
     event PaymentReleased(address to, address token, uint256 amount);
     event PaymentReceived(address from, address token, uint256 amount);
 
@@ -22,10 +21,6 @@ contract FeeSplitter is ReentrancyGuard, Ownable {
     }
 
     Shareholder[] private shareholders;
-
-    // fake ETH address used to treat tokens and ETH the same way
-    // TODO remove ETH support and unwrap WETH upon release if the factory only sends WETH to this contract
-    address private constant ETH_ADDR = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     // registers shares and amount release for a specific token or ETH
     struct TokenRecords {
@@ -51,10 +46,6 @@ contract FeeSplitter is ReentrancyGuard, Ownable {
     ) {
         setShareholders(_accounts, _weights);
         setRoyaltiesWeight(_royaltiesWeight);
-    }
-
-    receive() external payable {
-        revert("Call sendFees() instead");
     }
 
     /**
@@ -104,15 +95,6 @@ contract FeeSplitter is ReentrancyGuard, Ownable {
     }
 
     /**
-     * @dev Sends an ETH fee to this contract. Allocates shares to shareholders and royalties target
-     * corresponding to their weights
-     * @param _royaltiesTarget [address] account that can claim some of the fees
-     */
-    function sendFees(address _royaltiesTarget) external payable {
-        sendFeesToken(_royaltiesTarget, msg.value, ETH_ADDR);
-    }
-
-    /**
      * @dev Sends a fee to this contract for splitting, as an ERC20 token
      * @param _amount [uint256] amount of token as fee to be claimed by this contract
      * @param _royaltiesTarget [address] the account that can claim royalties
@@ -124,8 +106,7 @@ contract FeeSplitter is ReentrancyGuard, Ownable {
         uint256 _amount,
         address _token
     ) public {
-        if (_token != ETH_ADDR) IERC20(_token).transferFrom(msg.sender, address(this), _amount);
-
+        IERC20(_token).transferFrom(msg.sender, address(this), _amount);
         uint256 tradeTotalWeights = totalWeights;
 
         if (_royaltiesTarget != address(0)) {
@@ -151,23 +132,6 @@ contract FeeSplitter is ReentrancyGuard, Ownable {
         uint256 _totalWeights
     ) private pure returns (uint256) {
         return (_amount * _weight) / _totalWeights;
-    }
-
-    /**
-     * @dev Triggers a transfer to `account` of the amount of Ether they are owed, according to
-     * their percentage of the total shares and their previous withdrawals.
-     * @param _account [address] account to send the amount due to
-     */
-    function release(address payable _account) external {
-        TokenRecords storage _tokenRecords = tokenRecords[ETH_ADDR];
-        uint256 payment = getAmountDue(_account, ETH_ADDR);
-
-        _tokenRecords.released[_account] = _tokenRecords.released[_account] + payment;
-        _tokenRecords.totalReleased = _tokenRecords.totalReleased + payment;
-
-        require(payment != 0, "FeeSplitter: NO_PAYMENT_DUE");
-        Address.sendValue(_account, payment);
-        emit PaymentReleased(_account, ETH_ADDR, payment);
     }
 
     /**
@@ -198,7 +162,6 @@ contract FeeSplitter is ReentrancyGuard, Ownable {
         TokenRecords storage _tokenRecords = tokenRecords[_token];
         uint256 totalReceived = _tokenRecords.totalReleased;
         if (_tokenRecords.totalShares == 0) return 0;
-        if (_token == ETH_ADDR) totalReceived += address(this).balance;
         else totalReceived += IERC20(_token).balanceOf(address(this));
         uint256 amountDue =
             (totalReceived * _tokenRecords.shares[_account]) /
