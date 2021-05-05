@@ -4,8 +4,10 @@ pragma solidity ^0.8.3;
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import "./libraries/NestedStructs.sol";
 import "./NestedAsset.sol";
 import "./NestedReserve.sol";
+import "./NestedRecords.sol";
 import "./interfaces/IWETH.sol";
 import "./interfaces/IFeeSplitter.sol";
 
@@ -21,26 +23,7 @@ contract NestedFactory is ReentrancyGuard {
 
     NestedReserve public reserve;
     NestedAsset public immutable nestedAsset;
-
-    /*
-    Info about assets stored in reserves
-    */
-    struct Holding {
-        address token;
-        uint256 amount;
-        address reserve;
-    }
-
-    /*
-    Data required for swapping a token
-    */
-    struct TokenOrder {
-        address token;
-        bytes callData;
-    }
-
-    mapping(uint256 => mapping(address => Holding)) public assetHoldings;
-    mapping(uint256 => address[]) public assetTokens;
+    NestedRecords private immutable nestedRecords;
 
     /*
     Reverts if the address does not exist
@@ -59,6 +42,7 @@ contract NestedFactory is ReentrancyGuard {
     */
     constructor(
         NestedAsset _asset,
+        NestedRecords _records,
         address _feeToSetter,
         IFeeSplitter _feeTo,
         IWETH _weth
@@ -67,6 +51,7 @@ contract NestedFactory is ReentrancyGuard {
         feeTo = _feeTo;
         weth = _weth;
         nestedAsset = _asset;
+        nestedRecords = _records;
     }
 
     /*
@@ -131,13 +116,13 @@ contract NestedFactory is ReentrancyGuard {
     @params _tokenId [uint256] the id of the NestedAsset
     @return [<Holding>]
     */
-    function tokenHoldings(uint256 _tokenId) public view virtual returns (Holding[] memory) {
-        address[] memory tokens = assetTokens[_tokenId];
+    function tokenHoldings(uint256 _tokenId) public view virtual returns (NestedStructs.Holding[] memory) {
+        address[] memory tokens = nestedRecords.getAssetTokens(_tokenId);
         uint256 tokensCount = tokens.length;
-        Holding[] memory holdings = new Holding[](tokensCount);
+        NestedStructs.Holding[] memory holdings = new NestedStructs.Holding[](tokensCount);
 
         for (uint256 i = 0; i < tokensCount; i++) {
-            Holding memory holding = assetHoldings[_tokenId][tokens[i]];
+            NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_tokenId, tokens[i]);
             holdings[i] = holding;
         }
         return holdings;
@@ -155,7 +140,7 @@ contract NestedFactory is ReentrancyGuard {
         uint256 _tokenId,
         IERC20 _sellToken,
         address payable _swapTarget,
-        TokenOrder[] calldata _tokenOrders
+        NestedStructs.TokenOrder[] calldata _tokenOrders
     ) internal {
         uint256 buyCount = _tokenOrders.length;
 
@@ -164,12 +149,7 @@ contract NestedFactory is ReentrancyGuard {
             fillQuote(_sellToken, _swapTarget, _tokenOrders[i].callData);
             uint256 amountBought = IERC20(_tokenOrders[i].token).balanceOf(address(this)) - balanceBeforePurchase;
 
-            assetHoldings[_tokenId][_tokenOrders[i].token] = Holding({
-                token: _tokenOrders[i].token,
-                amount: amountBought,
-                reserve: address(reserve)
-            });
-            assetTokens[_tokenId].push(_tokenOrders[i].token);
+            nestedRecords.store(_tokenId, _tokenOrders[i].token, amountBought, address(reserve));
 
             IERC20(_tokenOrders[i].token).safeTransfer(address(reserve), amountBought);
         }
@@ -190,7 +170,7 @@ contract NestedFactory is ReentrancyGuard {
         IERC20 _sellToken,
         uint256 _sellTokenAmount,
         address payable _swapTarget,
-        TokenOrder[] calldata _tokenOrders
+        NestedStructs.TokenOrder[] calldata _tokenOrders
     ) external payable nonReentrant {
         require(_tokenOrders.length > 0, "BUY_ARG_MISSING");
 
@@ -239,17 +219,17 @@ contract NestedFactory is ReentrancyGuard {
     @param _tokenId uint256 NFT token Id
     */
     function destroy(uint256 _tokenId) external onlyTokenOwner(_tokenId) {
-        address[] memory tokens = assetTokens[_tokenId];
+        address[] memory tokens = nestedRecords.getAssetTokens(_tokenId);
 
         // get assets list for this NFT and send back all ERC20 to user
         for (uint256 i = 0; i < tokens.length; i++) {
-            Holding memory holding = assetHoldings[_tokenId][tokens[i]];
+            NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_tokenId, tokens[i]);
             NestedReserve(holding.reserve).transfer(msg.sender, IERC20(holding.token), holding.amount);
-            delete assetHoldings[_tokenId][tokens[i]];
+            nestedRecords.removeHolding(_tokenId, tokens[i]);
         }
 
         // burn token
-        delete assetTokens[_tokenId];
+        nestedRecords.removeNFT(_tokenId);
         nestedAsset.burn(msg.sender, _tokenId);
     }
 
@@ -264,9 +244,9 @@ contract NestedFactory is ReentrancyGuard {
         uint256 _tokenId,
         IERC20 _buyToken,
         address payable _swapTarget,
-        TokenOrder[] calldata _tokenOrders
+        NestedStructs.TokenOrder[] calldata _tokenOrders
     ) internal onlyTokenOwner(_tokenId) returns (uint256) {
-        address[] memory tokens = assetTokens[_tokenId];
+        address[] memory tokens = nestedRecords.getAssetTokens(_tokenId);
         uint256 tokenLength = tokens.length;
 
         require(tokenLength == _tokenOrders.length, "MISSING_SELL_ARGS");
@@ -275,10 +255,10 @@ contract NestedFactory is ReentrancyGuard {
 
         // first transfer holdings from reserve to factory
         for (uint256 i = 0; i < tokenLength; i++) {
-            Holding memory holding = assetHoldings[_tokenId][tokens[i]];
+            NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_tokenId, tokens[i]);
             NestedReserve(holding.reserve).transfer(address(this), IERC20(holding.token), holding.amount);
             fillQuote(IERC20(_tokenOrders[i].token), _swapTarget, _tokenOrders[i].callData);
-            delete assetHoldings[_tokenId][tokens[i]];
+            nestedRecords.removeHolding(_tokenId, tokens[i]);
         }
 
         // send swapped ERC20 to user minus fees
@@ -288,7 +268,7 @@ contract NestedFactory is ReentrancyGuard {
 
         transferFee(amountFees, _buyToken, _tokenId);
 
-        delete assetTokens[_tokenId];
+        nestedRecords.removeNFT(_tokenId);
         nestedAsset.burn(msg.sender, _tokenId);
 
         return amountBought;
@@ -305,7 +285,7 @@ contract NestedFactory is ReentrancyGuard {
         uint256 _tokenId,
         IERC20 _buyToken,
         address payable _swapTarget,
-        TokenOrder[] calldata _tokenOrders
+        NestedStructs.TokenOrder[] calldata _tokenOrders
     ) external onlyTokenOwner(_tokenId) {
         uint256 amountBought = _destroyForERC20(_tokenId, _buyToken, _swapTarget, _tokenOrders);
         require(IERC20(_buyToken).transfer(msg.sender, amountBought), "TOKEN_TRANSFER_ERROR");
@@ -320,7 +300,7 @@ contract NestedFactory is ReentrancyGuard {
     function destroyForETH(
         uint256 _tokenId,
         address payable _swapTarget,
-        TokenOrder[] calldata _tokenOrders
+         NestedStructs.TokenOrder[] calldata _tokenOrders
     ) external payable onlyTokenOwner(_tokenId) {
         // no need to check for reeentrancy because destroyForERC20 checks it
         uint256 amountBought = _destroyForERC20(_tokenId, IERC20(address(weth)), _swapTarget, _tokenOrders);

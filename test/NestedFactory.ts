@@ -18,6 +18,7 @@ describe("NestedFactory", () => {
     let mockWETH: Contract, mockUNI: Contract, mockKNC: Contract, feeTo: Contract
     let nestedReserve: ContractFactory, reserve: Contract
     let nestedAsset: ContractFactory, asset: Contract
+    let nestedRecords: ContractFactory, records: Contract
     let dummyRouter: Contract
 
     const metadataUri = "ipfs://bafybeiam5u4xc5527tv6ghlwamd6azfthmcuoa6uwnbbvqbtsyne4p7khq/metadata.json"
@@ -26,6 +27,7 @@ describe("NestedFactory", () => {
         nestedFactory = await ethers.getContractFactory("NestedFactory")
         nestedReserve = await ethers.getContractFactory("NestedReserve")
         nestedAsset = await ethers.getContractFactory("NestedAsset")
+        nestedRecords = await ethers.getContractFactory("NestedRecords")
 
         const signers = await ethers.getSigners()
         // All transactions will be sent from Alice unless explicity specified
@@ -51,7 +53,16 @@ describe("NestedFactory", () => {
         asset = await nestedAsset.deploy()
         await asset.deployed()
 
-        factory = await nestedFactory.deploy(asset.address, feeToSetter.address, feeTo.address, mockWETH.address)
+        records = await nestedRecords.deploy()
+        await records.deployed()
+
+        factory = await nestedFactory.deploy(
+            asset.address,
+            records.address,
+            feeToSetter.address,
+            feeTo.address,
+            mockWETH.address,
+        )
         await factory.deployed()
 
         reserve = await nestedReserve.deploy(factory.address)
@@ -59,6 +70,7 @@ describe("NestedFactory", () => {
         await factory.setReserve(reserve.address)
 
         await asset.setFactory(factory.address)
+        await records.setFactory(factory.address)
     })
 
     describe("#initialization", () => {
