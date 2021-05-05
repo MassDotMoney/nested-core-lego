@@ -38,7 +38,7 @@ contract NestedBuybacker is Ownable, ReentrancyGuard {
         require(burnPercentage <= 1000, "NestedBuybacker: BURN_PART_TOO_HIGH");
         NST = INestedToken(_NST);
         feeSplitter = IFeeSplitter(_feeSplitter);
-        setNestedReserve(_nstReserve);
+        nstReserve = _nstReserve;
         burnPercentage = _burnPercentage;
     }
 
@@ -46,7 +46,7 @@ contract NestedBuybacker is Ownable, ReentrancyGuard {
      * @dev update the nested reserve address
      * @param _nstReserve [address] reserve contract address
      */
-    function setNestedReserve(address _nstReserve) public onlyOwner {
+    function setNestedReserve(address _nstReserve) external onlyOwner {
         nstReserve = _nstReserve;
     }
 
@@ -62,7 +62,7 @@ contract NestedBuybacker is Ownable, ReentrancyGuard {
      * @dev update parts deciding what amount is sent to reserve or burned
      * @param _burnPercentage [uint] burn part
      */
-    function setBurnPart(uint256 _burnPercentage) public onlyOwner {
+    function setBurnPart(uint256 _burnPercentage) external onlyOwner {
         burnPercentage = _burnPercentage;
     }
 

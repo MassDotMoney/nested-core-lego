@@ -4,7 +4,7 @@ import { expect } from "chai"
 import { ethers } from "hardhat"
 import { getETHSpentOnGas } from "./helpers"
 
-describe("Fee distribution", () => {
+describe("Fee Splitter", () => {
     let alice: SignerWithAddress,
         bob: SignerWithAddress,
         wallet3: SignerWithAddress,

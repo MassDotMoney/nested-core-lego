@@ -227,7 +227,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
      * @param _accountIndex [uint256] account to change the weight of
      * @param _weight [uint256] _weight
      */
-    function updateShareholder(uint256 _accountIndex, uint256 _weight) external {
+    function updateShareholder(uint256 _accountIndex, uint256 _weight) external onlyOwner {
         uint256 _totalWeights = totalWeights;
         _totalWeights -= shareholders[_accountIndex].weight;
         shareholders[_accountIndex].weight = _weight;
