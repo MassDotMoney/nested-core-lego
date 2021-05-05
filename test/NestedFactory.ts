@@ -1,8 +1,4 @@
-import axios from "axios"
 import { expect } from "chai"
-import * as qs from "qs"
-//import ierc20Abi from "./../mocks/IERC20.json"
-//import wethAbi from "./../mocks/IWETH.json"
 
 import { ethers } from "hardhat"
 import { Contract, ContractFactory } from "@ethersproject/contracts"

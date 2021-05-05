@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // import "hardhat/console.sol";
 
@@ -12,6 +12,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * shareholders (the NFT owners, Nested treasury and a NST buybacker contract).
  */
 contract FeeSplitter is Ownable {
+    using SafeERC20 for IERC20;
+
     event PaymentReleased(address to, address token, uint256 amount);
     event PaymentReceived(address from, address token, uint256 amount);
 
@@ -106,7 +108,7 @@ contract FeeSplitter is Ownable {
         uint256 _amount,
         address _token
     ) public {
-        IERC20(_token).transferFrom(msg.sender, address(this), _amount);
+        IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
         uint256 tradeTotalWeights = totalWeights;
 
         if (_royaltiesTarget != address(0)) {

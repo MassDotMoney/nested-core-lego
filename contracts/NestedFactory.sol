@@ -246,8 +246,8 @@ contract NestedFactory is ReentrancyGuard {
 
         uint256 buyTokenInitialBalance = IERC20(_buyToken).balanceOf(address(this));
 
-        // swap tokens
-        for (uint256 i = 0; i < _tokenOrders.length; i++) {
+        uint256 orderLength = _tokenOrders.length;
+        for (uint256 i = 0; i < orderLength; i++) {
             fillQuote(_tokenOrders[i].token, _swapTarget, _tokenOrders[i].callData);
         }
 
@@ -275,10 +275,9 @@ contract NestedFactory is ReentrancyGuard {
         address _buyToken,
         address payable _swapTarget,
         TokenOrder[] calldata _tokenOrders
-    ) external onlyOwner(_tokenId) returns (uint256) {
+    ) external onlyOwner(_tokenId) {
         uint256 amountBought = _destroyForERC20(_tokenId, _buyToken, _swapTarget, _tokenOrders);
         require(IERC20(_buyToken).transfer(msg.sender, amountBought), "TOKEN_TRANSFER_ERROR");
-        return amountBought;
     }
 
     /*
