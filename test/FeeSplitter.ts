@@ -10,6 +10,7 @@ describe("Fee distribution", () => {
         feeToSetter: SignerWithAddress,
         feeTo: SignerWithAddress
     let ERC20Mocks: Contract[]
+    let mockWETH: Contract
     let feeSplitter: Contract
 
     before(async () => {
@@ -30,8 +31,26 @@ describe("Fee distribution", () => {
             deployMockToken("Mock2", "MOCK2", alice),
             deployMockToken("Mock3", "MOCK3", alice),
         ])
+        const MockWETHFactory = await ethers.getContractFactory("WETH9")
+        mockWETH = await MockWETHFactory.deploy()
 
-        feeSplitter = await FeeSplitterFactory.deploy([alice.address, bob.address], [5000, 3000], 2000)
+        feeSplitter = await FeeSplitterFactory.deploy(
+            [alice.address, bob.address],
+            [5000, 3000],
+            2000,
+            mockWETH.address,
+        )
+    })
+
+    it("Releases fees as ETH", async () => {
+        const amount = ethers.utils.parseEther("5")
+        await mockWETH.approve(feeSplitter.address, amount)
+        mockWETH.deposit({ value: amount })
+        await feeSplitter.sendFeesToken(ethers.constants.AddressZero, amount, mockWETH.address)
+        const balanceBobBefore = await bob.getBalance()
+        await feeSplitter.releaseETH(bob.address)
+        const balanceBobAfter = await bob.getBalance()
+        expect(balanceBobAfter.sub(balanceBobBefore)).to.equal(amount.mul(3000).div(8000))
     })
 
     describe("ERC20 tokens fees", () => {

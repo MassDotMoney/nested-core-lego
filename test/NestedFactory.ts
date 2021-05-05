@@ -39,7 +39,7 @@ describe("NestedFactory", () => {
         mockWETH = await MockWETHFactory.deploy()
 
         const feeSplitterFactory = await ethers.getContractFactory("FeeSplitter")
-        feeTo = await feeSplitterFactory.deploy([wallet3.address, wallet4.address], [1000, 1700], 300)
+        feeTo = await feeSplitterFactory.deploy([wallet3.address, wallet4.address], [1000, 1700], 300, mockWETH.address)
 
         factory = await nestedFactory.deploy(feeToSetter.address, feeTo.address, mockWETH.address)
         await factory.deployed()

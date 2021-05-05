@@ -124,7 +124,9 @@ describe("NestedAsset", () => {
         before(async () => {
             this.NestedFactory = await ethers.getContractFactory("NestedFactory")
             const feeSplitterFactory = await ethers.getContractFactory("FeeSplitter")
-            const feeSplitter = await feeSplitterFactory.deploy([this.alice.address], [1000], 1000)
+            const MockWETHFactory = await ethers.getContractFactory("WETH9")
+            mockWETH = await MockWETHFactory.deploy()
+            const feeSplitter = await feeSplitterFactory.deploy([this.alice.address], [1000], 1000, mockWETH.address)
 
             this.otherFactory = await this.NestedFactory.deploy(
                 this.alice.address,

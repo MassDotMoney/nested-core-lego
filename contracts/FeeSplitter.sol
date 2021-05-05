@@ -3,7 +3,10 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+import "./interfaces/IWETH.sol";
 
 // import "hardhat/console.sol";
 
@@ -11,7 +14,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
  * @title Receives fees collected by the NestedFactory, and splits the income among
  * shareholders (the NFT owners, Nested treasury and a NST buybacker contract).
  */
-contract FeeSplitter is Ownable {
+contract FeeSplitter is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     event PaymentReleased(address to, address token, uint256 amount);
@@ -36,6 +39,17 @@ contract FeeSplitter is Ownable {
     uint256 private royaltiesWeight;
     uint256 public totalWeights;
 
+    address public weth;
+
+    /*
+    Reverts if the address does not exist
+    @param _address [address]
+    */
+    modifier addressExists(address _address) {
+        require(_address != address(0), "FeeSplitter: INVALID_ADDRESS");
+        _;
+    }
+
     /**
      * @param _accounts [address[]] inital shareholders addresses that can receive income
      * @param _weights [uint256[]] initial weights for these shareholders. Weight determines share allocation
@@ -44,11 +58,15 @@ contract FeeSplitter is Ownable {
     constructor(
         address[] memory _accounts,
         uint256[] memory _weights,
-        uint256 _royaltiesWeight
+        uint256 _royaltiesWeight,
+        address _weth
     ) {
         setShareholders(_accounts, _weights);
         setRoyaltiesWeight(_royaltiesWeight);
+        weth = _weth;
     }
+
+    receive() external payable {}
 
     /**
      * @dev Getter for the total shares held by shareholders.
@@ -137,12 +155,31 @@ contract FeeSplitter is Ownable {
     }
 
     /**
-     * @dev Triggers a transfer to `account` of the amount of Ether they are owed, according to
+     * @dev Triggers a transfer to `account` of the amount of token they are owed, according to
      * the amount of shares they own and their previous withdrawals.
      * @param _account [address] account to send the amount due to
      * @param _token [address] payment token address
      */
     function releaseToken(address _account, address _token) external {
+        uint256 amount = _releaseToken(_account, _token);
+        IERC20(_token).transfer(_account, amount);
+        emit PaymentReleased(_account, _token, amount);
+    }
+
+    /**
+     * @dev Triggers a transfer to `account` of the amount of Ether they are owed, according to
+     * the amount of shares they own and their previous withdrawals.
+     * @param _account [address] account to send the amount due to
+     */
+    function releaseETH(address payable _account) external nonReentrant addressExists(_account) {
+        uint256 amount = _releaseToken(_account, weth);
+        IWETH(weth).withdraw(amount);
+        (bool success, ) = _account.call{ value: amount }("");
+        require(success, "FeeSplitter: ETH_TRANFER_ERROR");
+        emit PaymentReleased(_account, 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE, amount);
+    }
+
+    function _releaseToken(address _account, address _token) private returns (uint256) {
         TokenRecords storage _tokenRecords = tokenRecords[_token];
         uint256 amountToRelease = getAmountDue(_account, _token);
 
@@ -150,8 +187,7 @@ contract FeeSplitter is Ownable {
         _tokenRecords.totalReleased = _tokenRecords.totalReleased + amountToRelease;
 
         require(amountToRelease != 0, "FeeSplitter: NO_PAYMENT_DUE");
-        IERC20(_token).transfer(_account, amountToRelease);
-        emit PaymentReleased(_account, _token, amountToRelease);
+        return amountToRelease;
     }
 
     /**
