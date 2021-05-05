@@ -36,7 +36,8 @@ contract NestedFactory is ReentrancyGuard {
         bytes callData;
     }
 
-    mapping(uint256 => Holding[]) public usersHoldings;
+    mapping(uint256 => mapping(address => Holding)) public assetHoldings;
+    mapping(uint256 => address[]) public assetTokens;
 
     /*
     Reverts if the address does not exist
@@ -112,7 +113,15 @@ contract NestedFactory is ReentrancyGuard {
     @return [<Holding>]
     */
     function tokenHoldings(uint256 _tokenId) public view virtual returns (Holding[] memory) {
-        return usersHoldings[_tokenId];
+        address[] memory tokens = assetTokens[_tokenId];
+        uint256 tokensCount = tokens.length;
+        Holding[] memory holdings = new Holding[](tokensCount);
+
+        for (uint256 i = 0; i < tokensCount; i++) {
+            Holding memory holding = assetHoldings[_tokenId][tokens[i]];
+            holdings[i] = holding;
+        }
+        return holdings;
     }
 
     /*
@@ -136,9 +145,9 @@ contract NestedFactory is ReentrancyGuard {
             fillQuote(_sellToken, _swapTarget, _tokenOrders[i].callData);
             uint256 amountBought = IERC20(_tokenOrders[i].token).balanceOf(address(this)) - balanceBeforePurchase;
 
-            usersHoldings[_tokenId].push(
-                Holding({ token: _tokenOrders[i].token, amount: amountBought, reserve: address(reserve) })
-            );
+            assetHoldings[_tokenId][_tokenOrders[i].token] = Holding({ token: _tokenOrders[i].token, amount: amountBought, reserve: address(reserve) });
+            assetTokens[_tokenId].push(_tokenOrders[i].token);
+
             IERC20(_tokenOrders[i].token).safeTransfer(address(reserve), amountBought);
         }
     }
@@ -208,17 +217,17 @@ contract NestedFactory is ReentrancyGuard {
     @param _tokenId uint256 NFT token Id
     */
     function destroy(uint256 _tokenId) external onlyOwner(_tokenId) {
-        // get Holdings for this token
-        Holding[] memory holdings = usersHoldings[_tokenId];
+        address[] memory tokens = assetTokens[_tokenId];
 
-        // send back all ERC20 to user
-        for (uint256 i = 0; i < holdings.length; i++) {
-            NestedReserve(holdings[i].reserve).transfer(msg.sender, holdings[i].token, holdings[i].amount);
-            // TODO take fees
+        // get assets list for this NFT and send back all ERC20 to user
+        for (uint256 i = 0; i < tokens.length; i++) {
+            Holding memory holding = assetHoldings[_tokenId][tokens[i]];
+            NestedReserve(holding.reserve).transfer(msg.sender, holding.token, holding.amount);
+            delete assetHoldings[_tokenId][tokens[i]];
         }
 
         // burn token
-        delete usersHoldings[_tokenId];
+        delete assetTokens[_tokenId];
         nestedAsset.burn(msg.sender, _tokenId);
     }
 
@@ -235,20 +244,19 @@ contract NestedFactory is ReentrancyGuard {
         address payable _swapTarget,
         TokenOrder[] calldata _tokenOrders
     ) internal onlyOwner(_tokenId) returns (uint256) {
-        // get Holdings for this token
-        Holding[] memory holdings = usersHoldings[_tokenId];
-        require(holdings.length == _tokenOrders.length, "MISSING_SELL_ARGS");
+        address[] memory tokens = assetTokens[_tokenId];
+        uint256 tokenLength = tokens.length;
 
-        // first transfer holdings from reserve to factory
-        for (uint256 i = 0; i < holdings.length; i++) {
-            NestedReserve(holdings[i].reserve).transfer(address(this), holdings[i].token, holdings[i].amount);
-        }
+        require(tokenLength == _tokenOrders.length, "MISSING_SELL_ARGS");
 
         uint256 buyTokenInitialBalance = IERC20(_buyToken).balanceOf(address(this));
 
-        uint256 orderLength = _tokenOrders.length;
-        for (uint256 i = 0; i < orderLength; i++) {
+        // first transfer holdings from reserve to factory
+        for (uint256 i = 0; i < tokenLength; i++) {
+            Holding memory holding = assetHoldings[_tokenId][tokens[i]];
+            NestedReserve(holding.reserve).transfer(address(this), holding.token, holding.amount);
             fillQuote(_tokenOrders[i].token, _swapTarget, _tokenOrders[i].callData);
+            delete assetHoldings[_tokenId][tokens[i]];
         }
 
         // send swapped ERC20 to user minus fees
@@ -257,7 +265,7 @@ contract NestedFactory is ReentrancyGuard {
         amountBought = amountBought - amountFees;
         require(IERC20(_buyToken).transfer(feeTo, amountFees), "FEES_TRANSFER_ERROR");
 
-        delete usersHoldings[_tokenId];
+        delete assetTokens[_tokenId];
         nestedAsset.burn(msg.sender, _tokenId);
 
         return amountBought;

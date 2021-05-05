@@ -62,6 +62,7 @@ async function main() {
     const link = new ethers.Contract(orders[1].buyToken, abi, accounts[0])
 
     await nestedFactory.create(
+        "https://gateway.pinata.cloud/ipfs/QmZWtkWCzfyWeyQXESoVALtcCd9cnfyN3gWFfxgWrzaM1i",
         tokenToSell,
         maximumSellAmount,
         responses[0].data.to,
