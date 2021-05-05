@@ -1,4 +1,5 @@
 const { expect } = require("chai")
+const { ethers } = require("hardhat")
 
 describe("NestedAsset", () => {
     before(async () => {
@@ -122,8 +123,14 @@ describe("NestedAsset", () => {
     describe("#setFactory", () => {
         before(async () => {
             this.NestedFactory = await ethers.getContractFactory("NestedFactory")
+            const feeSplitterFactory = await ethers.getContractFactory("FeeSplitter")
+            const feeSplitter = await feeSplitterFactory.deploy([this.alice.address], [1000], 1000)
 
-            this.otherFactory = await this.NestedFactory.deploy(this.alice.address, this.weth.address)
+            this.otherFactory = await this.NestedFactory.deploy(
+                this.alice.address,
+                feeSplitter.address,
+                this.weth.address,
+            )
             await this.otherFactory.deployed()
         })
         it("sets the new factory", async () => {

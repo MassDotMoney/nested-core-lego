@@ -9,8 +9,12 @@ import { BigNumber } from "@ethersproject/bignumber"
 
 describe("NestedFactory", () => {
     let nestedFactory: ContractFactory, factory: Contract
-    let alice: SignerWithAddress, bob: SignerWithAddress, feeToSetter: SignerWithAddress, feeTo: SignerWithAddress
-    let mockWETH: Contract, mockUNI: Contract, mockKNC: Contract
+    let alice: SignerWithAddress,
+        bob: SignerWithAddress,
+        wallet3: SignerWithAddress,
+        wallet4: SignerWithAddress,
+        feeToSetter: SignerWithAddress
+    let mockWETH: Contract, mockUNI: Contract, mockKNC: Contract, feeTo: Contract
     let dummyRouter: Contract
 
     const metadataUri = "ipfs://bafybeiam5u4xc5527tv6ghlwamd6azfthmcuoa6uwnbbvqbtsyne4p7khq/metadata.json"
@@ -23,7 +27,8 @@ describe("NestedFactory", () => {
         alice = signers[0] as any
         bob = signers[1] as any
         feeToSetter = signers[2] as any
-        feeTo = signers[2] as any
+        wallet3 = signers[3] as any
+        wallet4 = signers[4] as any
 
         const dummyRouterFactory = await ethers.getContractFactory("DummyRouter")
         dummyRouter = await dummyRouterFactory.deploy()
@@ -33,7 +38,10 @@ describe("NestedFactory", () => {
         const MockWETHFactory = await ethers.getContractFactory("WETH9")
         mockWETH = await MockWETHFactory.deploy()
 
-        factory = await nestedFactory.deploy(feeToSetter.address, mockWETH.address)
+        const feeSplitterFactory = await ethers.getContractFactory("FeeSplitter")
+        feeTo = await feeSplitterFactory.deploy([wallet3.address, wallet4.address], [1000, 1700], 300)
+
+        factory = await nestedFactory.deploy(feeToSetter.address, feeTo.address, mockWETH.address)
         await factory.deployed()
     })
 
@@ -118,26 +126,6 @@ describe("NestedFactory", () => {
             ]
         })
 
-        //     it("reverts if user had no allowance for sellToken", async () => {
-        //         await tokenToSellContract
-        //             .connect(bob)
-        //             .deposit({ value: ethers.utils.parseEther("10").toString() })
-
-        //         await expect(
-        //             factory
-        //                 .connect(bob)
-        //                 .create(
-        //                     0,
-        //                     metadataUri,
-        //                     tokenToSell,
-        //                     totalSellAmount.add(expectedFee),
-        //                     responses[0].data.to,
-        //                     tokensToBuy,
-        //                     swapCallData,
-        //                 ),
-        //         ).to.be.revertedWith("FUNDS_TRANSFER_ERROR")
-        //     })
-
         describe("creating from ERC20 tokens", async () => {
             beforeEach(async () => {
                 mockWETH.approve(factory.address, appendDecimals(10.1))
@@ -185,6 +173,31 @@ describe("NestedFactory", () => {
                 // check number of assets in NFT token
                 const result = await factory.tokenHoldings(aliceTokens[0])
                 expect(result.length).to.equal(buyTokenOrders.length)
+
+                // check that fees were taken
+                expect(await mockWETH.balanceOf(feeTo.address)).to.equal(expectedFee)
+            })
+
+            it("creates the NFT with an original token ID", async () => {
+                await createNFTFromERC20(buyTokenOrders, totalSellAmount)
+                const aliceTokens = await factory.tokensOf(alice.address)
+
+                // bob buys WETH to purchase the NFT
+                mockWETH.connect(bob).approve(factory.address, appendDecimals(10.1))
+                await mockWETH.connect(bob).deposit({ value: appendDecimals(10.1) })
+
+                await createNFTFromERC20(buyTokenOrders, totalSellAmount, bob, aliceTokens[0])
+
+                // check if NFT was created
+                const bobTokens = await factory.tokensOf(bob.address)
+                expect(bobTokens.length).to.equal(1)
+
+                // check that fees were taken (2 NFT bought = 2x expectedFee)
+                expect(await mockWETH.balanceOf(feeTo.address)).to.equal(expectedFee.mul(2))
+
+                // check that alice has been assigned royalties.
+                // Should be 10% of the fee based on weights given to FeeSplitter
+                expect(await feeTo.getAmountDue(alice.address, mockWETH.address)).to.equal(expectedFee.div(10))
             })
         })
 
@@ -214,8 +227,11 @@ describe("NestedFactory", () => {
                 expect(await mockWETH.balanceOf(factory.feeTo())).to.equal(expectedFee.toString())
 
                 // check if NFT was created
-                let aliceTokens = await factory.tokensOf(bob.address)
+                const aliceTokens = await factory.tokensOf(bob.address)
                 expect(aliceTokens.length).to.equal(1)
+
+                // check that fees were taken
+                expect(await mockWETH.balanceOf(feeTo.address)).to.equal(expectedFee)
             })
         })
 
@@ -258,7 +274,7 @@ describe("NestedFactory", () => {
                     },
                 ]
 
-                const buyTokenOrders = [
+                buyTokenOrders = [
                     {
                         token: tokensToBuy[0],
                         callData: iface.encodeFunctionData("dummyswapToken", [
@@ -316,6 +332,25 @@ describe("NestedFactory", () => {
                     const aliceTokensAfter = await factory.tokensOf(alice.address)
                     expect(aliceTokensAfter.length).to.equal(0)
                 })
+
+                it("destroys a NFT with an original token ID", async () => {
+                    const aliceTokens = await factory.tokensOf(alice.address)
+
+                    // bob buys WETH to purchase the NFT
+                    mockWETH.connect(bob).approve(factory.address, appendDecimals(10.1))
+                    await mockWETH.connect(bob).deposit({ value: appendDecimals(10.1) })
+
+                    await createNFTFromERC20(buyTokenOrders, totalSellAmount, bob, aliceTokens[0])
+
+                    const [bobTokenId] = await factory.tokensOf(bob.address)
+                    await factory
+                        .connect(bob)
+                        .destroyForERC20(bobTokenId, mockWETH.address, dummyRouter.address, sellTokenOrders)
+
+                    // check that alice has been assigned royalties.
+                    // Should be twice 10% (createNFT + destroyNFT)
+                    expect(await feeTo.getAmountDue(alice.address, mockWETH.address)).to.equal(expectedFee.div(5))
+                })
             })
 
             describe("#destroyForETH", () => {
@@ -339,10 +374,11 @@ describe("NestedFactory", () => {
         tokenOrders: TokenOrder[],
         totalSellAmount: BigNumber,
         signer: SignerWithAddress = alice,
+        originalTokenId: number = 0,
     ) =>
         factory
             .connect(signer)
-            .create(0, metadataUri, mockWETH.address, totalSellAmount, dummyRouter.address, tokenOrders)
+            .create(originalTokenId, metadataUri, mockWETH.address, totalSellAmount, dummyRouter.address, tokenOrders)
 
     const createNFTFromETH = (
         tokenOrders: TokenOrder[],

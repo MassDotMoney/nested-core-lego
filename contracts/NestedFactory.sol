@@ -1,19 +1,22 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.3;
 
-import "hardhat/console.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 import "./NestedAsset.sol";
 import "./NestedReserve.sol";
 import "./interfaces/IWETH.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./interfaces/IFeeSplitter.sol";
+
+// import "hardhat/console.sol";
 
 contract NestedFactory is ReentrancyGuard {
     using SafeERC20 for IERC20;
     event NestedCreated(uint256 indexed tokenId, address indexed owner);
 
     address public immutable weth;
-    address payable public feeTo;
+    IFeeSplitter public feeTo;
     address public feeToSetter;
     NestedReserve public reserve;
 
@@ -32,7 +35,7 @@ contract NestedFactory is ReentrancyGuard {
     Data required for swapping a token
     */
     struct TokenOrder {
-        address token;
+        IERC20 token;
         bytes callData;
     }
 
@@ -51,9 +54,13 @@ contract NestedFactory is ReentrancyGuard {
     /*
     @param _feeToSetter [address] The address which will be allowed to choose where the fees go
     */
-    constructor(address payable _feeToSetter, address _weth) {
+    constructor(
+        address payable _feeToSetter,
+        IFeeSplitter _feeTo,
+        address _weth
+    ) {
         feeToSetter = _feeToSetter;
-        feeTo = _feeToSetter;
+        feeTo = _feeTo;
         weth = _weth;
         nestedAsset = new NestedAsset();
         // TODO: do this outside of constructor. Think about reserve architecture
@@ -78,7 +85,7 @@ contract NestedFactory is ReentrancyGuard {
    Sets the address receiving the fees
    @param feeTo The address of the receiver
    */
-    function setFeeTo(address payable _feeTo) external addressExists(_feeTo) {
+    function setFeeTo(IFeeSplitter _feeTo) external addressExists(address(_feeTo)) {
         require(msg.sender == feeToSetter, "NestedFactory: FORBIDDEN");
         feeTo = _feeTo;
     }
@@ -127,14 +134,14 @@ contract NestedFactory is ReentrancyGuard {
     /*
     Purchase tokens and store them in a reserve for the user.
     @param _tokenId [uint] the id of the Nested NFT
-    @param _sellToken [address] token used to make swaps
+    @param _sellToken [IERC20] token used to make swaps
     @param _swapTarget [address] the address of the contract that will swap tokens
     @param _tokenOrders [<TokenOrder>] orders for token swaps
     @param _maxAllowance [<uint256>] maximum allowance needed to perform a swap
     */
     function exchangeAndStoreTokens(
         uint256 _tokenId,
-        address _sellToken,
+        IERC20 _sellToken,
         address payable _swapTarget,
         TokenOrder[] calldata _tokenOrders
     ) internal {
@@ -145,7 +152,11 @@ contract NestedFactory is ReentrancyGuard {
             fillQuote(_sellToken, _swapTarget, _tokenOrders[i].callData);
             uint256 amountBought = IERC20(_tokenOrders[i].token).balanceOf(address(this)) - balanceBeforePurchase;
 
-            assetHoldings[_tokenId][_tokenOrders[i].token] = Holding({ token: _tokenOrders[i].token, amount: amountBought, reserve: address(reserve) });
+            assetHoldings[_tokenId][_tokenOrders[i].token] = Holding({
+                token: _tokenOrders[i].token,
+                amount: amountBought,
+                reserve: address(reserve)
+            });
             assetTokens[_tokenId].push(_tokenOrders[i].token);
 
             IERC20(_tokenOrders[i].token).safeTransfer(address(reserve), amountBought);
@@ -156,7 +167,7 @@ contract NestedFactory is ReentrancyGuard {
     Purchase tokens and store them in a reserve for the user.
     @param _originalTokenId [uint] the id of the NFT replicated, 0 if not replicating
     @param _metadataURI The metadata URI string
-    @param _sellToken [address] token used to make swaps
+    @param _sellToken [IERC20] token used to make swaps
     @param _sellTokenAmount [uint] amount of sell tokens to exchange
     @param _swapTarget [address] the address of the contract that will swap tokens
     @param _tokenOrders [<TokenOrder>] orders for token swaps
@@ -164,7 +175,7 @@ contract NestedFactory is ReentrancyGuard {
     function create(
         uint256 _originalTokenId,
         string memory _metadataURI,
-        address _sellToken,
+        IERC20 _sellToken,
         uint256 _sellTokenAmount,
         address payable _swapTarget,
         TokenOrder[] calldata _tokenOrders
@@ -177,10 +188,10 @@ contract NestedFactory is ReentrancyGuard {
         uint256 tokenId = nestedAsset.mint(msg.sender, _metadataURI, _originalTokenId);
 
         // pays with ETH
-        if (_sellToken == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
+        if (address(_sellToken) == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
             require(msg.value >= sellAmountWithFees, "INSUFFICIENT_AMOUNT_IN");
             IWETH(weth).deposit{ value: msg.value }();
-            _sellToken = weth;
+            _sellToken = IERC20(weth);
         } else {
             // pays with an ERC20
             IERC20(_sellToken).safeTransferFrom(msg.sender, address(this), sellAmountWithFees);
@@ -189,23 +200,22 @@ contract NestedFactory is ReentrancyGuard {
         exchangeAndStoreTokens(tokenId, _sellToken, _swapTarget, _tokenOrders);
         uint256 amountSpent = balanceBeforePurchase - IERC20(_sellToken).balanceOf(address(this));
         require(amountSpent <= _sellTokenAmount, "OVERSPENT_ERROR");
-        IERC20(_sellToken).safeTransfer(feeTo, _sellTokenAmount - amountSpent + fees);
+        transferFee(_sellTokenAmount - amountSpent + fees, _sellToken, tokenId);
     }
 
     /*
     Perform a swap between two tokens
-    @param _sellToken [address] token to exchange
-    @param _buyToken [address] token to buy
+    @param _sellToken [IERC20] token to exchange
     @param _swapTarget [address] the address of the contract that swaps tokens
     @param _swapCallData [bytes] call data provided by 0x to fill the quote
     */
     function fillQuote(
-        address _sellToken,
+        IERC20 _sellToken,
         address payable _swapTarget,
         bytes calldata _swapCallData
     ) internal {
-        if (IERC20(_sellToken).allowance(address(this), _swapTarget) < type(uint256).max) {
-            IERC20(_sellToken).approve(_swapTarget, type(uint256).max);
+        if (_sellToken.allowance(address(this), _swapTarget) < type(uint256).max) {
+            _sellToken.approve(_swapTarget, type(uint256).max);
         }
         // solhint-disable-next-line avoid-low-level-calls
         (bool success, ) = _swapTarget.call(_swapCallData);
@@ -234,13 +244,13 @@ contract NestedFactory is ReentrancyGuard {
     /*
     Burn NFT and Sell all tokens for a specific ERC20
     @param  _tokenId uint256 NFT token Id
-    @param _buyToken [address] token used to make swaps
+    @param _buyToken [IERC20] token used to make swaps
     @param _swapTarget [address] the address of the contract that will swap tokens
     @param _tokenOrders [<TokenOrder>] orders for token swaps
     */
     function _destroyForERC20(
         uint256 _tokenId,
-        address _buyToken,
+        IERC20 _buyToken,
         address payable _swapTarget,
         TokenOrder[] calldata _tokenOrders
     ) internal onlyOwner(_tokenId) returns (uint256) {
@@ -249,7 +259,7 @@ contract NestedFactory is ReentrancyGuard {
 
         require(tokenLength == _tokenOrders.length, "MISSING_SELL_ARGS");
 
-        uint256 buyTokenInitialBalance = IERC20(_buyToken).balanceOf(address(this));
+        uint256 buyTokenInitialBalance = _buyToken.balanceOf(address(this));
 
         // first transfer holdings from reserve to factory
         for (uint256 i = 0; i < tokenLength; i++) {
@@ -260,10 +270,11 @@ contract NestedFactory is ReentrancyGuard {
         }
 
         // send swapped ERC20 to user minus fees
-        uint256 amountBought = IERC20(_buyToken).balanceOf(address(this)) - buyTokenInitialBalance;
+        uint256 amountBought = _buyToken.balanceOf(address(this)) - buyTokenInitialBalance;
         uint256 amountFees = amountBought / 100;
         amountBought = amountBought - amountFees;
-        require(IERC20(_buyToken).transfer(feeTo, amountFees), "FEES_TRANSFER_ERROR");
+
+        transferFee(amountFees, _buyToken, _tokenId);
 
         delete assetTokens[_tokenId];
         nestedAsset.burn(msg.sender, _tokenId);
@@ -274,13 +285,13 @@ contract NestedFactory is ReentrancyGuard {
     /*
     Burn NFT and Sell all tokens for a specific ERC20 then send it back to the user
     @param  _tokenId uint256 NFT token Id
-    @param _buyToken [address] token used to make swaps
+    @param _buyToken [IERC20] token used to make swaps
     @param _swapTarget [address] the address of the contract that will swap tokens
     @param _tokenOrders [<TokenOrder>] orders for token swaps
     */
     function destroyForERC20(
         uint256 _tokenId,
-        address _buyToken,
+        IERC20 _buyToken,
         address payable _swapTarget,
         TokenOrder[] calldata _tokenOrders
     ) external onlyOwner(_tokenId) {
@@ -300,10 +311,20 @@ contract NestedFactory is ReentrancyGuard {
         TokenOrder[] calldata _tokenOrders
     ) external payable onlyOwner(_tokenId) {
         // no need to check for reeentrancy because destroyForERC20 checks it
-        uint256 amountBought = _destroyForERC20(_tokenId, weth, _swapTarget, _tokenOrders);
+        uint256 amountBought = _destroyForERC20(_tokenId, IERC20(weth), _swapTarget, _tokenOrders);
         IWETH(weth).withdraw(amountBought);
 
         (bool success, ) = msg.sender.call{ value: amountBought }("");
         require(success, "ETH_TRANSFER_ERROR");
+    }
+
+    function transferFee(
+        uint256 _amount,
+        IERC20 _token,
+        uint256 _tokenId
+    ) internal {
+        address originalOwner = nestedAsset.originalOwner(_tokenId);
+        _token.safeIncreaseAllowance(address(feeTo), _amount);
+        feeTo.sendFeesToken(originalOwner, _amount, _token);
     }
 }
