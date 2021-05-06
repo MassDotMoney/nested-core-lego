@@ -62,10 +62,15 @@ interface IFeeSplitter {
     /**
      * @dev Triggers a transfer to `account` of the amount of Ether they are owed, according to
      * the amount of shares they own and their previous withdrawals.
-     * @param _account [address] account to send the amount due to
      * @param _token [address] payment token address
      */
-    function releaseToken(address _account, address _token) external;
+    function releaseToken(IERC20 _token) external;
+
+    /**
+     * @dev Triggers a transfer to `msg.sender` of the amount of Ether they are owed, according to
+     * the amount of shares they own and their previous withdrawals.
+     */
+    function releaseETH() external;
 
     /**
      * @dev Returns the amount due to an account. Call releaseToken to withdraw the amount.
@@ -73,7 +78,7 @@ interface IFeeSplitter {
      * @param _token [address] ERC20 payment token address (or ETH_ADDR)
      * @return the total amount due for the requested currency
      */
-    function getAmountDue(address _account, address _token) external view returns (uint256);
+    function getAmountDue(address _account, IERC20 _token) external view returns (uint256);
 
     /**
      * @dev sets a new list of shareholders

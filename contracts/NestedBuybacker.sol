@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "contracts/interfaces/INestedToken.sol";
+import "contracts/interfaces/IFeeSplitter.sol";
 
 // import "hardhat/console.sol";
 
@@ -18,6 +19,7 @@ contract NestedBuybacker is Ownable, ReentrancyGuard {
 
     INestedToken public immutable NST;
     address public nstReserve;
+    IFeeSplitter public feeSplitter;
 
     // part of the bought tokens to be burned
     uint256 public burnPercentage;
@@ -30,10 +32,12 @@ contract NestedBuybacker is Ownable, ReentrancyGuard {
     constructor(
         address _NST,
         address _nstReserve,
+        address _feeSplitter,
         uint256 _burnPercentage
     ) {
         require(burnPercentage <= 1000, "NestedBuybacker: BURN_PART_TOO_HIGH");
         NST = INestedToken(_NST);
+        feeSplitter = IFeeSplitter(_feeSplitter);
         setNestedReserve(_nstReserve);
         burnPercentage = _burnPercentage;
     }
@@ -44,6 +48,14 @@ contract NestedBuybacker is Ownable, ReentrancyGuard {
      */
     function setNestedReserve(address _nstReserve) public onlyOwner {
         nstReserve = _nstReserve;
+    }
+
+    /**
+     * @dev update the fee splitter address
+     * @param _feeSplitter [address] fee splitter contract address
+     */
+    function setFeeSplitter(IFeeSplitter _feeSplitter) public onlyOwner {
+        feeSplitter = _feeSplitter;
     }
 
     /**
@@ -63,21 +75,12 @@ contract NestedBuybacker is Ownable, ReentrancyGuard {
     function triggerForToken(
         bytes calldata _swapCallData,
         address payable _swapTarget,
-        address _sellToken
+        IERC20 _sellToken
     ) external nonReentrant {
-        uint256 balance = IERC20(_sellToken).balanceOf(address(this));
-        IERC20(_sellToken).approve(_swapTarget, balance);
+        claimFees(_sellToken);
+        uint256 balance = _sellToken.balanceOf(address(this));
+        _sellToken.approve(_swapTarget, balance);
         _swapTokens(_sellToken, _swapTarget, _swapCallData);
-        trigger();
-    }
-
-    /**
-     * @dev pay ETH to this function and trigger the buybacks
-     * @param _swapCallData call data provided by 0x to fill quotes
-     * @param _swapTarget [address] contract to interact with for the swap
-     */
-    function triggerForETH(bytes calldata _swapCallData, address payable _swapTarget) external payable nonReentrant {
-        swapFromETH(address(this).balance, _swapTarget, _swapCallData);
         trigger();
     }
 
@@ -92,6 +95,14 @@ contract NestedBuybacker is Ownable, ReentrancyGuard {
         NST.transfer(nstReserve, toSendToReserve);
     }
 
+    /**
+     * @dev claim awarded fees from the FeeSplitter contract
+     * @param _token [IERC20] token address for the fees
+     */
+    function claimFees(IERC20 _token) public {
+        if (feeSplitter.getAmountDue(address(this), _token) > 0) feeSplitter.releaseToken(_token);
+    }
+
     /*
     Purchase a token
     @param _sellToken [address] token used to make swaps
@@ -99,32 +110,16 @@ contract NestedBuybacker is Ownable, ReentrancyGuard {
     @param _swapCallData [bytes] call data provided by 0x to fill the quote
     */
     function _swapTokens(
-        address _sellToken,
+        IERC20 _sellToken,
         address payable _swapTarget,
         bytes calldata _swapCallData
     ) internal {
         // Note that for some tokens (e.g., USDT, KNC), you must first reset any existing
         // allowance to 0 before being able to update it.
-        require(IERC20(_sellToken).approve(_swapTarget, type(uint256).max), "ALLOWANCE_SETTER_ERROR");
+        require(_sellToken.approve(_swapTarget, type(uint256).max), "ALLOWANCE_SETTER_ERROR");
 
         // solhint-disable-next-line avoid-low-level-calls
         (bool success, ) = _swapTarget.call(_swapCallData);
-        require(success, "SWAP_CALL_FAILED");
-    }
-
-    /*
-    Purchase token with ETH
-    @param _sellAmount [uint256] token used to make swaps
-    @param _swapTarget [address] the address of the contract that will swap tokens
-    @param _swapCallData [bytes] call data provided by 0x to fill the quote
-    */
-    function swapFromETH(
-        uint256 _sellAmount,
-        address payable _swapTarget,
-        bytes calldata _swapCallData
-    ) internal {
-        // solhint-disable-next-line avoid-low-level-calls
-        (bool success, ) = _swapTarget.call{ value: _sellAmount }(_swapCallData);
         require(success, "SWAP_CALL_FAILED");
     }
 

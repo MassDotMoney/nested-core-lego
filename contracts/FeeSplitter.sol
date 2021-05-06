@@ -41,15 +41,6 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
 
     address public weth;
 
-    /*
-    Reverts if the address does not exist
-    @param _address [address]
-    */
-    modifier addressExists(address _address) {
-        require(_address != address(0), "FeeSplitter: INVALID_ADDRESS");
-        _;
-    }
-
     /**
      * @param _accounts [address[]] inital shareholders addresses that can receive income
      * @param _weights [uint256[]] initial weights for these shareholders. Weight determines share allocation
@@ -155,32 +146,30 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Triggers a transfer to `account` of the amount of token they are owed, according to
+     * @dev Triggers a transfer to `msg.sender` of the amount of token they are owed, according to
      * the amount of shares they own and their previous withdrawals.
-     * @param _account [address] account to send the amount due to
      * @param _token [address] payment token address
      */
-    function releaseToken(address _account, address _token) external {
-        uint256 amount = _releaseToken(_account, _token);
-        IERC20(_token).transfer(_account, amount);
-        emit PaymentReleased(_account, _token, amount);
+    function releaseToken(IERC20 _token) external {
+        uint256 amount = _releaseToken(msg.sender, _token);
+        _token.safeTransfer(msg.sender, amount);
+        emit PaymentReleased(msg.sender, address(_token), amount);
     }
 
     /**
-     * @dev Triggers a transfer to `account` of the amount of Ether they are owed, according to
+     * @dev Triggers a transfer to `msg.sender` of the amount of Ether they are owed, according to
      * the amount of shares they own and their previous withdrawals.
-     * @param _account [address] account to send the amount due to
      */
-    function releaseETH(address payable _account) external nonReentrant addressExists(_account) {
-        uint256 amount = _releaseToken(_account, weth);
+    function releaseETH() external nonReentrant {
+        uint256 amount = _releaseToken(msg.sender, IERC20(weth));
         IWETH(weth).withdraw(amount);
-        (bool success, ) = _account.call{ value: amount }("");
+        (bool success, ) = msg.sender.call{ value: amount }("");
         require(success, "FeeSplitter: ETH_TRANFER_ERROR");
-        emit PaymentReleased(_account, 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE, amount);
+        emit PaymentReleased(msg.sender, 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE, amount);
     }
 
-    function _releaseToken(address _account, address _token) private returns (uint256) {
-        TokenRecords storage _tokenRecords = tokenRecords[_token];
+    function _releaseToken(address _account, IERC20 _token) private returns (uint256) {
+        TokenRecords storage _tokenRecords = tokenRecords[address(_token)];
         uint256 amountToRelease = getAmountDue(_account, _token);
 
         _tokenRecords.released[_account] = _tokenRecords.released[_account] + amountToRelease;
@@ -196,11 +185,11 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
      * @param _token [address] ERC20 payment token address (or ETH_ADDR)
      * @return the total amount due for the requested currency
      */
-    function getAmountDue(address _account, address _token) public view returns (uint256) {
-        TokenRecords storage _tokenRecords = tokenRecords[_token];
+    function getAmountDue(address _account, IERC20 _token) public view returns (uint256) {
+        TokenRecords storage _tokenRecords = tokenRecords[address(_token)];
         uint256 totalReceived = _tokenRecords.totalReleased;
         if (_tokenRecords.totalShares == 0) return 0;
-        else totalReceived += IERC20(_token).balanceOf(address(this));
+        else totalReceived += _token.balanceOf(address(this));
         uint256 amountDue =
             (totalReceived * _tokenRecords.shares[_account]) /
                 _tokenRecords.totalShares -
