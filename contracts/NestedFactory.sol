@@ -331,7 +331,9 @@ contract NestedFactory is ReentrancyGuard {
         uint256 _tokenId
     ) internal {
         address originalOwner = nestedAsset.originalOwner(_tokenId);
-        _token.safeIncreaseAllowance(address(feeTo), _amount);
+        if (_token.allowance(address(this), address(feeTo)) < type(uint256).max) {
+            _token.approve(address(feeTo), type(uint256).max);
+        }
         feeTo.sendFeesToken(originalOwner, _amount, _token);
     }
 }
