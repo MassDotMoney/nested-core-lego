@@ -17,6 +17,9 @@ import "./libraries/ExchangeHelpers.sol";
 contract NestedFactory is ReentrancyGuard {
     using SafeERC20 for IERC20;
     event NestedCreated(uint256 indexed tokenId, address indexed owner);
+    event UnexpectedWithdraw(uint256 indexed tokenId, address indexed token);
+
+    uint256 constant MAX_HOLDINGS_COUNT = 15;
 
     IWETH public immutable weth;
     IFeeSplitter public feeTo;
@@ -147,11 +150,11 @@ contract NestedFactory is ReentrancyGuard {
 
         for (uint256 i = 0; i < buyCount; i++) {
             uint256 balanceBeforePurchase = IERC20(_tokenOrders[i].token).balanceOf(address(this));
-            ExchangeHelpers.fillQuote(_sellToken, _swapTarget, _tokenOrders[i].callData);
+            bool success = ExchangeHelpers.fillQuote(_sellToken, _swapTarget, _tokenOrders[i].callData);
+            require(success, "SWAP_CALL_FAILED");
             uint256 amountBought = IERC20(_tokenOrders[i].token).balanceOf(address(this)) - balanceBeforePurchase;
 
             nestedRecords.store(_tokenId, _tokenOrders[i].token, amountBought, address(reserve));
-
             IERC20(_tokenOrders[i].token).safeTransfer(address(reserve), amountBought);
         }
     }
@@ -174,6 +177,7 @@ contract NestedFactory is ReentrancyGuard {
         NestedStructs.TokenOrder[] calldata _tokenOrders
     ) external payable nonReentrant {
         require(_tokenOrders.length > 0, "BUY_ARG_MISSING");
+        require(_tokenOrders.length <= MAX_HOLDINGS_COUNT, "TOO_MANY_ORDERS");
 
         uint256 fees = _sellTokenAmount / 100;
         uint256 sellAmountWithFees = _sellTokenAmount + fees;
@@ -204,11 +208,7 @@ contract NestedFactory is ReentrancyGuard {
         address[] memory tokens = nestedRecords.getAssetTokens(_tokenId);
 
         // get assets list for this NFT and send back all ERC20 to user
-        for (uint256 i = 0; i < tokens.length; i++) {
-            NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_tokenId, tokens[i]);
-            NestedReserve(holding.reserve).transfer(msg.sender, IERC20(holding.token), holding.amount);
-            nestedRecords.removeHolding(_tokenId, tokens[i]);
-        }
+        for (uint256 i = 0; i < tokens.length; i++) _withdraw(_tokenId, tokens[i]);
 
         // burn token
         nestedRecords.removeNFT(_tokenId);
@@ -216,7 +216,42 @@ contract NestedFactory is ReentrancyGuard {
     }
 
     /*
-    Burn NFT and sell all tokens for a specific ERC20
+    send a holding content back to the owner without exchanging it
+    @param _tokenId [uint256] NFT token ID
+    @param _token [address] token address for the holding.
+    */
+    function _withdraw(uint256 _tokenId, address _token) internal onlyTokenOwner(_tokenId) {
+        uint256 assetTokensLength = nestedRecords.getAssetTokensLength(_tokenId);
+
+        require(assetTokensLength > 1, "ERR_SHOULD_DESTROY_ENTIRE_NFT");
+        require(_token != address(0), "INVALID_TOKEN_INDEX");
+
+        NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_tokenId, _token);
+        // TODO: add fee
+        reserve.transfer(msg.sender, IERC20(holding.token), holding.amount);
+        nestedRecords.removeHolding(_tokenId, _token);
+    }
+
+    /*
+    send a holding content back to the owner without exchanging it
+    @param _tokenId [uint256] NFT token ID
+    @param _tokenIndex [uint256] index in array of tokens for this NFT and holding.
+    @param _token [address] token address for the holding. Used to make sure previous index param is valid
+    */
+    function withdraw(
+        uint256 _tokenId,
+        uint256 _tokenIndex,
+        address _token
+    ) external onlyTokenOwner(_tokenId) {
+        require(nestedRecords.assetTokens(_tokenId, _tokenIndex) == _token, "INVALID_TOKEN_INDEX");
+
+        _withdraw(_tokenId, _token);
+        nestedRecords.removeToken(_tokenId, _tokenIndex);
+        nestedRecords.removeHolding(_tokenId, _token);
+    }
+
+    /*
+    Burn NFT and Sell all tokens for a specific ERC20
     @param  _tokenId uint256 NFT token Id
     @param _buyToken [IERC20] token used to make swaps
     @param _swapTarget [address] the address of the contract that will swap tokens
@@ -239,8 +274,13 @@ contract NestedFactory is ReentrancyGuard {
         for (uint256 i = 0; i < tokenLength; i++) {
             NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_tokenId, tokens[i]);
             NestedReserve(holding.reserve).transfer(address(this), IERC20(holding.token), holding.amount);
-            ExchangeHelpers.fillQuote(IERC20(_tokenOrders[i].token), _swapTarget, _tokenOrders[i].callData);
-            nestedRecords.removeHolding(_tokenId, tokens[i]);
+            bool success =
+                ExchangeHelpers.fillQuote(IERC20(_tokenOrders[i].token), _swapTarget, _tokenOrders[i].callData);
+            if (success) nestedRecords.removeHolding(_tokenId, tokens[i]);
+            else {
+                _withdraw(_tokenId, holding.token);
+                emit UnexpectedWithdraw(_tokenId, holding.token);
+            }
         }
 
         // send swapped ERC20 to user minus fees

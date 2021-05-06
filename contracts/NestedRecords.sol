@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./libraries/NestedStructs.sol";
 
 contract NestedRecords is Ownable {
-
     address public factory;
 
     mapping(uint256 => mapping(address => NestedStructs.Holding)) public assetHoldings;
@@ -46,6 +45,26 @@ contract NestedRecords is Ownable {
         return assetTokens[_tokenId];
     }
 
+    /**
+    Get how many tokens are in a portfolio/NFT
+    @param [uint256] _tokenId NFT ID to examine
+    @return the array length
+    */
+    function getAssetTokensLength(uint256 _tokenId) external view returns (uint256) {
+        return assetTokens[_tokenId].length;
+    }
+
+    /**
+    Remove a token from the array of tokens in assetTokens
+    @param _tokenId [uint256] ID for the NFT
+    @param _tokenIndex [uint256] token index to delete in the array of tokens
+    */
+    function removeToken(uint256 _tokenId, uint256 _tokenIndex) external onlyFactory {
+        address[] storage tokens = assetTokens[_tokenId];
+        tokens[_tokenIndex] = tokens[tokens.length - 1];
+        tokens.pop();
+    }
+
     /*
     delete from mapping assetHoldings
     @param _tokenId the id of the NFT
@@ -70,9 +89,17 @@ contract NestedRecords is Ownable {
     @param _amountBought the amount of tokens bought
     @param reserve the address of the reserve
     */
-    function store(uint256 _tokenId, address _token, uint256 _amountBought, address reserve) external onlyFactory {
-        assetHoldings[_tokenId][_token] = NestedStructs.Holding({ token: _token, amount: _amountBought, reserve: reserve });
+    function store(
+        uint256 _tokenId,
+        address _token,
+        uint256 _amountBought,
+        address reserve
+    ) external onlyFactory {
+        assetHoldings[_tokenId][_token] = NestedStructs.Holding({
+            token: _token,
+            amount: _amountBought,
+            reserve: reserve
+        });
         assetTokens[_tokenId].push(_token);
     }
-
 }
