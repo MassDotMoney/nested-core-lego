@@ -77,7 +77,8 @@ contract NestedBuybacker is Ownable, ReentrancyGuard {
         address payable _swapTarget,
         IERC20 _sellToken
     ) external nonReentrant {
-        claimFees(_sellToken);
+        if (feeSplitter.getAmountDue(address(this), _sellToken) > 0) claimFees(_sellToken);
+
         uint256 balance = _sellToken.balanceOf(address(this));
         _sellToken.approve(_swapTarget, balance);
         _swapTokens(_sellToken, _swapTarget, _swapCallData);
@@ -100,7 +101,7 @@ contract NestedBuybacker is Ownable, ReentrancyGuard {
      * @param _token [IERC20] token address for the fees
      */
     function claimFees(IERC20 _token) public {
-        if (feeSplitter.getAmountDue(address(this), _token) > 0) feeSplitter.releaseToken(_token);
+        feeSplitter.releaseToken(_token);
     }
 
     /*
@@ -114,9 +115,9 @@ contract NestedBuybacker is Ownable, ReentrancyGuard {
         address payable _swapTarget,
         bytes calldata _swapCallData
     ) internal {
-        // Note that for some tokens (e.g., USDT, KNC), you must first reset any existing
-        // allowance to 0 before being able to update it.
-        require(_sellToken.approve(_swapTarget, type(uint256).max), "ALLOWANCE_SETTER_ERROR");
+        if (_sellToken.allowance(address(this), _swapTarget) < type(uint256).max) {
+            _sellToken.approve(_swapTarget, type(uint256).max);
+        }
 
         // solhint-disable-next-line avoid-low-level-calls
         (bool success, ) = _swapTarget.call(_swapCallData);
