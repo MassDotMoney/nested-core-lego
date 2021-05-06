@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "contracts/interfaces/INestedToken.sol";
 import "contracts/interfaces/IFeeSplitter.sol";
-import "contracts/libraries/NestedLibrary.sol";
+import "contracts/libraries/ExchangeHelpers.sol";
 
 // import "hardhat/console.sol";
 
@@ -83,7 +83,7 @@ contract NestedBuybacker is Ownable, ReentrancyGuard {
 
         uint256 balance = _sellToken.balanceOf(address(this));
         _sellToken.approve(_swapTarget, balance);
-        NestedLibrary.fillQuote(_sellToken, _swapTarget, _swapCallData);
+        ExchangeHelpers.fillQuote(_sellToken, _swapTarget, _swapCallData);
         trigger();
     }
 

@@ -1,6 +1,5 @@
 const { expect } = require("chai")
 const { ethers } = require("hardhat")
-const { deployNestedLibrary } = require("./helpers")
 
 describe("NestedAsset", () => {
     before(async () => {

@@ -4,9 +4,9 @@ pragma solidity ^0.8.3;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
- * This is the Nested project library.
+ * Helpers for swapping tokens
  */
-library NestedLibrary {
+library ExchangeHelpers {
     using SafeERC20 for IERC20;
 
     /*
@@ -19,7 +19,7 @@ library NestedLibrary {
         IERC20 _sellToken,
         address _swapTarget,
         bytes calldata _swapCallData
-    ) external {
+    ) internal {
         setMaxAllowance(_sellToken, _swapTarget);
         // solhint-disable-next-line avoid-low-level-calls
         (bool success, ) = _swapTarget.call(_swapCallData);
@@ -31,7 +31,7 @@ library NestedLibrary {
      * @param _token [IERC20] the token to use for the allowance setting
      * @param _spender [address] spender to allow
      */
-    function setMaxAllowance(IERC20 _token, address _spender) public {
+    function setMaxAllowance(IERC20 _token, address _spender) internal {
         if (_token.allowance(msg.sender, _spender) == type(uint256).max) {
             return;
         }

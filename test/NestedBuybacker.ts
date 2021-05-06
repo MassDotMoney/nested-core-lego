@@ -3,7 +3,7 @@ import { Contract } from "@ethersproject/contracts"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
 import { ethers } from "hardhat"
-import { appendDecimals, deployNestedLibrary } from "./helpers"
+import { appendDecimals } from "./helpers"
 
 describe("NestedBuybacker", () => {
     let alice: SignerWithAddress, bob: SignerWithAddress, communityReserve: SignerWithAddress
@@ -28,12 +28,7 @@ describe("NestedBuybacker", () => {
         const feeSplitterFactory = await ethers.getContractFactory("FeeSplitter")
         feeSplitter = await feeSplitterFactory.deploy([bob.address], [30], 20, mockWETH.address)
 
-        const nestedLibrary = await deployNestedLibrary()
-        const NestedBuybackerFactory = await ethers.getContractFactory("NestedBuybacker", {
-            libraries: {
-                NestedLibrary: nestedLibrary.address,
-            },
-        })
+        const NestedBuybackerFactory = await ethers.getContractFactory("NestedBuybacker")
         buyBacker = await NestedBuybackerFactory.deploy(
             mockNST.address,
             communityReserve.address,

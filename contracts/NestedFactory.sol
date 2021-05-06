@@ -10,7 +10,7 @@ import "./NestedReserve.sol";
 import "./NestedRecords.sol";
 import "./interfaces/IWETH.sol";
 import "./interfaces/IFeeSplitter.sol";
-import "./libraries/NestedLibrary.sol";
+import "./libraries/ExchangeHelpers.sol";
 
 // import "hardhat/console.sol";
 
@@ -147,7 +147,7 @@ contract NestedFactory is ReentrancyGuard {
 
         for (uint256 i = 0; i < buyCount; i++) {
             uint256 balanceBeforePurchase = IERC20(_tokenOrders[i].token).balanceOf(address(this));
-            NestedLibrary.fillQuote(_sellToken, _swapTarget, _tokenOrders[i].callData);
+            ExchangeHelpers.fillQuote(_sellToken, _swapTarget, _tokenOrders[i].callData);
             uint256 amountBought = IERC20(_tokenOrders[i].token).balanceOf(address(this)) - balanceBeforePurchase;
 
             nestedRecords.store(_tokenId, _tokenOrders[i].token, amountBought, address(reserve));
@@ -239,7 +239,7 @@ contract NestedFactory is ReentrancyGuard {
         for (uint256 i = 0; i < tokenLength; i++) {
             NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_tokenId, tokens[i]);
             NestedReserve(holding.reserve).transfer(address(this), IERC20(holding.token), holding.amount);
-            NestedLibrary.fillQuote(IERC20(_tokenOrders[i].token), _swapTarget, _tokenOrders[i].callData);
+            ExchangeHelpers.fillQuote(IERC20(_tokenOrders[i].token), _swapTarget, _tokenOrders[i].callData);
             nestedRecords.removeHolding(_tokenId, tokens[i]);
         }
 
@@ -304,7 +304,7 @@ contract NestedFactory is ReentrancyGuard {
         uint256 _tokenId
     ) internal {
         address originalOwner = nestedAsset.originalOwner(_tokenId);
-        NestedLibrary.setMaxAllowance(_token, address(feeTo));
+        ExchangeHelpers.setMaxAllowance(_token, address(feeTo));
         feeTo.sendFeesToken(originalOwner, _amount, _token);
     }
 }
