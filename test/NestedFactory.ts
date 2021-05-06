@@ -253,138 +253,139 @@ describe("NestedFactory", () => {
                 expect(await mockWETH.balanceOf(feeTo.address)).to.equal(expectedFee)
             })
         })
+    })
 
-        describe("#destroy", () => {
-            const totalSellAmount = appendDecimals(10)
-            let tokensToBuy: string[] = []
-            let sellTokenOrders: TokenOrder[] = []
-            const expectedFee = totalSellAmount.div(100)
-            let assets: string[] = []
+    describe("#destroy", () => {
+        const totalSellAmount = appendDecimals(10)
+        let tokensToBuy: string[] = []
+        let sellTokenOrders: TokenOrder[] = []
+        let buyTokenOrders: TokenOrder[] = []
+        const expectedFee = totalSellAmount.div(100)
+        let assets: string[] = []
 
-            beforeEach(async () => {
-                const mockERC20Factory = await ethers.getContractFactory("MockERC20")
-                mockUNI = await mockERC20Factory.deploy("Mocked UNI", "INU", appendDecimals(3000000))
-                mockKNC = await mockERC20Factory.deploy("Mcoked KNC", "CNK", appendDecimals(3000000))
+        beforeEach(async () => {
+            const mockERC20Factory = await ethers.getContractFactory("MockERC20")
+            mockUNI = await mockERC20Factory.deploy("Mocked UNI", "INU", appendDecimals(3000000))
+            mockKNC = await mockERC20Factory.deploy("Mcoked KNC", "CNK", appendDecimals(3000000))
 
-                mockUNI.transfer(dummyRouter.address, appendDecimals(1000))
-                mockKNC.transfer(dummyRouter.address, appendDecimals(1000))
+            mockUNI.transfer(dummyRouter.address, appendDecimals(1000))
+            mockKNC.transfer(dummyRouter.address, appendDecimals(1000))
 
-                tokensToBuy = [mockUNI.address, mockKNC.address]
+            tokensToBuy = [mockUNI.address, mockKNC.address]
 
-                const abi = ["function dummyswapToken(address _inputToken, address _outputToken, uint256 _amount)"]
-                const iface = new Interface(abi)
+            const abi = ["function dummyswapToken(address _inputToken, address _outputToken, uint256 _amount)"]
+            const iface = new Interface(abi)
 
-                sellTokenOrders = [
-                    {
-                        token: tokensToBuy[0],
-                        callData: iface.encodeFunctionData("dummyswapToken", [
-                            tokensToBuy[0],
-                            mockWETH.address,
-                            appendDecimals(4),
-                        ]),
-                    },
-                    {
-                        token: tokensToBuy[1],
-                        callData: iface.encodeFunctionData("dummyswapToken", [
-                            tokensToBuy[1],
-                            mockWETH.address,
-                            appendDecimals(6),
-                        ]),
-                    },
-                ]
+            sellTokenOrders = [
+                {
+                    token: tokensToBuy[0],
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        tokensToBuy[0],
+                        mockWETH.address,
+                        appendDecimals(4),
+                    ]),
+                },
+                {
+                    token: tokensToBuy[1],
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        tokensToBuy[1],
+                        mockWETH.address,
+                        appendDecimals(6),
+                    ]),
+                },
+            ]
 
-                buyTokenOrders = [
-                    {
-                        token: tokensToBuy[0],
-                        callData: iface.encodeFunctionData("dummyswapToken", [
-                            mockWETH.address,
-                            tokensToBuy[0],
-                            appendDecimals(4),
-                        ]),
-                    },
-                    {
-                        token: tokensToBuy[1],
-                        callData: iface.encodeFunctionData("dummyswapToken", [
-                            mockWETH.address,
-                            tokensToBuy[1],
-                            appendDecimals(6),
-                        ]),
-                    },
-                ]
+            buyTokenOrders = [
+                {
+                    token: tokensToBuy[0],
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        mockWETH.address,
+                        tokensToBuy[0],
+                        appendDecimals(4),
+                    ]),
+                },
+                {
+                    token: tokensToBuy[1],
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        mockWETH.address,
+                        tokensToBuy[1],
+                        appendDecimals(6),
+                    ]),
+                },
+            ]
 
-                await mockWETH.deposit({ value: appendDecimals(10.1) })
-                await createNFTFromETH(buyTokenOrders, totalSellAmount, totalSellAmount.add(expectedFee))
-                assets = await factory.tokensOf(alice.address)
+            await mockWETH.deposit({ value: appendDecimals(10.1) })
+            await createNFTFromETH(buyTokenOrders, totalSellAmount, totalSellAmount.add(expectedFee))
+            assets = await factory.tokensOf(alice.address)
+        })
+
+        it("reverts if token id is invalid", async () => {
+            await expect(factory.destroy(ethers.utils.parseEther("999").toString())).to.be.revertedWith(
+                "revert ERC721: owner query for nonexistent token",
+            )
+        })
+
+        it("reverts if not owner", async () => {
+            let aliceTokens = await factory.tokensOf(alice.address)
+            await expect(factory.connect(bob).destroy(aliceTokens[0])).to.be.revertedWith(
+                "NestedFactory: NOT_TOKEN_OWNER",
+            )
+        })
+
+        it("destroys NFT and send tokens to user", async () => {
+            let aliceTokens = await factory.tokensOf(alice.address)
+            factory.destroy(aliceTokens[0])
+            aliceTokens = await factory.tokensOf(alice.address)
+            expect(aliceTokens.length).to.equal(0)
+        })
+
+        describe("#destroyForERC20", () => {
+            it("reverts if sell args missing", async () => {
+                await expect(
+                    factory.destroyForERC20(assets[0], mockWETH.address, dummyRouter.address, []),
+                ).to.be.revertedWith("MISSING_SELL_ARGS")
             })
 
-            it("reverts if token id is invalid", async () => {
-                await expect(factory.destroy(ethers.utils.parseEther("999").toString())).to.be.revertedWith(
-                    "revert ERC721: owner query for nonexistent token",
-                )
+            it("destroys NFT and send ERC20 to user", async () => {
+                const aliceTokensBefore = await factory.tokensOf(alice.address)
+                expect(aliceTokensBefore.length).to.equal(1)
+                await factory.destroyForERC20(assets[0], mockWETH.address, dummyRouter.address, sellTokenOrders)
+                const aliceTokensAfter = await factory.tokensOf(alice.address)
+                expect(aliceTokensAfter.length).to.equal(0)
             })
 
-            it("reverts if not owner", async () => {
-                let aliceTokens = await factory.tokensOf(alice.address)
-                await expect(factory.connect(bob).destroy(aliceTokens[0])).to.be.revertedWith(
-                    "NestedFactory: NOT_TOKEN_OWNER",
-                )
-            })
+            it("destroys a NFT with an original token ID", async () => {
+                const aliceTokens = await factory.tokensOf(alice.address)
 
-            it("destroys NFT and send tokens to user", async () => {
-                let aliceTokens = await factory.tokensOf(alice.address)
-                factory.destroy(aliceTokens[0])
-                aliceTokens = await factory.tokensOf(alice.address)
+                // bob buys WETH to purchase the NFT
+                mockWETH.connect(bob).approve(factory.address, appendDecimals(10.1))
+                await mockWETH.connect(bob).deposit({ value: appendDecimals(10.1) })
+
+                await createNFTFromERC20(buyTokenOrders, totalSellAmount, bob, aliceTokens[0])
+
+                const [bobTokenId] = await factory.tokensOf(bob.address)
+                await factory
+                    .connect(bob)
+                    .destroyForERC20(bobTokenId, mockWETH.address, dummyRouter.address, sellTokenOrders)
+
+                // check that alice has been assigned royalties.
+                // Should be twice 10% (createNFT + destroyNFT)
+                expect(await feeTo.getAmountDue(alice.address, mockWETH.address)).to.equal(expectedFee.div(5))
+            })
+        })
+
+        describe("#destroyForETH", () => {
+            it("destroys NFT and send ETH to user", async () => {
+                const balanceAliceBefore = await alice.getBalance()
+                const tx = await factory.destroyForETH(assets[0], dummyRouter.address, sellTokenOrders)
+                const txSpent = await getETHSpentOnGas(tx)
+                const aliceTokens = await factory.tokensOf(alice.address)
                 expect(aliceTokens.length).to.equal(0)
-            })
-
-            describe("#destroyForERC20", () => {
-                it("reverts if sell args missing", async () => {
-                    await expect(
-                        factory.destroyForERC20(assets[0], mockWETH.address, dummyRouter.address, []),
-                    ).to.be.revertedWith("MISSING_SELL_ARGS")
-                })
-
-                it("destroys NFT and send ERC20 to user", async () => {
-                    const aliceTokensBefore = await factory.tokensOf(alice.address)
-                    expect(aliceTokensBefore.length).to.equal(1)
-                    await factory.destroyForERC20(assets[0], mockWETH.address, dummyRouter.address, sellTokenOrders)
-                    const aliceTokensAfter = await factory.tokensOf(alice.address)
-                    expect(aliceTokensAfter.length).to.equal(0)
-                })
-
-                it("destroys a NFT with an original token ID", async () => {
-                    const aliceTokens = await factory.tokensOf(alice.address)
-
-                    // bob buys WETH to purchase the NFT
-                    mockWETH.connect(bob).approve(factory.address, appendDecimals(10.1))
-                    await mockWETH.connect(bob).deposit({ value: appendDecimals(10.1) })
-
-                    await createNFTFromERC20(buyTokenOrders, totalSellAmount, bob, aliceTokens[0])
-
-                    const [bobTokenId] = await factory.tokensOf(bob.address)
-                    await factory
-                        .connect(bob)
-                        .destroyForERC20(bobTokenId, mockWETH.address, dummyRouter.address, sellTokenOrders)
-
-                    // check that alice has been assigned royalties.
-                    // Should be twice 10% (createNFT + destroyNFT)
-                    expect(await feeTo.getAmountDue(alice.address, mockWETH.address)).to.equal(expectedFee.div(5))
-                })
-            })
-
-            describe("#destroyForETH", () => {
-                it("destroys NFT and send ETH to user", async () => {
-                    const balanceAliceBefore = await alice.getBalance()
-                    const tx = await factory.destroyForETH(assets[0], dummyRouter.address, sellTokenOrders)
-                    const txSpent = await getETHSpentOnGas(tx)
-                    const aliceTokens = await factory.tokensOf(alice.address)
-                    expect(aliceTokens.length).to.equal(0)
-                    const expectedBalance = balanceAliceBefore
-                        .add(totalSellAmount)
-                        .sub(totalSellAmount.div(100))
-                        .sub(txSpent)
-                    expect(await alice.getBalance()).to.equal(expectedBalance)
-                })
+                const expectedBalance = balanceAliceBefore
+                    .add(totalSellAmount)
+                    .sub(totalSellAmount.div(100))
+                    .sub(txSpent)
+                expect(await alice.getBalance()).to.equal(expectedBalance)
             })
         })
     })
