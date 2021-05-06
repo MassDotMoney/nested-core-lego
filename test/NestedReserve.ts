@@ -21,15 +21,15 @@ describe("NestedReserve", () => {
     })
 
     beforeEach(async () => {
-        reserve = await nestedReserve.deploy()
+        reserve = await nestedReserve.deploy(factory.address)
         await reserve.deployed()
 
         mockUNI = await mockERC20.deploy("Mocked UNI", "INU", 0)
         await mockUNI.mint(reserve.address, amountToTransfer)
     })
 
-    describe("Initialization", async () => {
-        it("sets the factory", async () => {
+    describe("#initialization", () => {
+        it("sets the state variable", async () => {
             expect(await reserve.factory()).to.eq(factory.address)
         })
     })

@@ -6,16 +6,17 @@ import { ethers } from "hardhat"
 import { appendDecimals } from "./helpers"
 
 describe("NestedBuybacker", () => {
-    let alice: SignerWithAddress, bob: SignerWithAddress, nestedReserve: SignerWithAddress
-    let mockNST: Contract, mockUSDT: Contract, mockWETH: Contract
-    let dummyRouter: Contract, buyBacker: Contract, feeSplitter: Contract
+    let alice: SignerWithAddress, bob: SignerWithAddress, communityReserve: SignerWithAddress
+    let feeSplitter: Contract, mockWETH: Contract
+    let mockNST: Contract, mockUSDT: Contract
+    let dummyRouter: Contract, buyBacker: Contract
 
     before(async () => {
         const signers = await ethers.getSigners()
         // All transactions will be sent from Alice unless explicity specified
         alice = signers[0]
         bob = signers[1]
-        nestedReserve = signers[2]
+        communityReserve = signers[2]
         mockNST = await deployMockToken("NST", "NST", alice)
         mockUSDT = await deployMockToken("Fake USDT", "TDUS", alice)
     })
@@ -30,7 +31,7 @@ describe("NestedBuybacker", () => {
         const NestedBuybackerFactory = await ethers.getContractFactory("NestedBuybacker")
         buyBacker = await NestedBuybackerFactory.deploy(
             mockNST.address,
-            nestedReserve.address,
+            communityReserve.address,
             feeSplitter.address,
             250,
         )
@@ -38,7 +39,7 @@ describe("NestedBuybacker", () => {
         await feeSplitter.setShareholders([bob.address, buyBacker.address], [30, 50])
 
         // before each, empty the reserve NST balance
-        await mockNST.connect(nestedReserve).burn(await mockNST.balanceOf(nestedReserve.address))
+        await mockNST.connect(communityReserve).burn(await mockNST.balanceOf(communityReserve.address))
 
         const DummyRouterFactory = await ethers.getContractFactory("DummyRouter")
         dummyRouter = await DummyRouterFactory.deploy()
@@ -71,12 +72,12 @@ describe("NestedBuybacker", () => {
         await buyBacker.triggerForToken(dataUSDT, dummyRouter.address, mockUSDT.address)
 
         // we bought 200 NST. Nested reserve should get 75% of that.
-        expect(await mockNST.balanceOf(nestedReserve.address)).to.equal(appendDecimals(150))
+        expect(await mockNST.balanceOf(communityReserve.address)).to.equal(appendDecimals(150))
 
         await buyBacker.triggerForToken(dataWETH, dummyRouter.address, mockWETH.address)
 
         // we bought 10 WETH. Nested reserve should get 75% of that.
-        expect(await mockNST.balanceOf(nestedReserve.address)).to.equal(
+        expect(await mockNST.balanceOf(communityReserve.address)).to.equal(
             appendDecimals(150).add(ethers.utils.parseEther("7.5")),
         )
 

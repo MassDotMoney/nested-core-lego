@@ -12,7 +12,7 @@ contract NestedAsset is ERC721Enumerable, Ownable {
 
     address public factory;
 
-    mapping (uint256 => string) private _tokenURIs;
+    mapping(uint256 => string) private _tokenURIs;
 
     // Stores the original asset of each asset
     mapping(uint256 => uint256) public originalAsset;
@@ -20,9 +20,7 @@ contract NestedAsset is ERC721Enumerable, Ownable {
     // Stores owners of burnt assets
     mapping(uint256 => address) public lastOwnerBeforeBurn;
 
-    constructor() ERC721("NestedNFT", "NESTED") {
-        factory = msg.sender;
-    }
+    constructor() ERC721("NestedNFT", "NESTED") {}
 
     /*
     Reverts the transaction if the caller is not the factory
@@ -38,7 +36,7 @@ contract NestedAsset is ERC721Enumerable, Ownable {
     */
     function tokenURI(uint256 _tokenId) public view virtual override returns (string memory) {
         require(_exists(_tokenId), "URI query for nonexistent token");
-        return _tokenURIs[_tokenId]; 
+        return _tokenURIs[_tokenId];
     }
 
     /*
@@ -57,7 +55,11 @@ contract NestedAsset is ERC721Enumerable, Ownable {
     @param _replicatedTokenId [uint] the token id of the replicated asset, 0 if no replication
     @return [uint256] the minted token's id
     */
-    function mint(address _owner, string memory _metadataURI, uint256 _replicatedTokenId) external onlyFactory returns (uint256) {
+    function mint(
+        address _owner,
+        string memory _metadataURI,
+        uint256 _replicatedTokenId
+    ) external onlyFactory returns (uint256) {
         _tokenIds.increment();
 
         uint256 tokenId = _tokenIds.current();
@@ -65,13 +67,11 @@ contract NestedAsset is ERC721Enumerable, Ownable {
         _setTokenURI(tokenId, _metadataURI);
 
         // Stores the first asset of the replication chain as the original
-        if (_replicatedTokenId == 0 ) return tokenId;
+        if (_replicatedTokenId == 0) return tokenId;
 
-        uint256 originalTokenId= originalAsset[_replicatedTokenId];
+        uint256 originalTokenId = originalAsset[_replicatedTokenId];
 
-        originalAsset[tokenId] = originalTokenId !=0
-            ? originalTokenId
-            : _replicatedTokenId;
+        originalAsset[tokenId] = originalTokenId != 0 ? originalTokenId : _replicatedTokenId;
 
         return tokenId;
     }
@@ -106,12 +106,11 @@ contract NestedAsset is ERC721Enumerable, Ownable {
         return address(0);
     }
 
-    // TODO only allow the factory or a migrator to set the factory address
     /*
     Sets the factory for Nested assets
     @param _factory the address of the new factory
     */
-    function setFactory(address _factory) external onlyOwner{
+    function setFactory(address _factory) external onlyOwner {
         require(_factory != address(0), "NestedAsset: INVALID_ADDRESS");
         factory = _factory;
     }

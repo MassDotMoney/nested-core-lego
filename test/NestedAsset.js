@@ -11,12 +11,14 @@ describe("NestedAsset", () => {
         this.alice = this.signers[1]
         this.bob = this.signers[2]
         this.weth = this.signers[3]
+        this.otherFactory = this.signers[4]
 
         this.metadataUri = "ipfs://bafybeiam5u4xc5527tv6ghlwamd6azfthmcuoa6uwnbbvqbtsyne4p7khq/metadata.json"
     })
 
     beforeEach(async () => {
         this.asset = await this.NestedAsset.deploy()
+        await this.asset.setFactory(this.factory.address)
         await this.asset.deployed()
     })
 
@@ -121,20 +123,6 @@ describe("NestedAsset", () => {
     })
 
     describe("#setFactory", () => {
-        before(async () => {
-            this.NestedFactory = await ethers.getContractFactory("NestedFactory")
-            const feeSplitterFactory = await ethers.getContractFactory("FeeSplitter")
-            const MockWETHFactory = await ethers.getContractFactory("WETH9")
-            mockWETH = await MockWETHFactory.deploy()
-            const feeSplitter = await feeSplitterFactory.deploy([this.alice.address], [1000], 1000, mockWETH.address)
-
-            this.otherFactory = await this.NestedFactory.deploy(
-                this.alice.address,
-                feeSplitter.address,
-                this.weth.address,
-            )
-            await this.otherFactory.deployed()
-        })
         it("sets the new factory", async () => {
             await this.asset.setFactory(this.otherFactory.address)
             expect(await this.asset.factory()).to.equal(this.otherFactory.address)

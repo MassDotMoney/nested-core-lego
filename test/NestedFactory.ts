@@ -13,14 +13,19 @@ describe("NestedFactory", () => {
         bob: SignerWithAddress,
         wallet3: SignerWithAddress,
         wallet4: SignerWithAddress,
-        feeToSetter: SignerWithAddress
+        feeToSetter: SignerWithAddress,
+        newReserve: SignerWithAddress
     let mockWETH: Contract, mockUNI: Contract, mockKNC: Contract, feeTo: Contract
+    let nestedReserve: ContractFactory, reserve: Contract
+    let nestedAsset: ContractFactory, asset: Contract
     let dummyRouter: Contract
 
     const metadataUri = "ipfs://bafybeiam5u4xc5527tv6ghlwamd6azfthmcuoa6uwnbbvqbtsyne4p7khq/metadata.json"
 
     before(async () => {
         nestedFactory = await ethers.getContractFactory("NestedFactory")
+        nestedReserve = await ethers.getContractFactory("NestedReserve")
+        nestedAsset = await ethers.getContractFactory("NestedAsset")
 
         const signers = await ethers.getSigners()
         // All transactions will be sent from Alice unless explicity specified
@@ -29,6 +34,8 @@ describe("NestedFactory", () => {
         feeToSetter = signers[2] as any
         wallet3 = signers[3] as any
         wallet4 = signers[4] as any
+        feeTo = signers[5] as any
+        newReserve = signers[6] as any
 
         const dummyRouterFactory = await ethers.getContractFactory("DummyRouter")
         dummyRouter = await dummyRouterFactory.deploy()
@@ -41,13 +48,25 @@ describe("NestedFactory", () => {
         const feeSplitterFactory = await ethers.getContractFactory("FeeSplitter")
         feeTo = await feeSplitterFactory.deploy([wallet3.address, wallet4.address], [1000, 1700], 300, mockWETH.address)
 
-        factory = await nestedFactory.deploy(feeToSetter.address, feeTo.address, mockWETH.address)
+        asset = await nestedAsset.deploy()
+        await asset.deployed()
+
+        factory = await nestedFactory.deploy(asset.address, feeToSetter.address, feeTo.address, mockWETH.address)
         await factory.deployed()
+
+        reserve = await nestedReserve.deploy(factory.address)
+        await reserve.deployed()
+        await factory.setReserve(reserve.address)
+
+        await asset.setFactory(factory.address)
     })
 
     describe("#initialization", () => {
-        it("deploys a reserve contract", async () => {
-            // TODO: test with dynamic reserve and assets contracts
+        it("sets the state variables", async () => {
+            expect(await factory.feeToSetter()).to.eq(feeToSetter.address)
+            expect(await factory.feeTo()).to.eq(feeTo.address)
+            expect(await factory.nestedAsset()).to.eq(asset.address)
+            expect(await factory.weth()).to.eq(mockWETH.address)
         })
     })
 
@@ -307,7 +326,7 @@ describe("NestedFactory", () => {
             it("reverts if not owner", async () => {
                 let aliceTokens = await factory.tokensOf(alice.address)
                 await expect(factory.connect(bob).destroy(aliceTokens[0])).to.be.revertedWith(
-                    "revert NestedFactory: Only Owner",
+                    "NestedFactory: NOT_TOKEN_OWNER",
                 )
             })
 
@@ -367,6 +386,24 @@ describe("NestedFactory", () => {
                     expect(await alice.getBalance()).to.equal(expectedBalance)
                 })
             })
+        })
+    })
+
+    describe("#setReserve", () => {
+        it("sets the reserve", async () => {
+            expect(await factory.reserve()).to.equal(reserve.address)
+        })
+
+        it("revers if the reserve is already set", async () => {
+            await expect(factory.connect(alice).setReserve(newReserve.address)).to.be.revertedWith(
+                "NestedFactory: FACTORY_IMMUTABLE",
+            )
+        })
+
+        it("reverts if the address is invalid", async () => {
+            await expect(factory.setReserve("0x0000000000000000000000000000000000000000")).to.be.revertedWith(
+                "NestedFactory: INVALID_ADDRESS",
+            )
         })
     })
 
