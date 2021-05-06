@@ -4,7 +4,7 @@ import { ethers } from "hardhat"
 import { Contract, ContractFactory } from "@ethersproject/contracts"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { Interface } from "@ethersproject/abi"
-import { appendDecimals, getETHSpentOnGas } from "./helpers"
+import { appendDecimals, deployNestedLibrary, getETHSpentOnGas } from "./helpers"
 import { BigNumber } from "@ethersproject/bignumber"
 
 describe("NestedFactory", () => {

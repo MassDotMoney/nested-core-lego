@@ -4,8 +4,10 @@ pragma solidity ^0.8.3;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
 import "contracts/interfaces/INestedToken.sol";
 import "contracts/interfaces/IFeeSplitter.sol";
+import "contracts/libraries/NestedLibrary.sol";
 
 // import "hardhat/console.sol";
 
@@ -81,7 +83,7 @@ contract NestedBuybacker is Ownable, ReentrancyGuard {
 
         uint256 balance = _sellToken.balanceOf(address(this));
         _sellToken.approve(_swapTarget, balance);
-        _swapTokens(_sellToken, _swapTarget, _swapCallData);
+        NestedLibrary.fillQuote(_sellToken, _swapTarget, _swapCallData);
         trigger();
     }
 
@@ -102,26 +104,6 @@ contract NestedBuybacker is Ownable, ReentrancyGuard {
      */
     function claimFees(IERC20 _token) public {
         feeSplitter.releaseToken(_token);
-    }
-
-    /*
-    Purchase a token
-    @param _sellToken [address] token used to make swaps
-    @param _swapTarget [address] the address of the contract that will swap tokens
-    @param _swapCallData [bytes] call data provided by 0x to fill the quote
-    */
-    function _swapTokens(
-        IERC20 _sellToken,
-        address payable _swapTarget,
-        bytes calldata _swapCallData
-    ) internal {
-        if (_sellToken.allowance(address(this), _swapTarget) < type(uint256).max) {
-            _sellToken.approve(_swapTarget, type(uint256).max);
-        }
-
-        // solhint-disable-next-line avoid-low-level-calls
-        (bool success, ) = _swapTarget.call(_swapCallData);
-        require(success, "SWAP_CALL_FAILED");
     }
 
     function _burnNST(uint256 _amount) private {

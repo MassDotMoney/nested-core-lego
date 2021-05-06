@@ -10,6 +10,7 @@ import "./NestedReserve.sol";
 import "./NestedRecords.sol";
 import "./interfaces/IWETH.sol";
 import "./interfaces/IFeeSplitter.sol";
+import "./libraries/NestedLibrary.sol";
 
 // import "hardhat/console.sol";
 
@@ -146,7 +147,7 @@ contract NestedFactory is ReentrancyGuard {
 
         for (uint256 i = 0; i < buyCount; i++) {
             uint256 balanceBeforePurchase = IERC20(_tokenOrders[i].token).balanceOf(address(this));
-            fillQuote(_sellToken, _swapTarget, _tokenOrders[i].callData);
+            NestedLibrary.fillQuote(_sellToken, _swapTarget, _tokenOrders[i].callData);
             uint256 amountBought = IERC20(_tokenOrders[i].token).balanceOf(address(this)) - balanceBeforePurchase;
 
             nestedRecords.store(_tokenId, _tokenOrders[i].token, amountBought, address(reserve));
@@ -196,25 +197,6 @@ contract NestedFactory is ReentrancyGuard {
     }
 
     /*
-    Perform a swap between two tokens
-    @param _sellToken [IERC20] token to exchange
-    @param _swapTarget [address] the address of the contract that swaps tokens
-    @param _swapCallData [bytes] call data provided by 0x to fill the quote
-    */
-    function fillQuote(
-        IERC20 _sellToken,
-        address payable _swapTarget,
-        bytes calldata _swapCallData
-    ) internal {
-        if (_sellToken.allowance(address(this), _swapTarget) < type(uint256).max) {
-            _sellToken.approve(_swapTarget, type(uint256).max);
-        }
-        // solhint-disable-next-line avoid-low-level-calls
-        (bool success, ) = _swapTarget.call(_swapCallData);
-        require(success, "SWAP_CALL_FAILED");
-    }
-
-    /*
     burn NFT and return tokens to the user.
     @param _tokenId uint256 NFT token Id
     */
@@ -257,7 +239,7 @@ contract NestedFactory is ReentrancyGuard {
         for (uint256 i = 0; i < tokenLength; i++) {
             NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_tokenId, tokens[i]);
             NestedReserve(holding.reserve).transfer(address(this), IERC20(holding.token), holding.amount);
-            fillQuote(IERC20(_tokenOrders[i].token), _swapTarget, _tokenOrders[i].callData);
+            NestedLibrary.fillQuote(IERC20(_tokenOrders[i].token), _swapTarget, _tokenOrders[i].callData);
             nestedRecords.removeHolding(_tokenId, tokens[i]);
         }
 
@@ -300,7 +282,7 @@ contract NestedFactory is ReentrancyGuard {
     function destroyForETH(
         uint256 _tokenId,
         address payable _swapTarget,
-         NestedStructs.TokenOrder[] calldata _tokenOrders
+        NestedStructs.TokenOrder[] calldata _tokenOrders
     ) external payable onlyTokenOwner(_tokenId) {
         // no need to check for reeentrancy because destroyForERC20 checks it
         uint256 amountBought = _destroyForERC20(_tokenId, IERC20(address(weth)), _swapTarget, _tokenOrders);
@@ -322,9 +304,7 @@ contract NestedFactory is ReentrancyGuard {
         uint256 _tokenId
     ) internal {
         address originalOwner = nestedAsset.originalOwner(_tokenId);
-        if (_token.allowance(address(this), address(feeTo)) < type(uint256).max) {
-            _token.approve(address(feeTo), type(uint256).max);
-        }
+        NestedLibrary.setMaxAllowance(_token, address(feeTo));
         feeTo.sendFeesToken(originalOwner, _amount, _token);
     }
 }
