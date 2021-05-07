@@ -208,7 +208,7 @@ contract NestedFactory is ReentrancyGuard {
         address[] memory tokens = nestedRecords.getAssetTokens(_tokenId);
 
         // get assets list for this NFT and send back all ERC20 to user
-        for (uint256 i = 0; i < tokens.length; i++) _withdraw(_tokenId, tokens[i]);
+        for (uint256 i = 0; i < tokens.length; i++) _withdraw(_tokenId, IERC20(tokens[i]));
 
         // burn token
         nestedRecords.removeNFT(_tokenId);
@@ -218,36 +218,39 @@ contract NestedFactory is ReentrancyGuard {
     /*
     send a holding content back to the owner without exchanging it
     @param _tokenId [uint256] NFT token ID
-    @param _token [address] token address for the holding.
+    @param _token [IERC20] token address for the holding.
     */
-    function _withdraw(uint256 _tokenId, address _token) internal onlyTokenOwner(_tokenId) {
+    function _withdraw(uint256 _tokenId, IERC20 _token) internal onlyTokenOwner(_tokenId) {
         uint256 assetTokensLength = nestedRecords.getAssetTokensLength(_tokenId);
 
         require(assetTokensLength > 1, "ERR_SHOULD_DESTROY_ENTIRE_NFT");
-        require(_token != address(0), "INVALID_TOKEN_INDEX");
+        require(address(_token) != address(0), "INVALID_TOKEN_INDEX");
 
-        NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_tokenId, _token);
-        // TODO: add fee
-        reserve.transfer(msg.sender, IERC20(holding.token), holding.amount);
-        nestedRecords.removeHolding(_tokenId, _token);
+        NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_tokenId, address(_token));
+
+        uint256 feeAmount = holding.amount / 100;
+        reserve.transfer(address(this), IERC20(holding.token), feeAmount);
+        transferFee(feeAmount, _token, _tokenId);
+        reserve.transfer(msg.sender, IERC20(holding.token), holding.amount - feeAmount);
+
+        nestedRecords.removeHolding(_tokenId, address(_token));
     }
 
     /*
     send a holding content back to the owner without exchanging it
     @param _tokenId [uint256] NFT token ID
     @param _tokenIndex [uint256] index in array of tokens for this NFT and holding.
-    @param _token [address] token address for the holding. Used to make sure previous index param is valid
+    @param _token [IERC20] token address for the holding. Used to make sure previous index param is valid
     */
     function withdraw(
         uint256 _tokenId,
         uint256 _tokenIndex,
-        address _token
+        IERC20 _token
     ) external onlyTokenOwner(_tokenId) {
-        require(nestedRecords.assetTokens(_tokenId, _tokenIndex) == _token, "INVALID_TOKEN_INDEX");
+        require(nestedRecords.assetTokens(_tokenId, _tokenIndex) == address(_token), "INVALID_TOKEN_INDEX");
 
         _withdraw(_tokenId, _token);
         nestedRecords.removeToken(_tokenId, _tokenIndex);
-        nestedRecords.removeHolding(_tokenId, _token);
     }
 
     /*
@@ -278,7 +281,7 @@ contract NestedFactory is ReentrancyGuard {
                 ExchangeHelpers.fillQuote(IERC20(_tokenOrders[i].token), _swapTarget, _tokenOrders[i].callData);
             if (success) nestedRecords.removeHolding(_tokenId, tokens[i]);
             else {
-                _withdraw(_tokenId, holding.token);
+                _withdraw(_tokenId, IERC20(holding.token));
                 emit UnexpectedWithdraw(_tokenId, holding.token);
             }
         }
