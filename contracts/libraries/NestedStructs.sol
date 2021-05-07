@@ -8,6 +8,7 @@ library NestedStructs {
     struct Holding {
         address token;
         uint256 amount;
+        bool isActive;
     }
 
     /*

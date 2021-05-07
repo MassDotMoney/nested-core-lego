@@ -126,8 +126,40 @@ contract NestedRecords is Ownable {
             _reserve != address(0) && (_reserve == records[_nftId].reserve || records[_nftId].reserve == address(0)),
             "NestedRecords: INVALID_RESERVE"
         );
-        records[_nftId].holdings[_token] = NestedStructs.Holding({ token: _token, amount: _amountBought });
-        records[_nftId].tokens.push(_token);
-        records[_nftId].reserve = _reserve;
+
+        NestedStructs.Holding memory holding = records[_nftId].holdings[_token];
+        // if stored token already exist, update it 
+        if (holding.isActive) {
+            records[_nftId].holdings[_token].amount = holding.amount + _amountBought;
+        } else {
+            records[_nftId].holdings[_token] = NestedStructs.Holding({ token: _token, amount: _amountBought, isActive: true });
+            records[_nftId].tokens.push(_token);
+            records[_nftId].reserve = _reserve;
+        }
     }
+
+    /*
+    update NFT data into our mappings
+    @param _tokenId the id of the NFT
+    @param _token the address of the token
+    @param _amountSold the amount of tokens sold
+    */
+    function update(uint256 _nftId, uint256 _tokenIndex, address _token, uint256 _amountSold) external onlyFactory {
+        NestedStructs.Holding memory holding = records[_nftId].holdings[_token];
+        require(holding.isActive, "ALREADY_SOLD");
+        uint256 remainingAmount = holding.amount - _amountSold;
+        //require(remainingAmount >= 0, "INSUFFICIENT_FUND");
+
+        // update amount or delete if nothing remaining
+        if (remainingAmount > 0) {
+            records[_nftId].holdings[_token].amount = holding.amount - _amountSold;
+        } else {
+            delete records[_nftId].holdings[_token];
+            address[] storage tokens = records[_nftId].tokens;
+            tokens[_tokenIndex] = tokens[tokens.length - 1];
+            tokens.pop();
+    
+        }
+    }
+
 }

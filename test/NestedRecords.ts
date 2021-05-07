@@ -44,7 +44,10 @@ describe("NestedRecords", () => {
 
     it("reverts when calling store with too many orders", async () => {
         const MAX_HOLDING_COUNT = 15
-        for (let i = 0; i < MAX_HOLDING_COUNT; i++) await nestedRecords.store(0, bob.address, 20, alice.address)
+        const signers = await ethers.getSigners()
+        for (let i = 0; i < MAX_HOLDING_COUNT; i++) {
+            await nestedRecords.store(0, signers[i+3].address, 20, alice.address)
+        }
         await expect(nestedRecords.store(0, bob.address, 20, alice.address)).to.be.revertedWith(
             "NestedRecords: TOO_MANY_ORDERS",
         )
