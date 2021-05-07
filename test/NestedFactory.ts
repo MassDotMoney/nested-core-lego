@@ -15,7 +15,7 @@ describe("NestedFactory", () => {
         wallet4: SignerWithAddress,
         feeToSetter: SignerWithAddress,
         newReserve: SignerWithAddress
-    let mockWETH: Contract, mockUNI: Contract, mockKNC: Contract, feeTo: Contract
+    let mockWETH: Contract, mockUNI: Contract, mockKNC: Contract, mockDAI: Contract, feeTo: Contract
     let nestedReserve: ContractFactory, reserve: Contract
     let nestedAsset: ContractFactory, asset: Contract
     let nestedRecords: ContractFactory, records: Contract
@@ -227,6 +227,10 @@ describe("NestedFactory", () => {
                 // check number of assets in NFT token
                 const result = await factory.tokenHoldings(aliceTokens[0])
                 expect(result.length).to.equal(buyTokenOrders.length)
+                expect(result[0].isActive).to.equal(true)
+
+                // check that fees were taken
+                expect(await mockWETH.balanceOf(feeTo.address)).to.equal(expectedFee.mul(2))
             })
 
             it("creates the NFT with an original token ID", async () => {
@@ -278,14 +282,435 @@ describe("NestedFactory", () => {
                 expect(await mockWETH.balanceOf(factory.feeTo())).to.equal(expectedFee.toString())
 
                 // check if NFT was created
-                const aliceTokens = await factory.tokensOf(bob.address)
-                expect(aliceTokens.length).to.equal(1)
+                const bobTokens = await factory.tokensOf(bob.address)
+                expect(bobTokens.length).to.equal(1)
+
+                // check number of assets in NFT token
+                const result = await factory.tokenHoldings(bobTokens[0])
+                expect(result.length).to.equal(buyTokenOrders.length)
+                expect(result[0].isActive).to.equal(true)
 
                 // check that fees were taken
                 expect(await mockWETH.balanceOf(feeTo.address)).to.equal(expectedFee)
             })
         })
     })
+
+    describe("#update", () => {
+        const totalSellAmount = appendDecimals(10)
+        let tokensToBuy: string[] = []
+        let tokensToAdd: string[] = []
+        let buyTokenOrders: TokenOrder[] = []
+        let addTokenOrders: TokenOrder[] = []
+        const expectedFee = totalSellAmount.div(100)
+        let assets: string[] = []
+
+        beforeEach(async () => {
+            const mockERC20Factory = await ethers.getContractFactory("MockERC20")
+            mockUNI = await mockERC20Factory.deploy("Mocked UNI", "INU", appendDecimals(3000000))
+            mockKNC = await mockERC20Factory.deploy("Mocked KNC", "CNK", appendDecimals(3000000))
+            mockDAI = await mockERC20Factory.deploy("Mocked DAI", "IAD", appendDecimals(3000000))
+
+            mockUNI.transfer(dummyRouter.address, appendDecimals(1000))
+            mockKNC.transfer(dummyRouter.address, appendDecimals(1000))
+            mockDAI.transfer(dummyRouter.address, appendDecimals(1000))
+
+            tokensToBuy = [mockUNI.address, mockKNC.address]
+            tokensToAdd = [mockUNI.address, mockDAI.address]
+
+            mockWETH.approve(factory.address, appendDecimals(10.1))
+            await mockWETH.deposit({ value: appendDecimals(10.1) })
+
+            const abi = ["function dummyswapToken(address _inputToken, address _outputToken, uint256 _amount)"]
+            const iface = new Interface(abi)
+
+            addTokenOrders = [
+                {
+                    token: tokensToAdd[0],
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        mockWETH.address,
+                        tokensToAdd[0],
+                        appendDecimals(4),
+                    ]),
+                },
+                {
+                    token: tokensToAdd[1],
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        mockWETH.address,
+                        tokensToAdd[1],
+                        appendDecimals(6),
+                    ]),
+                },
+            ]
+
+            buyTokenOrders = [
+                {
+                    token: tokensToBuy[0],
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        mockWETH.address,
+                        tokensToBuy[0],
+                        appendDecimals(4),
+                    ]),
+                },
+                {
+                    token: tokensToBuy[1],
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        mockWETH.address,
+                        tokensToBuy[1],
+                        appendDecimals(6),
+                    ]),
+                },
+            ]
+
+            await mockWETH.deposit({ value: appendDecimals(10.1) })
+            await createNFTFromETH(buyTokenOrders, totalSellAmount, totalSellAmount.add(expectedFee))
+            assets = await factory.tokensOf(alice.address)
+        })
+
+        it("reverts if token id is invalid", async () => {
+            await expect(factory.addTokens(
+                ethers.utils.parseEther("999").toString(), 
+                mockWETH.address, 
+                totalSellAmount, 
+                dummyRouter.address, 
+                addTokenOrders
+            )).to.be.revertedWith(
+                "revert ERC721: owner query for nonexistent token",
+            )
+        })
+
+        it("reverts if insufficient amount", async () => {
+            await expect(factory.addTokens(
+                assets[0], 
+                mockWETH.address, 
+                totalSellAmount.sub(1), 
+                dummyRouter.address, 
+                addTokenOrders,
+            )).to.be.revertedWith(
+                "revert OVERSPENT_ERROR",
+            )
+        })
+
+        it("reverts if not owner", async () => {
+            await expect(factory.connect(bob).addTokens(assets[0], mockWETH.address, totalSellAmount, dummyRouter.address, addTokenOrders)).to.be.revertedWith(
+                "NestedFactory: NOT_TOKEN_OWNER",
+            )
+        })
+
+        it("Update NFT", async () => {
+            const initialWethBalance = await mockWETH.balanceOf(alice.address)
+            const initialFeeBalance = await mockWETH.balanceOf(factory.feeTo())
+
+            await factory.addTokens(
+                assets[0],
+                mockWETH.address, 
+                totalSellAmount, 
+                dummyRouter.address, 
+                addTokenOrders,
+            )
+
+            const expectedAliceWethBalance = initialWethBalance.sub(totalSellAmount).sub(expectedFee)
+            const expectedFeeWethBalance = initialFeeBalance.add(expectedFee)
+
+            expect(await mockWETH.balanceOf(alice.address)).to.equal(expectedAliceWethBalance)
+            expect(await mockWETH.balanceOf(factory.feeTo())).to.equal(expectedFeeWethBalance)
+
+            let tokenHoldings = await factory.tokenHoldings(assets[0])
+            expect(tokenHoldings[0].amount).to.equal(appendDecimals(8))
+        })
+
+        it("Update NFT with ETH", async () => {
+            const initialWethBalance = await mockWETH.balanceOf(alice.address)
+            const initialFeeBalance = await mockWETH.balanceOf(factory.feeTo())
+            const initialAliceBalance = await alice.getBalance()
+
+            const tx = await factory.addTokens(
+                assets[0],
+                "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+                appendDecimals(10), 
+                dummyRouter.address, 
+                addTokenOrders,
+                {
+                    value: appendDecimals(10.1),
+                }
+            )
+
+            const expectedAliceBalance = initialAliceBalance
+                .sub(appendDecimals(10.1))
+                .sub(await getETHSpentOnGas(tx))
+
+            expect(await alice.getBalance()).to.equal(expectedAliceBalance)
+
+            const expectedFeeWethBalance = initialFeeBalance.add(expectedFee)
+            expect(await mockWETH.balanceOf(factory.feeTo())).to.equal(expectedFeeWethBalance)
+
+            let tokenHoldings = await factory.tokenHoldings(assets[0])
+            expect(tokenHoldings[0].amount).to.equal(appendDecimals(8))
+        })
+    })
+
+    describe("#swap", () => {
+        const totalSellAmount = appendDecimals(10)
+        let tokensToBuy: string[] = []
+        let tokensToSwap: string[] = []
+        let buyTokenOrders: TokenOrder[] = []
+        let swapTokenOrders: TokenOrder[] = []
+        const expectedFee = totalSellAmount.div(100)
+        let assets: string[] = []
+
+        beforeEach(async () => {
+            const mockERC20Factory = await ethers.getContractFactory("MockERC20")
+            mockUNI = await mockERC20Factory.deploy("Mocked UNI", "INU", appendDecimals(3000000))
+            mockKNC = await mockERC20Factory.deploy("Mocked KNC", "CNK", appendDecimals(3000000))
+            mockDAI = await mockERC20Factory.deploy("Mocked DAI", "IAD", appendDecimals(3000000))
+
+            mockUNI.transfer(dummyRouter.address, appendDecimals(1000))
+            mockKNC.transfer(dummyRouter.address, appendDecimals(1000))
+            mockDAI.transfer(dummyRouter.address, appendDecimals(1000))
+
+            tokensToBuy = [mockUNI.address, mockKNC.address]
+            tokensToSwap = [mockDAI.address]
+
+            mockWETH.approve(factory.address, appendDecimals(10.1))
+            await mockWETH.deposit({ value: appendDecimals(10.1) })
+
+            const abi = ["function dummyswapToken(address _inputToken, address _outputToken, uint256 _amount)"]
+            const iface = new Interface(abi)
+
+            swapTokenOrders = [
+                {
+                    token: tokensToSwap[0],
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        tokensToBuy[0],
+                        tokensToSwap[0],
+                        appendDecimals(2).sub(appendDecimals(2).div(100)),
+                    ]),
+                },
+            ]
+
+            buyTokenOrders = [
+                {
+                    token: tokensToBuy[0],
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        mockWETH.address,
+                        tokensToBuy[0],
+                        appendDecimals(4),
+                    ]),
+                },
+                {
+                    token: tokensToBuy[1],
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        mockWETH.address,
+                        tokensToBuy[1],
+                        appendDecimals(6),
+                    ]),
+                },
+            ]
+
+            await mockWETH.deposit({ value: appendDecimals(10.1) })
+            await createNFTFromETH(buyTokenOrders, totalSellAmount, totalSellAmount.add(expectedFee))
+            assets = await factory.tokensOf(alice.address)
+        })
+
+        it("reverts if token id is invalid", async () => {
+            await expect(factory.swapTokenForToken(
+                ethers.utils.parseEther("999").toString(),
+                0,
+                tokensToBuy[0], 
+                appendDecimals(2),
+                dummyRouter.address, 
+                swapTokenOrders
+            )).to.be.revertedWith(
+                "revert ERC721: owner query for nonexistent token",
+            )
+        })
+
+        it("reverts if not owner", async () => {
+            await expect(factory.connect(bob).swapTokenForToken(
+                assets[0],
+                0,
+                tokensToBuy[0], 
+                appendDecimals(2), 
+                dummyRouter.address, 
+                swapTokenOrders
+            )).to.be.revertedWith(
+                "NestedFactory: NOT_TOKEN_OWNER",
+            )
+        })
+
+        it("reverts if insufficient amount", async () => {
+            await expect(factory.swapTokenForToken(
+                assets[0],
+                0,
+                tokensToBuy[0],
+                appendDecimals(50), 
+                dummyRouter.address, 
+                swapTokenOrders,
+            )).to.be.revertedWith(
+                "INSUFFICIENT_AMOUNT",
+            )
+        })
+
+        it("swap an NFT asset", async () => {
+            let tokenHoldings = await factory.tokenHoldings(assets[0])
+            let initialUNI = tokenHoldings[0].amount
+            let swapAmount = appendDecimals(2)
+            
+            await factory.swapTokenForToken(
+                assets[0],
+                0,
+                tokensToBuy[0],
+                swapAmount, 
+                dummyRouter.address, 
+                swapTokenOrders,
+            )
+
+            tokenHoldings = await factory.tokenHoldings(assets[0])
+            let currentUNI = tokenHoldings[0].amount;
+
+            expect(currentUNI).to.equal(initialUNI.sub(swapAmount))
+        })
+    })
+
+
+    describe("#sell", () => {
+        const totalSellAmount = appendDecimals(10)
+        let tokensToBuy: string[] = []
+        let tokensToSell: string[] = []
+        let buyTokenOrders: TokenOrder[] = []
+        let sellTokenOrders: TokenOrder[] = []
+        const expectedFee = totalSellAmount.div(100)
+        let assets: string[] = []
+
+        beforeEach(async () => {
+            const mockERC20Factory = await ethers.getContractFactory("MockERC20")
+            mockUNI = await mockERC20Factory.deploy("Mocked UNI", "INU", appendDecimals(3000000))
+            mockKNC = await mockERC20Factory.deploy("Mocked KNC", "CNK", appendDecimals(3000000))
+            mockDAI = await mockERC20Factory.deploy("Mocked DAI", "IAD", appendDecimals(3000000))
+
+            mockUNI.transfer(dummyRouter.address, appendDecimals(1000))
+            mockKNC.transfer(dummyRouter.address, appendDecimals(1000))
+            mockDAI.transfer(dummyRouter.address, appendDecimals(1000))
+
+            tokensToBuy = [mockUNI.address, mockKNC.address]
+            tokensToSell = [mockUNI.address, mockKNC.address]
+
+            mockWETH.approve(factory.address, appendDecimals(10.1))
+            await mockWETH.deposit({ value: appendDecimals(10.1) })
+
+            const abi = ["function dummyswapToken(address _inputToken, address _outputToken, uint256 _amount)"]
+            const iface = new Interface(abi)
+
+            sellTokenOrders = [
+                {
+                    token: mockWETH.address,
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        tokensToSell[0],
+                        mockWETH.address,
+                        appendDecimals(2),
+                    ]),
+                },
+                {
+                    token: mockWETH.address,
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        tokensToSell[1],
+                        mockWETH.address,
+                        appendDecimals(3),
+                    ]),
+                }
+            ]
+
+            buyTokenOrders = [
+                {
+                    token: tokensToBuy[0],
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        mockWETH.address,
+                        tokensToBuy[0],
+                        appendDecimals(4),
+                    ]),
+                },
+                {
+                    token: tokensToBuy[1],
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        mockWETH.address,
+                        tokensToBuy[1],
+                        appendDecimals(6),
+                    ]),
+                },
+            ]
+
+            await mockWETH.deposit({ value: appendDecimals(10.1) })
+            await createNFTFromETH(buyTokenOrders, totalSellAmount, totalSellAmount.add(expectedFee))
+            assets = await factory.tokensOf(alice.address)
+        })
+
+        it("reverts if token id is invalid", async () => {
+            await expect(factory.sellTokensToWallet(
+                ethers.utils.parseEther("999").toString(),
+                mockWETH.address,
+                [0,1],
+                tokensToSell, 
+                [appendDecimals(4), appendDecimals(2)],
+                dummyRouter.address, 
+                sellTokenOrders
+            )).to.be.revertedWith(
+                "revert ERC721: owner query for nonexistent token",
+            )
+        })
+
+        it("reverts if not owner", async () => {
+            await expect(factory.connect(bob).sellTokensToWallet(
+                assets[0],
+                mockWETH.address,
+                [0,1],
+                tokensToSell, 
+                [appendDecimals(4), appendDecimals(2)], 
+                dummyRouter.address, 
+                sellTokenOrders
+            )).to.be.revertedWith(
+                "NestedFactory: NOT_TOKEN_OWNER",
+            )
+        })
+
+        it("reverts if insufficient amount", async () => {
+            await expect(factory.sellTokensToWallet(
+                assets[0],
+                mockWETH.address,
+                [0,1],
+                tokensToSell,
+                [appendDecimals(50), appendDecimals(50)], 
+                dummyRouter.address, 
+                sellTokenOrders,
+            )).to.be.revertedWith(
+                "INSUFFICIENT_AMOUNT",
+            )
+        })
+
+        it("sell NFT assets", async () => {
+            let tokenHoldings = await factory.tokenHoldings(assets[0])
+            let initialUNI = tokenHoldings[0].amount
+            let initialKNC = tokenHoldings[1].amount
+            
+            await factory.sellTokensToWallet(
+                assets[0],
+                mockWETH.address,
+                [0,1],
+                tokensToSell, 
+                [appendDecimals(2), appendDecimals(3)], 
+                dummyRouter.address, 
+                sellTokenOrders,
+            )
+
+            tokenHoldings = await factory.tokenHoldings(assets[0])
+            let currentUNI = tokenHoldings[0].amount
+            let currentKNC = tokenHoldings[1].amount
+            
+            expect(tokenHoldings.length).to.equal(2)
+            expect(currentUNI).to.equal(initialUNI.sub(appendDecimals(2)))
+            expect(currentKNC).to.equal(initialKNC.sub(appendDecimals(3)))
+        })
+    })
+
 
     describe("#destroy", () => {
         const totalSellAmount = appendDecimals(10)
@@ -365,10 +790,13 @@ describe("NestedFactory", () => {
         })
 
         it("destroys NFT and send tokens to user", async () => {
+            let originalAliceTokens = await factory.tokensOf(alice.address)
+            factory.destroy(originalAliceTokens[0])
             let aliceTokens = await factory.tokensOf(alice.address)
-            factory.destroy(aliceTokens[0])
-            aliceTokens = await factory.tokensOf(alice.address)
             expect(aliceTokens.length).to.equal(0)
+
+            const result = await factory.tokenHoldings(originalAliceTokens[0])
+            expect(result.length).to.equal(0)
         })
 
         it("should revert when destroying a migrated nft", async () => {
