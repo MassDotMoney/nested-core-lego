@@ -3,6 +3,11 @@ pragma solidity ^0.8.3;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+/**
+ * @title Stores underlying assets of NestedNFTs.
+ * Only the factory can withdraw assets.
+ * The factory itself can only trigger a transfer after verification that the user holds funds present in this contract
+ */
 contract NestedReserve {
     using SafeERC20 for IERC20;
 

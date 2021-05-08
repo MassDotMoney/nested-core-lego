@@ -6,6 +6,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
+/**
+ * @title Collection of NestedNFTs used to represent ownership of real assets stored in NestedReserves
+ * Only NestedFactory contracts are allowed to call functions that write to storage
+ */
 contract NestedAsset is ERC721Enumerable, Ownable {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;

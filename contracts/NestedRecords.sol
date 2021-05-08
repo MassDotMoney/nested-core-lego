@@ -5,6 +5,9 @@ import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./libraries/NestedStructs.sol";
 
+/**
+ * @title Tracks data for underlying assets of NestedNFTs.
+ */
 contract NestedRecords is Ownable {
     address public factory;
 

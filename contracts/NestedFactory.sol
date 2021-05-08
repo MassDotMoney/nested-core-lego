@@ -14,6 +14,10 @@ import "./libraries/ExchangeHelpers.sol";
 
 // import "hardhat/console.sol";
 
+/**
+ * @title Creates, updates and destroys NestedAssets.
+ * It is responsible for the business logic of the protocol and interaction with other contracts.
+ */
 contract NestedFactory is ReentrancyGuard {
     using SafeERC20 for IERC20;
     event NestedCreated(uint256 indexed tokenId, address indexed owner);
@@ -58,10 +62,10 @@ contract NestedFactory is ReentrancyGuard {
 
     /*
     Reverts the transaction if the caller is not the token owner
-    @param tokenId uint256 the NFT Id
+    @param _tokenId uint256 the NFT Id
     */
-    modifier onlyTokenOwner(uint256 tokenId) {
-        require(nestedAsset.ownerOf(tokenId) == msg.sender, "NestedFactory: NOT_TOKEN_OWNER");
+    modifier onlyTokenOwner(uint256 _tokenId) {
+        require(nestedAsset.ownerOf(_tokenId) == msg.sender, "NestedFactory: NOT_TOKEN_OWNER");
         _;
     }
 

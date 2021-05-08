@@ -9,12 +9,10 @@ import "contracts/interfaces/INestedToken.sol";
 import "contracts/interfaces/IFeeSplitter.sol";
 import "contracts/libraries/ExchangeHelpers.sol";
 
-// import "hardhat/console.sol";
-
 /**
- * Token and ETH sent to this contract are used to purchase NST.
- * some of it is burned, the rest is sent to the Nested reserve contract
- * (community reserve, not user assets reserve)
+ * @title Token sent to this contract are used to purchase NST.
+ * Some of it is burned, the rest is sent to a pool that will redistribute
+ * to the NST ecosystem and community
  */
 contract NestedBuybacker is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
