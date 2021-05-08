@@ -400,6 +400,47 @@ describe("NestedFactory", () => {
                 expect(await alice.getBalance()).to.equal(expectedBalance)
             })
         })
+
+        describe("#withdraw", () => {
+            it("reverts if token index is invalid", async () => {
+                // token address doesn't match
+                await expect(factory.withdraw(assets[0], 1, mockUNI.address)).be.revertedWith("INVALID_TOKEN_INDEX")
+                // index is out of bounds
+                await expect(factory.withdraw(assets[0], 9, mockUNI.address)).be.revertedWith("INVALID_TOKEN_INDEX")
+            })
+
+            it("reverts if NFT has only one asset", async () => {
+                await factory.withdraw(assets[0], 0, mockUNI.address)
+                await expect(factory.withdraw(assets[0], 0, mockKNC.address)).be.revertedWith("ERR_EMPTY_NFT")
+            })
+
+            it("destroys without swapping tokens", async () => {
+                await factory.destroy(assets[0])
+                expect((await factory.tokensOf(alice.address)).length).to.equal(0)
+                // fee should be 1% of 4UNI
+                const fee = appendDecimals(4).div(100)
+                const initialUNIBalance = appendDecimals(3000000).sub(appendDecimals(1000))
+                expect(await mockUNI.balanceOf(feeTo.address)).to.equal(fee)
+                expect(await mockUNI.balanceOf(alice.address)).to.equal(
+                    initialUNIBalance.add(appendDecimals(4)).sub(fee),
+                )
+            })
+
+            it("uses failsafe withdraw when swap fails", async () => {
+                // corrupt swap call to make it fail
+                const abi = ["function missing()"]
+                const iface = new Interface(abi)
+                sellTokenOrders[1].callData = iface.encodeFunctionData("missing")
+                await factory.destroyForERC20(assets[0], mockWETH.address, dummyRouter.address, sellTokenOrders)
+                const feeInKNC = appendDecimals(6).div(100)
+                const initialKNCBalance = appendDecimals(3000000).sub(appendDecimals(1000))
+                expect(await mockKNC.balanceOf(feeTo.address)).to.equal(feeInKNC)
+                expect(await mockKNC.balanceOf(alice.address)).to.equal(
+                    initialKNCBalance.add(appendDecimals(6).sub(feeInKNC)),
+                )
+                expect((await factory.tokensOf(alice.address)).length).to.equal(0)
+            })
+        })
     })
 
     describe("#setReserve", () => {

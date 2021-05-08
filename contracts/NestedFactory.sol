@@ -204,7 +204,11 @@ contract NestedFactory is ReentrancyGuard {
         address[] memory tokens = nestedRecords.getAssetTokens(_nftId);
 
         // get assets list for this NFT and send back all ERC20 to user
-        for (uint256 i = 0; i < tokens.length; i++) _withdraw(_nftId, IERC20(tokens[i]));
+        for (uint256 i = 0; i < tokens.length; i++) {
+            NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
+            reserve.transfer(address(this), IERC20(holding.token), holding.amount);
+            _withdraw(_nftId, holding);
+        }
 
         // burn token
         nestedRecords.removeNFT(_nftId);
@@ -212,24 +216,21 @@ contract NestedFactory is ReentrancyGuard {
     }
 
     /*
-    send a holding content back to the owner without exchanging it
+    send a holding content back to the owner without exchanging it.
+    _token has to be transfered from reserve to factory first.
     @param _nftId [uint256] NFT token ID
-    @param _token [IERC20] token address for the holding.
+    @param _holding [Holding] holding to withdraw
     */
-    function _withdraw(uint256 _nftId, IERC20 _token) internal onlyTokenOwner(_nftId) {
+    function _withdraw(uint256 _nftId, NestedStructs.Holding memory _holding) internal onlyTokenOwner(_nftId) {
         uint256 assetTokensLength = nestedRecords.getAssetTokensLength(_nftId);
 
         require(assetTokensLength > 1, "ERR_EMPTY_NFT");
-        require(address(_token) != address(0), "INVALID_TOKEN_INDEX");
 
-        NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_token));
+        uint256 feeAmount = _holding.amount / 100;
+        transferFee(feeAmount, IERC20(_holding.token), _nftId);
+        IERC20(_holding.token).transfer(msg.sender, _holding.amount - feeAmount);
 
-        uint256 feeAmount = holding.amount / 100;
-        reserve.transfer(address(this), IERC20(holding.token), feeAmount);
-        transferFee(feeAmount, _token, _nftId);
-        reserve.transfer(msg.sender, IERC20(holding.token), holding.amount - feeAmount);
-
-        nestedRecords.removeHolding(_nftId, address(_token));
+        nestedRecords.removeHolding(_nftId, _holding.token);
     }
 
     /*
@@ -243,9 +244,16 @@ contract NestedFactory is ReentrancyGuard {
         uint256 _tokenIndex,
         IERC20 _token
     ) external onlyTokenOwner(_nftId) {
-        require(nestedRecords.assetTokens(_nftId, _tokenIndex) == address(_token), "INVALID_TOKEN_INDEX");
+        require(
+            nestedRecords.getAssetTokensLength(_nftId) > _tokenIndex &&
+                nestedRecords.assetTokens(_nftId, _tokenIndex) == address(_token),
+            "INVALID_TOKEN_INDEX"
+        );
 
-        _withdraw(_nftId, _token);
+        NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_token));
+        reserve.transfer(address(this), IERC20(holding.token), holding.amount);
+        _withdraw(_nftId, holding);
+
         nestedRecords.removeToken(_nftId, _tokenIndex);
     }
 
@@ -277,7 +285,7 @@ contract NestedFactory is ReentrancyGuard {
                 ExchangeHelpers.fillQuote(IERC20(_tokenOrders[i].token), _swapTarget, _tokenOrders[i].callData);
             if (success) nestedRecords.removeHolding(_nftId, tokens[i]);
             else {
-                _withdraw(_nftId, IERC20(holding.token));
+                _withdraw(_nftId, holding);
                 emit FailsafeWithdraw(_nftId, holding.token);
             }
         }
