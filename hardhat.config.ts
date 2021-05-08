@@ -5,6 +5,7 @@ import "hardhat-deploy"
 import "hardhat-deploy-ethers"
 import "hardhat-gas-reporter"
 import "@nomiclabs/hardhat-solhint"
+import "hardhat-contract-sizer"
 
 const accounts = {
     mnemonic: process.env.MNEMONIC,
