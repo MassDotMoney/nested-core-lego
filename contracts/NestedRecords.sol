@@ -11,6 +11,8 @@ contract NestedRecords is Ownable {
     mapping(uint256 => mapping(address => NestedStructs.Holding)) public assetHoldings;
     mapping(uint256 => address[]) public assetTokens;
 
+    uint256 constant MAX_HOLDINGS_COUNT = 15;
+
     /*
     Reverts the transaction if the caller is not the factory
     */
@@ -100,6 +102,7 @@ contract NestedRecords is Ownable {
             amount: _amountBought,
             reserve: reserve
         });
+        require(assetTokens[_tokenId].length < MAX_HOLDINGS_COUNT, "TOO_MANY_ORDERS");
         assetTokens[_tokenId].push(_token);
     }
 }

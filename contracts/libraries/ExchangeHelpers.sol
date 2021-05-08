@@ -19,11 +19,11 @@ library ExchangeHelpers {
         IERC20 _sellToken,
         address _swapTarget,
         bytes calldata _swapCallData
-    ) internal {
+    ) internal returns (bool) {
         setMaxAllowance(_sellToken, _swapTarget);
         // solhint-disable-next-line avoid-low-level-calls
         (bool success, ) = _swapTarget.call(_swapCallData);
-        require(success, "SWAP_CALL_FAILED");
+        return success;
     }
 
     /**
