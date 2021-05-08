@@ -76,7 +76,7 @@ contract NestedBuybacker is Ownable, ReentrancyGuard {
         bytes calldata _swapCallData,
         address payable _swapTarget,
         IERC20 _sellToken
-    ) external nonReentrant {
+    ) external nonReentrant onlyOwner {
         if (feeSplitter.getAmountDue(address(this), _sellToken) > 0) claimFees(_sellToken);
 
         uint256 balance = _sellToken.balanceOf(address(this));
