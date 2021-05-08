@@ -11,8 +11,8 @@ import "./libraries/NestedStructs.sol";
 contract NestedRecords is Ownable {
     address public factory;
 
-    mapping(uint256 => mapping(address => NestedStructs.Holding)) public assetHoldings;
-    mapping(uint256 => address[]) public assetTokens;
+    // stores for each NFT ID an asset record
+    mapping(uint256 => NestedStructs.NftRecord) public records;
 
     uint256 constant MAX_HOLDINGS_COUNT = 15;
 
@@ -34,78 +34,84 @@ contract NestedRecords is Ownable {
     }
 
     /*
-    Get content of assetHoldings mapping
-    @param _tokenId the id of the NFT
+    Get holding object for this NFT ID
+    @param _nstId the id of the NFT
     @param _token the address of the token
     */
-    function getAssetHolding(uint256 _tokenId, address _token) public view returns (NestedStructs.Holding memory) {
-        return assetHoldings[_tokenId][_token];
+    function getAssetHolding(uint256 _nftId, address _token) public view returns (NestedStructs.Holding memory) {
+        return records[_nftId].holdings[_token];
     }
 
     /*
     Get content of assetTokens mapping
-    @param _tokenId the id of the NFT
+    @param _nftId the id of the NFT
     */
-    function getAssetTokens(uint256 _tokenId) public view returns (address[] memory) {
-        return assetTokens[_tokenId];
+    function getAssetTokens(uint256 _nftId) public view returns (address[] memory) {
+        return records[_nftId].tokens;
+    }
+
+    /**
+    Get reserve the assets are stored in
+    @param _nftId the NFT ID
+    @return the reserve address these assets are stored in
+    */
+    function getAssetReserve(uint256 _nftId) external view returns (address) {
+        return records[_nftId].reserve;
     }
 
     /**
     Get how many tokens are in a portfolio/NFT
-    @param [uint256] _tokenId NFT ID to examine
+    @param [uint256] _nftId NFT ID to examine
     @return the array length
     */
-    function getAssetTokensLength(uint256 _tokenId) external view returns (uint256) {
-        return assetTokens[_tokenId].length;
+    function getAssetTokensLength(uint256 _nftId) external view returns (uint256) {
+        return records[_nftId].tokens.length;
     }
 
     /**
     Remove a token from the array of tokens in assetTokens
-    @param _tokenId [uint256] ID for the NFT
+    @param _nftId [uint256] ID for the NFT
     @param _tokenIndex [uint256] token index to delete in the array of tokens
     */
-    function removeToken(uint256 _tokenId, uint256 _tokenIndex) external onlyFactory {
-        address[] storage tokens = assetTokens[_tokenId];
+    function removeToken(uint256 _nftId, uint256 _tokenIndex) external onlyFactory {
+        address[] storage tokens = records[_nftId].tokens;
         tokens[_tokenIndex] = tokens[tokens.length - 1];
         tokens.pop();
     }
 
     /*
     delete from mapping assetHoldings
-    @param _tokenId the id of the NFT
+    @param _nftId the id of the NFT
     @param _token the address of the token
     */
-    function removeHolding(uint256 _tokenId, address _token) external onlyFactory {
-        delete assetHoldings[_tokenId][_token];
+    function removeHolding(uint256 _nftId, address _token) external onlyFactory {
+        delete records[_nftId].holdings[_token];
     }
 
     /*
     delete from mapping assetTokens
-    @param _tokenId the id of the NFT
+    @param _nftId the id of the NFT
     */
-    function removeNFT(uint256 _tokenId) external onlyFactory {
-        delete assetTokens[_tokenId];
+    function removeNFT(uint256 _nftId) external onlyFactory {
+        delete records[_nftId];
     }
 
     /*
     store NFT data into our mappings
-    @param _tokenId the id of the NFT
+    @param _nftId the id of the NFT
     @param _token the address of the token
     @param _amountBought the amount of tokens bought
     @param reserve the address of the reserve
     */
     function store(
-        uint256 _tokenId,
+        uint256 _nftId,
         address _token,
         uint256 _amountBought,
         address reserve
     ) external onlyFactory {
-        assetHoldings[_tokenId][_token] = NestedStructs.Holding({
-            token: _token,
-            amount: _amountBought,
-            reserve: reserve
-        });
-        require(assetTokens[_tokenId].length < MAX_HOLDINGS_COUNT, "TOO_MANY_ORDERS");
-        assetTokens[_tokenId].push(_token);
+        require(records[_nftId].tokens.length < MAX_HOLDINGS_COUNT, "TOO_MANY_ORDERS");
+        records[_nftId].holdings[_token] = NestedStructs.Holding({ token: _token, amount: _amountBought });
+        records[_nftId].tokens.push(_token);
+        records[_nftId].reserve = reserve;
     }
 }

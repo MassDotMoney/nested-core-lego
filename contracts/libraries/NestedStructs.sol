@@ -8,6 +8,14 @@ library NestedStructs {
     struct Holding {
         address token;
         uint256 amount;
+    }
+
+    /*
+    Store user asset informations
+    */
+    struct NftRecord {
+        mapping(address => NestedStructs.Holding) holdings;
+        address[] tokens;
         address reserve;
     }
 
