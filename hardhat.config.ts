@@ -48,7 +48,7 @@ export default {
         },
     },
     solidity: {
-        version: "0.8.3",
+        version: "0.8.4",
     },
     gasReporter: {
         coinmarketcap: process.env.COINMARKETCAP_API_KEY,
