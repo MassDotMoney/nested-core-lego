@@ -35,7 +35,7 @@ contract NestedRecords is Ownable {
 
     /*
     Get holding object for this NFT ID
-    @param _nstId the id of the NFT
+    @param _nftId the id of the NFT
     @param _token the address of the token
     */
     function getAssetHolding(uint256 _nftId, address _token) public view returns (NestedStructs.Holding memory) {
@@ -61,11 +61,20 @@ contract NestedRecords is Ownable {
 
     /**
     Get how many tokens are in a portfolio/NFT
-    @param [uint256] _nftId NFT ID to examine
+    @param _nftId [uint256] NFT ID to examine
     @return the array length
     */
     function getAssetTokensLength(uint256 _nftId) external view returns (uint256) {
         return records[_nftId].tokens.length;
+    }
+
+    /**
+    Set the reserve where assets are stored
+    @param _nftId [uint256] the NFT ID to update
+    @param _nextReserve [address] address for the new reserve
+    */
+    function setReserve(uint256 _nftId, address _nextReserve) external onlyFactory {
+        records[_nftId].reserve = _nextReserve;
     }
 
     /**

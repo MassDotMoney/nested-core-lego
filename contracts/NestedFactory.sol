@@ -2,6 +2,7 @@
 pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./libraries/NestedStructs.sol";
@@ -18,7 +19,7 @@ import "./libraries/ExchangeHelpers.sol";
  * @title Creates, updates and destroys NestedAssets.
  * It is responsible for the business logic of the protocol and interaction with other contracts.
  */
-contract NestedFactory is ReentrancyGuard {
+contract NestedFactory is ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
     event NestedCreated(uint256 indexed nftId, address indexed owner);
     event FailsafeWithdraw(uint256 indexed nftId, address indexed token);
@@ -31,12 +32,23 @@ contract NestedFactory is ReentrancyGuard {
     NestedAsset public immutable nestedAsset;
     NestedRecords private immutable nestedRecords;
 
+    mapping(address => bool) public knownReserves;
+
     /*
     Reverts if the address does not exist
     @param _address [address]
     */
     modifier addressExists(address _address) {
         require(_address != address(0), "NestedFactory: INVALID_ADDRESS");
+        _;
+    }
+
+    /*
+    Reverts if the address is not a reserve
+    @param _reserve [address]
+    */
+    modifier isReserve(address _reserve) {
+        require(knownReserves[_reserve], "NestedFactory: NOT_A_RESERVE");
         _;
     }
 
@@ -74,6 +86,34 @@ contract NestedFactory is ReentrancyGuard {
     */
     receive() external payable {}
 
+    /**
+    Moves all the assets for an NFT to a new reserve
+    @param _nftId [uint256] the ID for the NFT to migrate
+    @param _nextReserve [address] the new reserve address
+    */
+    function migrateAssets(uint256 _nftId, address _nextReserve)
+        external
+        onlyTokenOwner(_nftId)
+        addressExists(_nextReserve)
+        isReserve(_nextReserve)
+    {
+        address[] memory tokens = nestedRecords.getAssetTokens(_nftId);
+
+        for (uint256 i = 0; i < tokens.length; i++) {
+            NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
+            reserve.transfer(_nextReserve, IERC20(holding.token), holding.amount);
+        }
+        nestedRecords.setReserve(_nftId, _nextReserve);
+    }
+
+    /**
+    @dev Adds a reserve to the known reserves mapping
+    @param _reserve [address] the address for the reserve to register
+    */
+    function registerReserve(address _reserve) external onlyOwner {
+        knownReserves[_reserve] = true;
+    }
+
     /*
    Sets the address receiving the fees
    @param feeTo The address of the receiver
@@ -96,8 +136,7 @@ contract NestedFactory is ReentrancyGuard {
     Sets the reserve where the funds are stored
     @param _reserve the address of the new factory
     */
-    function setReserve(NestedReserve _reserve) external {
-        require(address(_reserve) != address(0), "NestedFactory: INVALID_ADDRESS");
+    function setReserve(NestedReserve _reserve) external addressExists(address(_reserve)) {
         require(address(reserve) == address(0), "NestedFactory: FACTORY_IMMUTABLE");
         reserve = _reserve;
     }
@@ -210,7 +249,7 @@ contract NestedFactory is ReentrancyGuard {
         // get assets list for this NFT and send back all ERC20 to user
         for (uint256 i = 0; i < tokens.length; i++) {
             NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
-            reserve.transfer(address(this), IERC20(holding.token), holding.amount);
+            reserve.withdraw(IERC20(holding.token), holding.amount);
             _withdraw(_nftId, holding);
         }
 
@@ -255,7 +294,7 @@ contract NestedFactory is ReentrancyGuard {
         );
 
         NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_token));
-        reserve.transfer(address(this), IERC20(holding.token), holding.amount);
+        reserve.withdraw(IERC20(holding.token), holding.amount);
         _withdraw(_nftId, holding);
 
         nestedRecords.removeToken(_nftId, _tokenIndex);
@@ -285,7 +324,7 @@ contract NestedFactory is ReentrancyGuard {
         // first transfer holdings from reserve to factory
         for (uint256 i = 0; i < tokenLength; i++) {
             NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
-            reserve.transfer(address(this), IERC20(holding.token), holding.amount);
+            reserve.withdraw(IERC20(holding.token), holding.amount);
             bool success =
                 ExchangeHelpers.fillQuote(IERC20(_tokenOrders[i].token), _swapTarget, _tokenOrders[i].callData);
             if (success) nestedRecords.removeHolding(_nftId, tokens[i]);

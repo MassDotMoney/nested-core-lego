@@ -461,6 +461,67 @@ describe("NestedFactory", () => {
         })
     })
 
+    describe("#migrateAssets", () => {
+        let assets: string[] = []
+
+        beforeEach(async () => {
+            const totalSellAmount = appendDecimals(10)
+            const expectedFee = totalSellAmount.div(100)
+            const mockERC20Factory = await ethers.getContractFactory("MockERC20")
+            mockUNI = await mockERC20Factory.deploy("Mocked UNI", "INU", appendDecimals(3000000))
+            mockKNC = await mockERC20Factory.deploy("Mcoked KNC", "CNK", appendDecimals(3000000))
+
+            mockUNI.transfer(dummyRouter.address, appendDecimals(1000))
+            mockKNC.transfer(dummyRouter.address, appendDecimals(1000))
+
+            const tokensToBuy = [mockUNI.address, mockKNC.address]
+
+            const abi = ["function dummyswapToken(address _inputToken, address _outputToken, uint256 _amount)"]
+            const iface = new Interface(abi)
+
+            const buyTokenOrders = [
+                {
+                    token: tokensToBuy[0],
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        mockWETH.address,
+                        tokensToBuy[0],
+                        appendDecimals(4),
+                    ]),
+                },
+                {
+                    token: tokensToBuy[1],
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        mockWETH.address,
+                        tokensToBuy[1],
+                        appendDecimals(6),
+                    ]),
+                },
+            ]
+
+            await mockWETH.deposit({ value: appendDecimals(10.1) })
+            await createNFTFromETH(buyTokenOrders, totalSellAmount, totalSellAmount.add(expectedFee))
+            assets = await factory.tokensOf(alice.address)
+        })
+        it("registers a new reserve", async () => {
+            await factory.registerReserve(bob.address)
+            expect(await factory.knownReserves(bob.address)).to.be.true
+        })
+
+        it("should revert because reserve is not known", async () => {
+            await expect(factory.migrateAssets(assets[0], bob.address)).to.be.revertedWith(
+                "NestedFactory: NOT_A_RESERVE",
+            )
+        })
+
+        it("migrates assets to new reserve", async () => {
+            await factory.registerReserve(bob.address)
+            await factory.migrateAssets(assets[0], bob.address)
+            expect(await records.getAssetReserve(assets[0])).to.equal(bob.address)
+            expect(await mockUNI.balanceOf(bob.address)).to.equal(appendDecimals(4))
+            expect(await mockKNC.balanceOf(bob.address)).to.equal(appendDecimals(6))
+        })
+    })
+
     const createNFTFromERC20 = (
         tokenOrders: TokenOrder[],
         totalSellAmount: BigNumber,
