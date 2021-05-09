@@ -51,15 +51,15 @@ describe("Fee Splitter", () => {
         expect(await feeSplitter.totalShares(mockWETH.address)).to.equal(amount)
         expect(await feeSplitter.shares(alice.address, mockWETH.address)).to.equal(amount.mul(5000).div(8000))
         expect(await feeSplitter.totalReleased(mockWETH.address)).to.equal(0)
-        expect(await feeSplitter.getRoyaltiesWeight()).to.equal(2000)
+        expect(await feeSplitter.royaltiesWeight()).to.equal(2000)
         expect(await feeSplitter.released(alice.address, mockWETH.address)).to.equal(0)
     })
 
-    it("should revert when calling findShareholder with NOT_FOUND", async () => {
+    it("should revert when calling findShareholder", async () => {
         await expect(feeSplitter.findShareholder(feeSplitter.address)).to.be.revertedWith("FeeSplitter: NOT_FOUND")
     })
 
-    it("should revert when calling setShareholders with ARRAY_LENGTH_ERR", async () => {
+    it("should revert when calling setShareholders", async () => {
         await expect(feeSplitter.setShareholders([alice.address, bob.address], [100])).to.be.revertedWith(
             "FeeSplitter: ARRAY_LENGTHS_ERR",
         )

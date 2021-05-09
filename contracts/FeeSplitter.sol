@@ -36,7 +36,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     }
     mapping(address => TokenRecords) private tokenRecords;
 
-    uint256 private royaltiesWeight;
+    uint256 public royaltiesWeight;
     uint256 public totalWeights;
 
     address public weth;
@@ -75,14 +75,6 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
      */
     function totalReleased(address _token) public view returns (uint256) {
         return tokenRecords[_token].totalReleased;
-    }
-
-    /**
-     * @dev Getter for the total amount of Ether already released.
-     * @return the total amount release to shareholders
-     */
-    function getRoyaltiesWeight() public view returns (uint256) {
-        return royaltiesWeight;
     }
 
     /**
