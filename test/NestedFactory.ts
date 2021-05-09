@@ -504,7 +504,7 @@ describe("NestedFactory", () => {
         })
         it("registers a new reserve", async () => {
             await factory.registerReserve(bob.address)
-            expect(await factory.knownReserves(bob.address)).to.be.true
+            expect(await factory.supportedReserves(bob.address)).to.be.true
         })
 
         it("should revert because reserve is not known", async () => {

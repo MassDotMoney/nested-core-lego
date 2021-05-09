@@ -32,7 +32,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     NestedAsset public immutable nestedAsset;
     NestedRecords private immutable nestedRecords;
 
-    mapping(address => bool) public knownReserves;
+    mapping(address => bool) public supportedReserves;
 
     /*
     Reverts if the address does not exist
@@ -47,8 +47,8 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     Reverts if the address is not a reserve
     @param _reserve [address]
     */
-    modifier isReserve(address _reserve) {
-        require(knownReserves[_reserve], "NestedFactory: NOT_A_RESERVE");
+    modifier isNestedReserve(address _reserve) {
+        require(supportedReserves[_reserve], "NestedFactory: NOT_A_RESERVE");
         _;
     }
 
@@ -95,9 +95,11 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         external
         onlyTokenOwner(_nftId)
         addressExists(_nextReserve)
-        isReserve(_nextReserve)
+        isNestedReserve(_nextReserve)
     {
         address[] memory tokens = nestedRecords.getAssetTokens(_nftId);
+        address currentReserve = nestedRecords.getAssetReserve(_nftId);
+        require(currentReserve == address(reserve), "NestedFactory: ASSETS_NOT_IN_RESERVE");
 
         for (uint256 i = 0; i < tokens.length; i++) {
             NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
@@ -107,11 +109,11 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     }
 
     /**
-    @dev Adds a reserve to the known reserves mapping
+    @dev Adds a reserve to the supported reserves mapping
     @param _reserve [address] the address for the reserve to register
     */
     function registerReserve(address _reserve) external onlyOwner {
-        knownReserves[_reserve] = true;
+        supportedReserves[_reserve] = true;
     }
 
     /*
