@@ -43,6 +43,28 @@ describe("Fee Splitter", () => {
         )
     })
 
+    it("tests getter functions", async () => {
+        const amount = ethers.utils.parseEther("5")
+        await mockWETH.approve(feeSplitter.address, amount)
+        mockWETH.deposit({ value: amount })
+        await feeSplitter.sendFeesToken(ethers.constants.AddressZero, amount, mockWETH.address)
+        expect(await feeSplitter.totalShares(mockWETH.address)).to.equal(amount)
+        expect(await feeSplitter.shares(alice.address, mockWETH.address)).to.equal(amount.mul(5000).div(8000))
+        expect(await feeSplitter.totalReleased(mockWETH.address)).to.equal(0)
+        expect(await feeSplitter.getRoyaltiesWeight()).to.equal(2000)
+        expect(await feeSplitter.released(alice.address, mockWETH.address)).to.equal(0)
+    })
+
+    it("should revert when calling findShareholder with NOT_FOUND", async () => {
+        await expect(feeSplitter.findShareholder(feeSplitter.address)).to.be.revertedWith("FeeSplitter: NOT_FOUND")
+    })
+
+    it("should revert when calling setShareholders with ARRAY_LENGTH_ERR", async () => {
+        await expect(feeSplitter.setShareholders([alice.address, bob.address], [100])).to.be.revertedWith(
+            "FeeSplitter: ARRAY_LENGTHS_ERR",
+        )
+    })
+
     it("Releases fees as ETH", async () => {
         const amount = ethers.utils.parseEther("5")
         await mockWETH.approve(feeSplitter.address, amount)
@@ -52,7 +74,11 @@ describe("Fee Splitter", () => {
         const tx = await feeSplitter.connect(bob).releaseETH()
         const spentOnGas = await getETHSpentOnGas(tx)
         const balanceBobAfter = await bob.getBalance()
-        expect(balanceBobAfter.sub(balanceBobBefore)).to.equal(amount.mul(3000).div(8000).sub(spentOnGas))
+        const amountReleased = amount.mul(3000).div(8000)
+        expect(balanceBobAfter.sub(balanceBobBefore)).to.equal(amountReleased.sub(spentOnGas))
+
+        expect(await feeSplitter.totalReleased(mockWETH.address)).to.equal(amountReleased)
+        expect(await feeSplitter.released(bob.address, mockWETH.address)).to.equal(amountReleased)
     })
 
     describe("ERC20 tokens fees", () => {

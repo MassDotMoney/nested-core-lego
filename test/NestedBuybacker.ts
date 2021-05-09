@@ -45,6 +45,25 @@ describe("NestedBuybacker", () => {
         dummyRouter = await DummyRouterFactory.deploy()
     })
 
+    it("should revert with BURN_PART_TOO_HIGH", async () => {
+        const NestedBuybackerFactory = await ethers.getContractFactory("NestedBuybacker")
+        await expect(
+            NestedBuybackerFactory.deploy(mockNST.address, communityReserve.address, feeSplitter.address, 1200),
+        ).to.be.revertedWith("NestedBuybacker: BURN_PART_TOO_HIGH")
+    })
+
+    it("sets the nested reserve address", async () => {
+        expect(await buyBacker.nstReserve()).to.not.equal(bob.address)
+        await buyBacker.setNestedReserve(bob.address)
+        expect(await buyBacker.nstReserve()).to.equal(bob.address)
+    })
+
+    it("sets the fee splitter address", async () => {
+        expect(await buyBacker.feeSplitter()).to.not.equal(bob.address)
+        await buyBacker.setFeeSplitter(bob.address)
+        expect(await buyBacker.feeSplitter()).to.equal(bob.address)
+    })
+
     it("sends fees as token", async () => {
         await mockNST.transfer(dummyRouter.address, ethers.utils.parseEther("100000"))
 
@@ -84,6 +103,11 @@ describe("NestedBuybacker", () => {
         expect(await mockWETH.balanceOf(buyBacker.address)).to.equal(ethers.constants.Zero)
         expect(await mockNST.balanceOf(buyBacker.address)).to.equal(ethers.constants.Zero)
         expect(await mockUSDT.balanceOf(buyBacker.address)).to.equal(ethers.constants.Zero)
+    })
+
+    it("updates the burn percentage", async () => {
+        await buyBacker.setBurnPart(100)
+        expect(await buyBacker.burnPercentage()).to.equal(100)
     })
 
     const deployMockToken = async (name: string, symbol: string, owner: SignerWithAddress) => {

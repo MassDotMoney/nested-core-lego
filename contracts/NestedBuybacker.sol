@@ -34,7 +34,7 @@ contract NestedBuybacker is Ownable {
         address _feeSplitter,
         uint256 _burnPercentage
     ) {
-        require(burnPercentage <= 1000, "NestedBuybacker: BURN_PART_TOO_HIGH");
+        require(_burnPercentage <= 1000, "NestedBuybacker: BURN_PART_TOO_HIGH");
         NST = INestedToken(_NST);
         feeSplitter = IFeeSplitter(_feeSplitter);
         nstReserve = _nstReserve;

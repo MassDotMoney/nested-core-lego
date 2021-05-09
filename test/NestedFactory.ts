@@ -186,16 +186,22 @@ describe("NestedFactory", () => {
 
                 await createNFTFromERC20(buyTokenOrders, totalSellAmount)
 
+                // bob also buys an NFT
+                mockWETH.connect(bob).approve(factory.address, appendDecimals(10.1))
+                await mockWETH.connect(bob).deposit({ value: appendDecimals(10.1) })
+                await createNFTFromERC20(buyTokenOrders, totalSellAmount, bob)
+
                 const expectedAliceWethBalance = initialWethBalance.sub(totalSellAmount).sub(expectedFee)
 
                 expect(await mockWETH.balanceOf(alice.address)).to.equal(expectedAliceWethBalance)
-                expect(await mockWETH.balanceOf(factory.feeTo())).to.equal(expectedFee)
+                // fee x2 because bob and alice each bought a NFT
+                expect(await mockWETH.balanceOf(factory.feeTo())).to.equal(expectedFee.mul(2))
 
                 const buyUNIAmount = appendDecimals(4)
                 const buyKNCAmount = appendDecimals(6)
 
-                expect(await mockUNI.balanceOf(factory.reserve())).to.equal(buyUNIAmount)
-                expect(await mockKNC.balanceOf(factory.reserve())).to.equal(buyKNCAmount)
+                expect(await mockUNI.balanceOf(factory.reserve())).to.equal(buyUNIAmount.mul(2))
+                expect(await mockKNC.balanceOf(factory.reserve())).to.equal(buyKNCAmount.mul(2))
 
                 // check if NFT was created
                 const aliceTokens = await factory.tokensOf(alice.address)
@@ -204,9 +210,6 @@ describe("NestedFactory", () => {
                 // check number of assets in NFT token
                 const result = await factory.tokenHoldings(aliceTokens[0])
                 expect(result.length).to.equal(buyTokenOrders.length)
-
-                // check that fees were taken
-                expect(await mockWETH.balanceOf(feeTo.address)).to.equal(expectedFee)
             })
 
             it("creates the NFT with an original token ID", async () => {
