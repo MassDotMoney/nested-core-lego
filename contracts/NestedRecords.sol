@@ -9,6 +9,8 @@ import "./libraries/NestedStructs.sol";
  * @title Tracks data for underlying assets of NestedNFTs.
  */
 contract NestedRecords is Ownable {
+    event FactoryAdded(address newFactory);
+
     mapping(address => bool) public supportedFactories;
 
     // stores for each NFT ID an asset record
@@ -31,6 +33,7 @@ contract NestedRecords is Ownable {
     function setFactory(address _factory) external onlyOwner {
         require(_factory != address(0), "NestedRecords: INVALID_ADDRESS");
         supportedFactories[_factory] = true;
+        emit FactoryAdded(_factory);
     }
 
     /*

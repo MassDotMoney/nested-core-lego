@@ -21,8 +21,10 @@ import "./libraries/ExchangeHelpers.sol";
  */
 contract NestedFactory is ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
-    event NestedCreated(uint256 indexed nftId, address indexed owner);
     event FailsafeWithdraw(uint256 indexed nftId, address indexed token);
+    event ReserveRegistered(address indexed reserve);
+    event AssetsMigrated(uint256 indexed nftId, address to);
+    event NftUpdated(uint256 indexed nftId); // TODO emit this with update
 
     IWETH public immutable weth;
     IFeeSplitter public feeTo;
@@ -106,6 +108,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
             reserve.transfer(_nextReserve, IERC20(holding.token), holding.amount);
         }
         nestedRecords.setReserve(_nftId, _nextReserve);
+        emit AssetsMigrated(_nftId, _nextReserve);
     }
 
     /**
@@ -114,6 +117,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     */
     function registerReserve(address _reserve) external onlyOwner {
         supportedReserves[_reserve] = true;
+        emit ReserveRegistered(_reserve);
     }
 
     /*
@@ -276,6 +280,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         IERC20(_holding.token).transfer(msg.sender, _holding.amount - feeAmount);
 
         nestedRecords.removeHolding(_nftId, _holding.token);
+        emit FailsafeWithdraw(_nftId, _holding.token);
     }
 
     /*
@@ -332,7 +337,6 @@ contract NestedFactory is ReentrancyGuard, Ownable {
             if (success) nestedRecords.removeHolding(_nftId, tokens[i]);
             else {
                 _withdraw(_nftId, holding);
-                emit FailsafeWithdraw(_nftId, holding.token);
             }
         }
 

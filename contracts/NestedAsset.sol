@@ -12,6 +12,8 @@ import "@openzeppelin/contracts/utils/Counters.sol";
  */
 contract NestedAsset is ERC721Enumerable, Ownable {
     using Counters for Counters.Counter;
+    event FactoryAdded(address newFactory);
+
     Counters.Counter private _tokenIds;
 
     mapping(address => bool) public supportedFactories;
@@ -117,5 +119,6 @@ contract NestedAsset is ERC721Enumerable, Ownable {
     function setFactory(address _factory) external onlyOwner {
         require(_factory != address(0), "NestedAsset: INVALID_ADDRESS");
         supportedFactories[_factory] = true;
+        emit FactoryAdded(_factory);
     }
 }
