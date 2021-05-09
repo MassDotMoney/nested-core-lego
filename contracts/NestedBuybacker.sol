@@ -2,8 +2,7 @@
 pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol"
 
 import "contracts/interfaces/INestedToken.sol";
 import "contracts/interfaces/IFeeSplitter.sol";
@@ -14,7 +13,7 @@ import "contracts/libraries/ExchangeHelpers.sol";
  * Some of it is burned, the rest is sent to a pool that will redistribute
  * to the NST ecosystem and community
  */
-contract NestedBuybacker is Ownable, ReentrancyGuard {
+contract NestedBuybacker is Ownable {
     using SafeERC20 for IERC20;
 
     INestedToken public immutable NST;
@@ -76,7 +75,7 @@ contract NestedBuybacker is Ownable, ReentrancyGuard {
         bytes calldata _swapCallData,
         address payable _swapTarget,
         IERC20 _sellToken
-    ) external nonReentrant onlyOwner {
+    ) external onlyOwner {
         if (feeSplitter.getAmountDue(address(this), _sellToken) > 0) claimFees(_sellToken);
 
         uint256 balance = _sellToken.balanceOf(address(this));
