@@ -14,7 +14,7 @@ contract NestedAsset is ERC721Enumerable, Ownable {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
-    address public factory;
+    mapping(address => bool) public supportedFactories;
 
     mapping(uint256 => string) private _tokenURIs;
 
@@ -30,7 +30,7 @@ contract NestedAsset is ERC721Enumerable, Ownable {
     Reverts the transaction if the caller is not the factory
     */
     modifier onlyFactory {
-        require(msg.sender == factory, "NestedAsset: FORBIDDEN");
+        require(supportedFactories[msg.sender], "NestedAsset: FORBIDDEN");
         _;
     }
 
@@ -116,6 +116,6 @@ contract NestedAsset is ERC721Enumerable, Ownable {
     */
     function setFactory(address _factory) external onlyOwner {
         require(_factory != address(0), "NestedAsset: INVALID_ADDRESS");
-        factory = _factory;
+        supportedFactories[_factory] = true;
     }
 }

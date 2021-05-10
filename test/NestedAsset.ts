@@ -134,19 +134,21 @@ describe("NestedAsset", () => {
     describe("#setFactory", () => {
         it("sets the new factory", async () => {
             await asset.setFactory(otherFactory.address)
-            expect(await asset.factory()).to.equal(otherFactory.address)
+            expect(await asset.supportedFactories(otherFactory.address)).to.equal(true)
         })
 
         it("reverts if unauthorized", async () => {
             await expect(asset.connect(alice).setFactory(otherFactory.address)).to.be.revertedWith(
                 "Ownable: caller is not the owner",
             )
+            expect(await asset.supportedFactories(otherFactory.address)).to.equal(false)
         })
 
         it("reverts if the address is invalid", async () => {
             await expect(asset.setFactory("0x0000000000000000000000000000000000000000")).to.be.revertedWith(
                 "NestedAsset: INVALID_ADDRESS",
             )
+            expect(await asset.supportedFactories(otherFactory.address)).to.equal(false)
         })
     })
 })

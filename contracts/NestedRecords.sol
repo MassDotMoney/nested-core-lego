@@ -9,28 +9,28 @@ import "./libraries/NestedStructs.sol";
  * @title Tracks data for underlying assets of NestedNFTs.
  */
 contract NestedRecords is Ownable {
-    address public factory;
+    mapping(address => bool) public supportedFactories;
 
     // stores for each NFT ID an asset record
     mapping(uint256 => NestedStructs.NftRecord) public records;
 
-    uint256 constant MAX_HOLDINGS_COUNT = 15;
+    uint256 private constant MAX_HOLDINGS_COUNT = 15;
 
     /*
     Reverts the transaction if the caller is not the factory
     */
     modifier onlyFactory {
-        require(msg.sender == factory, "NestedRecords: FORBIDDEN");
+        require(supportedFactories[msg.sender], "NestedRecords: FORBIDDEN");
         _;
     }
 
     /*
-    Sets the factory for Nested assets
+    Sets the factory for Nested records
     @param _factory the address of the new factory
     */
     function setFactory(address _factory) external onlyOwner {
         require(_factory != address(0), "NestedRecords: INVALID_ADDRESS");
-        factory = _factory;
+        supportedFactories[_factory] = true;
     }
 
     /*
