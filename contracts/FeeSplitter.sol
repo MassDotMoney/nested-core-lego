@@ -45,7 +45,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
 
     address public immutable weth;
 
-    uint256 public vipDiscount = 0;
+    uint256 public vipDiscount;
     uint256 public vipMinAmount;
     MinimalSmartChef public smartChef;
 
@@ -78,12 +78,21 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         require(msg.sender == weth, "FeeSplitter: ETH_SENDER_NOT_WETH");
     }
 
+    /**
+     * @dev set the SmartChef contract address
+     * @param _nextSmartChef [address] new SmartChef address
+     */
     function setSmartChef(address _nextSmartChef) external onlyOwner {
         require(_nextSmartChef != address(0), "FeeSplitter: INVALID_SMARTCHEF_ADDRESS");
         smartChef = MinimalSmartChef(_nextSmartChef);
         emit SmartChefChanged(_nextSmartChef);
     }
 
+    /**
+     * @dev set the VIP discount and min staked amount to be a VIP
+     * @param _vipDiscount [uint256] the fee discount to apply to a VIP user
+     * @param _vipMinAmount [uint256] min amount that needs to be staked to be a VIP
+     */
     function setVipDiscount(uint256 _vipDiscount, uint256 _vipMinAmount) external onlyOwner {
         require(_vipDiscount < 1000, "FeeSplitter: DISCOUNT_TOO_HIGH");
         vipDiscount = _vipDiscount;
@@ -137,13 +146,13 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
      */
     function sendFeesToken(
         // TODO: make the royaltiesTarget optional with overloading
+        address _nftOwner,
         address _royaltiesTarget,
-        uint256 _amount,
         IERC20 _token,
-        address _nftOwner
+        uint256 _amount
     ) public {
         // give a discount to VIP users
-        if (_isUserVIP(_nftOwner)) _amount -= (_amount * vipDiscount) / 1000;
+        if (_isVIP(_nftOwner)) _amount -= (_amount * vipDiscount) / 1000;
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
         uint256 tradeTotalWeights = totalWeights;
 
@@ -169,7 +178,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
      * @param _account [address] user address
      * @return a boolean indicating if user is VIP
      */
-    function _isUserVIP(address _account) internal view returns (bool) {
+    function _isVIP(address _account) internal view returns (bool) {
         uint256 stakedNst = smartChef.userInfo(_account).amount;
         return stakedNst >= vipMinAmount;
     }
