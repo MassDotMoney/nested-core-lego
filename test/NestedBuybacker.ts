@@ -95,10 +95,10 @@ describe("NestedBuybacker", () => {
         await mockWETH.deposit({ value: appendDecimals(16) })
         await mockWETH.approve(feeSplitter.address, appendDecimals(16))
         await feeSplitter.sendFeesToken(
-            ethers.constants.AddressZero,
-            appendDecimals(16),
-            mockWETH.address,
             alice.address,
+            ethers.constants.AddressZero,
+            mockWETH.address,
+            appendDecimals(16),
         )
         // also try sending token directly to buybacker (instead of using FeeSplitter)
         await mockUSDT.transfer(buyBacker.address, ethers.utils.parseEther("200"))

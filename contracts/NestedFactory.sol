@@ -404,6 +404,6 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     ) internal {
         address originalOwner = nestedAsset.originalOwner(_nftId);
         ExchangeHelpers.setMaxAllowance(_token, address(feeTo));
-        feeTo.sendFeesToken(originalOwner, _amount, _token, _nftOwner);
+        feeTo.sendFeesToken(_nftOwner, originalOwner, _token, _amount);
     }
 }
