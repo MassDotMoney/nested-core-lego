@@ -2,7 +2,7 @@ import { Contract } from "@ethersproject/contracts"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
 import { ethers } from "hardhat"
-import { getETHSpentOnGas } from "./helpers"
+import { appendDecimals, getETHSpentOnGas } from "./helpers"
 
 describe("Fee Splitter", () => {
     let alice: SignerWithAddress,
@@ -35,11 +35,17 @@ describe("Fee Splitter", () => {
         const MockWETHFactory = await ethers.getContractFactory("WETH9")
         mockWETH = await MockWETHFactory.deploy()
 
+        const mockSmartChefFactory = await ethers.getContractFactory("MockSmartChef")
+        const mockSmartChefNonVIP = await mockSmartChefFactory.deploy(appendDecimals(499))
+
         feeSplitter = await FeeSplitterFactory.deploy(
             [alice.address, bob.address],
             [5000, 3000],
             2000,
             mockWETH.address,
+            500,
+            appendDecimals(500),
+            mockSmartChefNonVIP.address,
         )
     })
 
@@ -69,7 +75,7 @@ describe("Fee Splitter", () => {
         const amount = ethers.utils.parseEther("5")
         await mockWETH.approve(feeSplitter.address, amount)
         mockWETH.deposit({ value: amount })
-        await feeSplitter.sendFeesToken(ethers.constants.AddressZero, amount, mockWETH.address)
+        await feeSplitter.sendFeesToken(ethers.constants.AddressZero, amount, mockWETH.address, alice.address)
         const balanceBobBefore = await bob.getBalance()
         const tx = await feeSplitter.connect(bob).releaseETH()
         const spentOnGas = await getETHSpentOnGas(tx)
@@ -93,8 +99,8 @@ describe("Fee Splitter", () => {
             const amount2 = ethers.utils.parseEther("5")
 
             await ERC20Mocks[0].approve(feeSplitter.address, amount1.add(amount2))
-            await feeSplitter.sendFeesToken(ethers.constants.AddressZero, amount1, ERC20Mocks[0].address)
-            await feeSplitter.sendFeesToken(wallet3.address, amount2, ERC20Mocks[0].address)
+            await feeSplitter.sendFeesToken(ethers.constants.AddressZero, amount1, ERC20Mocks[0].address, alice.address)
+            await feeSplitter.sendFeesToken(wallet3.address, amount2, ERC20Mocks[0].address, alice.address)
 
             const token = ERC20Mocks[0]
             await feeSplitter.connect(bob).releaseToken(token.address)
@@ -112,7 +118,7 @@ describe("Fee Splitter", () => {
             const token = ERC20Mocks[0]
             const amount = ethers.utils.parseEther("6")
             await token.approve(feeSplitter.address, amount)
-            await feeSplitter.sendFeesToken(wallet3.address, amount, token.address)
+            await feeSplitter.sendFeesToken(wallet3.address, amount, token.address, alice.address)
 
             await feeSplitter.connect(wallet3).releaseToken(token.address)
             const balanceWallet3 = await token.balanceOf(wallet3.address)
@@ -167,6 +173,42 @@ describe("Fee Splitter", () => {
         })
     })
 
+    describe("VIP tiers", () => {
+        it("should revert when setting an invalid smart chef contract", async () => {
+            await expect(feeSplitter.setSmartChef(ethers.constants.AddressZero)).to.be.revertedWith(
+                "FeeSplitter: INVALID_SMARTCHEF_ADDRESS",
+            )
+        })
+
+        it("should set the SmartChef address", async () => {
+            await feeSplitter.setSmartChef(alice.address)
+            expect(await feeSplitter.smartChef()).to.equal(alice.address)
+        })
+
+        it("should revert when setting invalid VIP discount", async () => {
+            await expect(feeSplitter.setVipDiscount(1000, 0)).to.be.revertedWith("FeeSplitter: DISCOUNT_TOO_HIGH")
+            await expect(feeSplitter.setVipDiscount(1001, 0)).to.be.revertedWith("FeeSplitter: DISCOUNT_TOO_HIGH")
+        })
+
+        it("sets the discount and min vip amount", async () => {
+            await feeSplitter.setVipDiscount(250, 10)
+            expect(await feeSplitter.vipDiscount()).to.equal(250)
+            expect(await feeSplitter.vipMinAmount()).to.equal(10)
+        })
+
+        it("applies a discount to a VIP user", async () => {
+            const mockSmartChefFactory = await ethers.getContractFactory("MockSmartChef")
+            const mockSmartChefVIP = await mockSmartChefFactory.deploy(appendDecimals(500))
+
+            await feeSplitter.setSmartChef(mockSmartChefVIP.address)
+            const balanceBefore = await ERC20Mocks[0].balanceOf(alice.address)
+            await sendFees("2", ethers.constants.AddressZero)
+            const balanceAfter = await ERC20Mocks[0].balanceOf(alice.address)
+            // 50% discount applied
+            expect(balanceBefore.sub(balanceAfter)).to.equal(appendDecimals(1))
+        })
+    })
+
     const deployMockToken = async (name: string, symbol: string, owner: SignerWithAddress) => {
         const TokenFactory = await ethers.getContractFactory("MockERC20")
         return TokenFactory.connect(owner).deploy(name, symbol, ethers.utils.parseEther("1000000"))
@@ -176,7 +218,7 @@ describe("Fee Splitter", () => {
         const token = ERC20Mocks[0]
         const amount = ethers.utils.parseEther(amountEther)
         await token.approve(feeSplitter.address, amount)
-        await feeSplitter.sendFeesToken(royaltiesTarget, amount, token.address)
+        await feeSplitter.sendFeesToken(royaltiesTarget, amount, token.address, alice.address)
     }
 
     const clearBalance = async (account: SignerWithAddress, token: Contract) => {

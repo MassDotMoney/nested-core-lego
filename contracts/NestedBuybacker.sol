@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "contracts/interfaces/INestedToken.sol";
-import "contracts/interfaces/IFeeSplitter.sol";
+import "contracts/FeeSplitter.sol";
 import "contracts/libraries/ExchangeHelpers.sol";
 
 /**
@@ -18,7 +18,7 @@ contract NestedBuybacker is Ownable {
 
     INestedToken public immutable NST;
     address public nstReserve;
-    IFeeSplitter public feeSplitter;
+    FeeSplitter public feeSplitter;
 
     // part of the bought tokens to be burned
     uint256 public burnPercentage;
@@ -31,12 +31,12 @@ contract NestedBuybacker is Ownable {
     constructor(
         address _NST,
         address _nstReserve,
-        address _feeSplitter,
+        address payable _feeSplitter,
         uint256 _burnPercentage
     ) {
         require(_burnPercentage <= 1000, "NestedBuybacker: BURN_PART_TOO_HIGH");
         NST = INestedToken(_NST);
-        feeSplitter = IFeeSplitter(_feeSplitter);
+        feeSplitter = FeeSplitter(_feeSplitter);
         nstReserve = _nstReserve;
         burnPercentage = _burnPercentage;
     }
@@ -53,7 +53,7 @@ contract NestedBuybacker is Ownable {
      * @dev update the fee splitter address
      * @param _feeSplitter [address] fee splitter contract address
      */
-    function setFeeSplitter(IFeeSplitter _feeSplitter) public onlyOwner {
+    function setFeeSplitter(FeeSplitter _feeSplitter) public onlyOwner {
         feeSplitter = _feeSplitter;
     }
 

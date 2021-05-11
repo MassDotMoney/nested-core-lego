@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "./interfaces/IWETH.sol";
+import "./interfaces/MinimalSmartChef.sol";
 
 // import "hardhat/console.sol";
 
@@ -19,13 +20,13 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
 
     event PaymentReleased(address to, address token, uint256 amount);
     event PaymentReceived(address from, address token, uint256 amount);
+    event SmartChefChanged(address nextSmartChef);
+    event VipDiscountChanged(uint256 vipDiscount, uint256 vipMinAmount);
 
     struct Shareholder {
         address account;
         uint256 weight;
     }
-
-    Shareholder[] private shareholders;
 
     // registers shares and amount release for a specific token or ETH
     struct TokenRecords {
@@ -34,30 +35,60 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         mapping(address => uint256) shares;
         mapping(address => uint256) released;
     }
+
+    Shareholder[] private shareholders;
+
     mapping(address => TokenRecords) private tokenRecords;
 
     uint256 public royaltiesWeight;
     uint256 public totalWeights;
 
-    address public weth;
+    address public immutable weth;
+
+    uint256 public vipDiscount = 0;
+    uint256 public vipMinAmount;
+    MinimalSmartChef public smartChef;
 
     /**
      * @param _accounts [address[]] inital shareholders addresses that can receive income
      * @param _weights [uint256[]] initial weights for these shareholders. Weight determines share allocation
      * @param _royaltiesWeight [uint256] royalties part weights when applicable
+     * @param _vipDiscount [uint256] discount percentage for VIP users (times 1000)
+     * @param _vipMinAmount [uint256] minimum staked amount for users to unlock VIP tier
      */
     constructor(
         address[] memory _accounts,
         uint256[] memory _weights,
         uint256 _royaltiesWeight,
-        address _weth
+        address _weth,
+        uint256 _vipDiscount,
+        uint256 _vipMinAmount,
+        MinimalSmartChef _smartChef
     ) {
         setShareholders(_accounts, _weights);
         setRoyaltiesWeight(_royaltiesWeight);
         weth = _weth;
+        vipDiscount = _vipDiscount;
+        vipMinAmount = _vipMinAmount;
+        smartChef = _smartChef;
     }
 
-    receive() external payable {}
+    // receive ether after a WETH withdraw call
+    receive() external payable {
+        require(msg.sender == weth, "FeeSplitter: ETH_SENDER_NOT_WETH");
+    }
+
+    function setSmartChef(address _nextSmartChef) external onlyOwner {
+        require(_nextSmartChef != address(0), "FeeSplitter: INVALID_SMARTCHEF_ADDRESS");
+        smartChef = MinimalSmartChef(_nextSmartChef);
+        emit SmartChefChanged(_nextSmartChef);
+    }
+
+    function setVipDiscount(uint256 _vipDiscount, uint256 _vipMinAmount) external onlyOwner {
+        require(_vipDiscount < 1000, "FeeSplitter: DISCOUNT_TOO_HIGH");
+        vipDiscount = _vipDiscount;
+        vipMinAmount = _vipMinAmount;
+    }
 
     /**
      * @dev Getter for the total shares held by shareholders.
@@ -102,13 +133,17 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
      * @param _amount [uint256] amount of token as fee to be claimed by this contract
      * @param _royaltiesTarget [address] the account that can claim royalties
      * @param _token [IERC20] currency for the fee as an ERC20 token
+     * @param _nftOwner [address] user owning the NFT and paying for the fees
      */
     function sendFeesToken(
         // TODO: make the royaltiesTarget optional with overloading
         address _royaltiesTarget,
         uint256 _amount,
-        IERC20 _token
+        IERC20 _token,
+        address _nftOwner
     ) public {
+        // give a discount to VIP users
+        if (_isUserVIP(_nftOwner)) _amount -= (_amount * vipDiscount) / 1000;
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
         uint256 tradeTotalWeights = totalWeights;
 
@@ -127,6 +162,16 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
             );
         }
         emit PaymentReceived(msg.sender, address(_token), _amount);
+    }
+
+    /**
+     * @dev Checks if a user is a VIP. User needs to have at least vipMinAmount of NST staked
+     * @param _account [address] user address
+     * @return a boolean indicating if user is VIP
+     */
+    function _isUserVIP(address _account) internal view returns (bool) {
+        uint256 stakedNst = smartChef.userInfo(_account).amount;
+        return stakedNst >= vipMinAmount;
     }
 
     function _computeShareCount(

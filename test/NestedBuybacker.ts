@@ -26,7 +26,17 @@ describe("NestedBuybacker", () => {
         mockWETH = await wethFactory.deploy()
 
         const feeSplitterFactory = await ethers.getContractFactory("FeeSplitter")
-        feeSplitter = await feeSplitterFactory.deploy([bob.address], [30], 20, mockWETH.address)
+        const smartChefFactory = await ethers.getContractFactory("MockSmartChef")
+        const mockSmartChefNonVIP = await smartChefFactory.deploy(0)
+        feeSplitter = await feeSplitterFactory.deploy(
+            [bob.address],
+            [30],
+            20,
+            mockWETH.address,
+            500,
+            appendDecimals(500),
+            mockSmartChefNonVIP.address,
+        )
 
         const NestedBuybackerFactory = await ethers.getContractFactory("NestedBuybacker")
         buyBacker = await NestedBuybackerFactory.deploy(
@@ -84,7 +94,12 @@ describe("NestedBuybacker", () => {
         // send 16WETH to the fee splitter so that buybacker gets 10WETH (62.5%)
         await mockWETH.deposit({ value: appendDecimals(16) })
         await mockWETH.approve(feeSplitter.address, appendDecimals(16))
-        await feeSplitter.sendFeesToken(ethers.constants.AddressZero, appendDecimals(16), mockWETH.address)
+        await feeSplitter.sendFeesToken(
+            ethers.constants.AddressZero,
+            appendDecimals(16),
+            mockWETH.address,
+            alice.address,
+        )
         // also try sending token directly to buybacker (instead of using FeeSplitter)
         await mockUSDT.transfer(buyBacker.address, ethers.utils.parseEther("200"))
 

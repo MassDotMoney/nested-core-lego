@@ -10,7 +10,7 @@ import "./NestedAsset.sol";
 import "./NestedReserve.sol";
 import "./NestedRecords.sol";
 import "./interfaces/IWETH.sol";
-import "./interfaces/IFeeSplitter.sol";
+import "./FeeSplitter.sol";
 import "./libraries/ExchangeHelpers.sol";
 
 // import "hardhat/console.sol";
@@ -27,7 +27,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     event NftUpdated(uint256 indexed nftId); // TODO emit this with update
 
     IWETH public immutable weth;
-    IFeeSplitter public feeTo;
+    FeeSplitter public feeTo;
     address public feeToSetter;
 
     NestedReserve public reserve;
@@ -57,14 +57,14 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     /*
     @param _asset [NestedReserve]
     @param _feeToSetter [address] The address which will be allowed to choose where the fees go
-    @param _feeTo [IFeeSplitter] the address or contract that receives fees
+    @param _feeTo [FeeSplitter] the address or contract that receives fees
     @param _weth [IWETH] The wrapped ether contract
     */
     constructor(
         NestedAsset _asset,
         NestedRecords _records,
         address _feeToSetter,
-        IFeeSplitter _feeTo,
+        FeeSplitter _feeTo,
         IWETH _weth
     ) {
         feeToSetter = _feeToSetter;
@@ -124,7 +124,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
    Sets the address receiving the fees
    @param feeTo The address of the receiver
    */
-    function setFeeTo(IFeeSplitter _feeTo) external addressExists(address(_feeTo)) {
+    function setFeeTo(FeeSplitter _feeTo) external addressExists(address(_feeTo)) {
         require(msg.sender == feeToSetter, "NestedFactory: FORBIDDEN");
         feeTo = _feeTo;
     }
@@ -242,7 +242,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         exchangeAndStoreTokens(nftId, _sellToken, _swapTarget, _tokenOrders);
         uint256 amountSpent = balanceBeforePurchase - IERC20(_sellToken).balanceOf(address(this));
         require(amountSpent <= _sellTokenAmount, "OVERSPENT_ERROR");
-        transferFee(_sellTokenAmount - amountSpent + fees, _sellToken, nftId);
+        transferFee(_sellTokenAmount - amountSpent + fees, _sellToken, nftId, msg.sender);
     }
 
     /*
@@ -276,7 +276,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         require(assetTokensLength > 1, "ERR_EMPTY_NFT");
 
         uint256 feeAmount = _holding.amount / 100;
-        transferFee(feeAmount, IERC20(_holding.token), _nftId);
+        transferFee(feeAmount, IERC20(_holding.token), _nftId, msg.sender);
         IERC20(_holding.token).transfer(msg.sender, _holding.amount - feeAmount);
 
         nestedRecords.removeHolding(_nftId, _holding.token);
@@ -345,7 +345,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         uint256 amountFees = amountBought / 100;
         amountBought = amountBought - amountFees;
 
-        transferFee(amountFees, _buyToken, _nftId);
+        transferFee(amountFees, _buyToken, _nftId, msg.sender);
 
         nestedRecords.removeNFT(_nftId);
         nestedAsset.burn(msg.sender, _nftId);
@@ -394,14 +394,16 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     @param _amount [uint256] to send
     @param _token [IERC20] token to send
     @param _nftId [uint256] user portfolio ID used to find a potential royalties recipient
+    @param _nftOwner [address] user owning the NFT
     */
     function transferFee(
         uint256 _amount,
         IERC20 _token,
-        uint256 _nftId
+        uint256 _nftId,
+        address _nftOwner
     ) internal {
         address originalOwner = nestedAsset.originalOwner(_nftId);
         ExchangeHelpers.setMaxAllowance(_token, address(feeTo));
-        feeTo.sendFeesToken(originalOwner, _amount, _token);
+        feeTo.sendFeesToken(originalOwner, _amount, _token, _nftOwner);
     }
 }
