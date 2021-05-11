@@ -138,6 +138,21 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     }
 
     /**
+     * @dev Sends a fee to this contract for splitting, as an ERC20 token. No royalties are expected.
+     * @param _amount [uint256] amount of token as fee to be claimed by this contract
+     * @param _token [IERC20] currency for the fee as an ERC20 token
+     * @param _nftOwner [address] user owning the NFT and paying for the fees
+     */
+    function sendFeesToken(
+        address _nftOwner,
+        IERC20 _token,
+        uint256 _amount
+    ) public {
+        uint256 tradeTotalWeights = totalWeights - royaltiesWeight;
+        _sendFeesToken(_nftOwner, _token, _amount, tradeTotalWeights);
+    }
+
+    /**
      * @dev Sends a fee to this contract for splitting, as an ERC20 token
      * @param _amount [uint256] amount of token as fee to be claimed by this contract
      * @param _royaltiesTarget [address] the account that can claim royalties
@@ -145,28 +160,30 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
      * @param _nftOwner [address] user owning the NFT and paying for the fees
      */
     function sendFeesToken(
-        // TODO: make the royaltiesTarget optional with overloading
         address _nftOwner,
-        address _royaltiesTarget,
         IERC20 _token,
-        uint256 _amount
+        uint256 _amount,
+        address _royaltiesTarget
     ) public {
+        require(_royaltiesTarget != address(0), "FeeSplitter: INVALID_ROYALTIES_TARGET_ADDRESS");
+        _addShares(_royaltiesTarget, _computeShareCount(_amount, royaltiesWeight, totalWeights), address(_token));
+        _sendFeesToken(_nftOwner, _token, _amount, totalWeights);
+    }
+
+    function _sendFeesToken(
+        address _nftOwner,
+        IERC20 _token,
+        uint256 _amount,
+        uint256 _totalWeights
+    ) private {
         // give a discount to VIP users
         if (_isVIP(_nftOwner)) _amount -= (_amount * vipDiscount) / 1000;
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
-        uint256 tradeTotalWeights = totalWeights;
-
-        if (_royaltiesTarget != address(0)) {
-            _addShares(_royaltiesTarget, _computeShareCount(_amount, royaltiesWeight, totalWeights), address(_token));
-        } else {
-            // no need to count the weight for the royalties recipient if there's no recipient
-            tradeTotalWeights -= royaltiesWeight;
-        }
 
         for (uint256 i = 0; i < shareholders.length; i++) {
             _addShares(
                 shareholders[i].account,
-                _computeShareCount(_amount, shareholders[i].weight, tradeTotalWeights),
+                _computeShareCount(_amount, shareholders[i].weight, _totalWeights),
                 address(_token)
             );
         }
