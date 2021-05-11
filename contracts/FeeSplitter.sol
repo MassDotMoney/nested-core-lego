@@ -142,10 +142,20 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
      * the amount of shares they own and their previous withdrawals.
      * @param _token [address] payment token address
      */
-    function releaseToken(IERC20 _token) external {
+    function releaseToken(IERC20 _token) public {
         uint256 amount = _releaseToken(msg.sender, _token);
         _token.safeTransfer(msg.sender, amount);
         emit PaymentReleased(msg.sender, address(_token), amount);
+    }
+
+    /**
+     * @dev call releaseToken() for multiple tokens
+     * @param _tokens [IERC20[]] ERC20 tokens to release
+     */
+    function releaseTokens(IERC20[] memory _tokens) external {
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            releaseToken(_tokens[i]);
+        }
     }
 
     /**

@@ -82,6 +82,12 @@ describe("Fee Splitter", () => {
     })
 
     describe("ERC20 tokens fees", () => {
+        it("should revert because no payment is due", async () => {
+            const token = ERC20Mocks[0]
+            const release = () => feeSplitter.connect(bob).releaseToken(token.address)
+            await expect(release()).to.be.revertedWith("FeeSplitter: NO_PAYMENT_DUE")
+        })
+
         it("retrieves split token fees", async () => {
             const amount1 = ethers.utils.parseEther("3")
             const amount2 = ethers.utils.parseEther("5")
@@ -114,10 +120,19 @@ describe("Fee Splitter", () => {
             expect(balanceWallet3).to.equal(ethers.utils.parseEther("1.2"))
         })
 
-        it("should revert because no payment is due", async () => {
-            const token = ERC20Mocks[0]
-            const release = () => feeSplitter.connect(bob).releaseToken(token.address)
-            await expect(release()).to.be.revertedWith("FeeSplitter: NO_PAYMENT_DUE")
+        it("releases fees for a list of tokens", async () => {
+            const amount = ethers.utils.parseEther("3")
+            await ERC20Mocks[0].approve(feeSplitter.address, amount)
+            await ERC20Mocks[1].approve(feeSplitter.address, amount)
+            await ERC20Mocks[2].approve(feeSplitter.address, amount)
+            await feeSplitter.sendFeesToken(ethers.constants.AddressZero, amount, ERC20Mocks[0].address)
+            await feeSplitter.sendFeesToken(ethers.constants.AddressZero, amount, ERC20Mocks[1].address)
+            await feeSplitter.sendFeesToken(ethers.constants.AddressZero, amount, ERC20Mocks[2].address)
+            await feeSplitter.connect(bob).releaseTokens(ERC20Mocks.map(c => c.address))
+
+            // 1.125 = 3 * 37.5%
+            expect(await ERC20Mocks[0].balanceOf(bob.address)).to.equal(ethers.utils.parseEther("1.125"))
+            expect(await ERC20Mocks[1].balanceOf(bob.address)).to.equal(ethers.utils.parseEther("1.125"))
         })
     })
 
