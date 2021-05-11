@@ -15,6 +15,9 @@ Smart Contracts:
 
 nb: NST token and staking pools contract can be found here: https://github.com/NestedFinance/nested-token
 
+3rd parties:
+- Nested Finance brings decentralized liquidity to the protocol through 0x. It's a protocol that creates off-chain orders, and settles on chain. This way, the NestedFactory expects to receive calldata to forwarded to 0x contracts. The route used to get such information follows this pattern: `https://api.0x.org/swap/v1/quote?buyToken=SNX&sellToken=LINK&buyAmount=7160000000000000000000`
+
 Use case: creation of a NestedNFT
 ![image](https://user-images.githubusercontent.com/32484870/117845076-857c3580-b280-11eb-9bc7-8422b856ed92.png)
 
