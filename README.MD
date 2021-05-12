@@ -26,7 +26,7 @@ Fee Distribution (step 10):
 
 ## Deployment process:
 V1 release: 
-![image](https://user-images.githubusercontent.com/32484870/117845460-d9871a00-b280-11eb-985b-8a8243ce9ddb.png)
+![image](https://user-images.githubusercontent.com/32484870/117945404-94a9c480-b30e-11eb-9c83-c769f3370bbe.png)
 
 Update process:
 ![image](https://user-images.githubusercontent.com/32484870/117845522-ec99ea00-b280-11eb-85b3-e5e80451529f.png)
