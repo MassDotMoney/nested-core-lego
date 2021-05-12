@@ -792,6 +792,28 @@ describe("NestedFactory", () => {
             )
         })
 
+        it("reverts preventing reentrancy", async () => {
+            const abi = ["function reentrancyAttackForDestroy(uint256)"]
+            const iface = new Interface(abi)
+
+            const attackOrder = {
+                token: tokensToBuy[0],
+                callData: iface.encodeFunctionData("reentrancyAttackForDestroy", [2]),
+            }
+            const attackOrders = [attackOrder, attackOrder]
+            await dummyRouter.prepareAttack(factory.address, mockWETH.address, buyTokenOrders, attackOrders, {
+                value: appendDecimals(11),
+            })
+            // reentrancy guard will activate and tokens will be failsafe withdrawn automatically
+            dummyRouter.reentrancyAttackForDestroy(2)
+
+            const feeInKNC = appendDecimals(6).div(100)
+            expect(await mockKNC.balanceOf(dummyRouter.address)).to.equal(
+                appendDecimals(1000).sub(appendDecimals(6)).sub(feeInKNC),
+            )
+            expect((await factory.tokensOf(dummyRouter.address)).length).to.equal(0)
+        })
+
         it("destroys NFT and send tokens to user", async () => {
             let originalAliceTokens = await factory.tokensOf(alice.address)
             factory.destroy(originalAliceTokens[0])
