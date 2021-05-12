@@ -96,7 +96,7 @@ describe("Fee Splitter", () => {
 
             await ERC20Mocks[0].approve(feeSplitter.address, amount1.add(amount2))
             await feeSplitter.sendFees(alice.address, ERC20Mocks[0].address, amount1)
-            await feeSplitter.sendFeesWithRoyalties(alice.address, ERC20Mocks[0].address, amount2, wallet3.address)
+            await feeSplitter.sendFeesWithRoyalties(alice.address, wallet3.address, ERC20Mocks[0].address, amount2)
 
             const token = ERC20Mocks[0]
             await feeSplitter.connect(bob).releaseToken(token.address)
@@ -114,7 +114,7 @@ describe("Fee Splitter", () => {
             const token = ERC20Mocks[0]
             const amount = ethers.utils.parseEther("6")
             await token.approve(feeSplitter.address, amount)
-            await feeSplitter.sendFeesWithRoyalties(alice.address, token.address, amount, wallet3.address)
+            await feeSplitter.sendFeesWithRoyalties(alice.address, wallet3.address, token.address, amount)
 
             await feeSplitter.connect(wallet3).releaseToken(token.address)
             const balanceWallet3 = await token.balanceOf(wallet3.address)
@@ -215,7 +215,7 @@ describe("Fee Splitter", () => {
         const amount = ethers.utils.parseEther(amountEther)
         await token.approve(feeSplitter.address, amount)
         if (royaltiesTarget)
-            await feeSplitter.sendFeesWithRoyalties(alice.address, token.address, amount, royaltiesTarget)
+            await feeSplitter.sendFeesWithRoyalties(alice.address, royaltiesTarget, token.address, amount)
         else await feeSplitter.sendFees(alice.address, token.address, amount)
     }
 

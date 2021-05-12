@@ -159,9 +159,9 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
      */
     function sendFeesWithRoyalties(
         address _nftOwner,
+        address _royaltiesTarget,
         IERC20 _token,
-        uint256 _amount,
-        address _royaltiesTarget
+        uint256 _amount
     ) public {
         require(_royaltiesTarget != address(0), "FeeSplitter: INVALID_ROYALTIES_TARGET_ADDRESS");
         _addShares(_royaltiesTarget, _computeShareCount(_amount, royaltiesWeight, totalWeights), address(_token));
