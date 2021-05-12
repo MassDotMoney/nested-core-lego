@@ -305,8 +305,8 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         _totalWeights -= shareholders[_accountIndex].weight;
         shareholders[_accountIndex].weight = _weight;
         _totalWeights += _weight;
-        totalWeights = _totalWeights;
         require(_totalWeights > 0, "FeeSplitter: TOTAL_WEIGHTS_ZERO");
+        totalWeights = _totalWeights;
     }
 
     /**
