@@ -67,7 +67,16 @@ describe("Fee Splitter", () => {
         )
     })
 
-    it("Releases fees as ETH", async () => {
+    it("should fail when sending ETH to FeeSplitter", async () => {
+        await expect(
+            alice.sendTransaction({
+                to: feeSplitter.address,
+                value: 1,
+            }),
+        ).to.be.revertedWith("FeeSplitter: ETH_SENDER_NOT_WETH")
+    })
+
+    it("releases fees as ETH", async () => {
         const amount = ethers.utils.parseEther("5")
         await mockWETH.approve(feeSplitter.address, amount)
         mockWETH.deposit({ value: amount })
@@ -139,6 +148,16 @@ describe("Fee Splitter", () => {
     })
 
     describe("Changing weights", () => {
+        it("should revert because sum of weights is zero", async () => {
+            await feeSplitter.setRoyaltiesWeight(0)
+            await feeSplitter.updateShareholder(0, 0)
+            await expect(feeSplitter.updateShareholder(1, 0)).to.be.revertedWith("FeeSplitter: TOTAL_WEIGHTS_ZERO")
+        })
+
+        it("should revert when adding a shareholder with a weight of zero", async () => {
+            await expect(feeSplitter.setShareholders([bob.address], [0])).to.be.revertedWith("FeeSplitter: ZERO_WEIGHT")
+        })
+
         it("updates the weights for fees distribution", async () => {
             await feeSplitter.setRoyaltiesWeight(3000)
             const bobIndex = await feeSplitter.findShareholder(bob.address)
