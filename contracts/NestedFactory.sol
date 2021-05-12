@@ -319,7 +319,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         IERC20 _buyToken,
         address payable _swapTarget,
         NestedStructs.TokenOrder[] calldata _tokenOrders
-    ) internal onlyTokenOwner(_nftId) returns (uint256) {
+    ) internal nonReentrant onlyTokenOwner(_nftId) returns (uint256) {
         address[] memory tokens = nestedRecords.getAssetTokens(_nftId);
         uint256 tokenLength = tokens.length;
 
