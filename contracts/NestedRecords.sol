@@ -113,21 +113,21 @@ contract NestedRecords is Ownable {
     @param _nftId the id of the NFT
     @param _token the address of the token
     @param _amountBought the amount of tokens bought
-    @param reserve the address of the reserve
+    @param _reserve the address of the reserve
     */
     function store(
         uint256 _nftId,
         address _token,
         uint256 _amountBought,
-        address reserve
+        address _reserve
     ) external onlyFactory {
         require(records[_nftId].tokens.length < MAX_HOLDINGS_COUNT, "NestedRecords: TOO_MANY_ORDERS");
         require(
-            reserve != address(0) && (reserve == records[_nftId].reserve || records[_nftId].reserve == address(0)),
+            _reserve != address(0) && (_reserve == records[_nftId].reserve || records[_nftId].reserve == address(0)),
             "NestedRecords: INVALID_RESERVE"
         );
         records[_nftId].holdings[_token] = NestedStructs.Holding({ token: _token, amount: _amountBought });
         records[_nftId].tokens.push(_token);
-        records[_nftId].reserve = reserve;
+        records[_nftId].reserve = _reserve;
     }
 }
