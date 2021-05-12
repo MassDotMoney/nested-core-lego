@@ -53,7 +53,7 @@ describe("Fee Splitter", () => {
         const amount = ethers.utils.parseEther("5")
         await mockWETH.approve(feeSplitter.address, amount)
         mockWETH.deposit({ value: amount })
-        await feeSplitter["sendFeesToken(address,address,uint256)"](alice.address, mockWETH.address, amount)
+        await feeSplitter.sendFees(alice.address, mockWETH.address, amount)
         expect(await feeSplitter.totalShares(mockWETH.address)).to.equal(amount)
         expect(await feeSplitter.shares(alice.address, mockWETH.address)).to.equal(amount.mul(5000).div(8000))
         expect(await feeSplitter.totalReleased(mockWETH.address)).to.equal(0)
@@ -75,7 +75,7 @@ describe("Fee Splitter", () => {
         const amount = ethers.utils.parseEther("5")
         await mockWETH.approve(feeSplitter.address, amount)
         mockWETH.deposit({ value: amount })
-        await getSendFees()(alice.address, mockWETH.address, amount)
+        await feeSplitter.sendFees(alice.address, mockWETH.address, amount)
         const balanceBobBefore = await bob.getBalance()
         const tx = await feeSplitter.connect(bob).releaseETH()
         const spentOnGas = await getETHSpentOnGas(tx)
@@ -99,8 +99,8 @@ describe("Fee Splitter", () => {
             const amount2 = ethers.utils.parseEther("5")
 
             await ERC20Mocks[0].approve(feeSplitter.address, amount1.add(amount2))
-            await getSendFees()(alice.address, ERC20Mocks[0].address, amount1)
-            await getSendFees(true)(alice.address, ERC20Mocks[0].address, amount2, wallet3.address)
+            await feeSplitter.sendFees(alice.address, ERC20Mocks[0].address, amount1)
+            await feeSplitter.sendFeesWithRoyalties(alice.address, ERC20Mocks[0].address, amount2, wallet3.address)
 
             const token = ERC20Mocks[0]
             await feeSplitter.connect(bob).releaseToken(token.address)
@@ -118,7 +118,7 @@ describe("Fee Splitter", () => {
             const token = ERC20Mocks[0]
             const amount = ethers.utils.parseEther("6")
             await token.approve(feeSplitter.address, amount)
-            await getSendFees(true)(alice.address, token.address, amount, wallet3.address)
+            await feeSplitter.sendFeesWithRoyalties(alice.address, token.address, amount, wallet3.address)
 
             await feeSplitter.connect(wallet3).releaseToken(token.address)
             const balanceWallet3 = await token.balanceOf(wallet3.address)
@@ -131,9 +131,9 @@ describe("Fee Splitter", () => {
             await ERC20Mocks[0].approve(feeSplitter.address, amount)
             await ERC20Mocks[1].approve(feeSplitter.address, amount)
             await ERC20Mocks[2].approve(feeSplitter.address, amount)
-            await getSendFees()(alice.address, ERC20Mocks[0].address, amount)
-            await getSendFees()(alice.address, ERC20Mocks[1].address, amount)
-            await getSendFees()(alice.address, ERC20Mocks[2].address, amount)
+            await feeSplitter.sendFees(alice.address, ERC20Mocks[0].address, amount)
+            await feeSplitter.sendFees(alice.address, ERC20Mocks[1].address, amount)
+            await feeSplitter.sendFees(alice.address, ERC20Mocks[2].address, amount)
             await feeSplitter.connect(bob).releaseTokens(ERC20Mocks.map(c => c.address))
 
             // 1.125 = 3 * 37.5%
@@ -214,17 +214,13 @@ describe("Fee Splitter", () => {
         return TokenFactory.connect(owner).deploy(name, symbol, ethers.utils.parseEther("1000000"))
     }
 
-    const getSendFees = (withRoyalties?: boolean) =>
-        withRoyalties
-            ? feeSplitter["sendFeesToken(address,address,uint256,address)"]
-            : feeSplitter["sendFeesToken(address,address,uint256)"]
-
     const sendFees = async (amountEther: string, royaltiesTarget?: string) => {
         const token = ERC20Mocks[0]
         const amount = ethers.utils.parseEther(amountEther)
         await token.approve(feeSplitter.address, amount)
-        if (royaltiesTarget) await getSendFees(true)(alice.address, token.address, amount, royaltiesTarget)
-        else await getSendFees()(alice.address, token.address, amount)
+        if (royaltiesTarget)
+            await feeSplitter.sendFeesWithRoyalties(alice.address, token.address, amount, royaltiesTarget)
+        else await feeSplitter.sendFees(alice.address, token.address, amount)
     }
 
     const clearBalance = async (account: SignerWithAddress, token: Contract) => {

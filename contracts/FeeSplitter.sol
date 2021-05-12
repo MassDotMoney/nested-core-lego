@@ -143,13 +143,13 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
      * @param _token [IERC20] currency for the fee as an ERC20 token
      * @param _nftOwner [address] user owning the NFT and paying for the fees
      */
-    function sendFeesToken(
+    function sendFees(
         address _nftOwner,
         IERC20 _token,
         uint256 _amount
     ) public {
         uint256 tradeTotalWeights = totalWeights - royaltiesWeight;
-        _sendFeesToken(_nftOwner, _token, _amount, tradeTotalWeights);
+        _sendFees(_nftOwner, _token, _amount, tradeTotalWeights);
     }
 
     /**
@@ -159,7 +159,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
      * @param _token [IERC20] currency for the fee as an ERC20 token
      * @param _nftOwner [address] user owning the NFT and paying for the fees
      */
-    function sendFeesToken(
+    function sendFeesWithRoyalties(
         address _nftOwner,
         IERC20 _token,
         uint256 _amount,
@@ -167,10 +167,10 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     ) public {
         require(_royaltiesTarget != address(0), "FeeSplitter: INVALID_ROYALTIES_TARGET_ADDRESS");
         _addShares(_royaltiesTarget, _computeShareCount(_amount, royaltiesWeight, totalWeights), address(_token));
-        _sendFeesToken(_nftOwner, _token, _amount, totalWeights);
+        _sendFees(_nftOwner, _token, _amount, totalWeights);
     }
 
-    function _sendFeesToken(
+    function _sendFees(
         address _nftOwner,
         IERC20 _token,
         uint256 _amount,
