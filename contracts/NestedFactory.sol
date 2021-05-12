@@ -198,7 +198,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         for (uint256 i = 0; i < buyCount; i++) {
             uint256 balanceBeforePurchase = IERC20(_tokenOrders[i].token).balanceOf(address(this));
             bool success = ExchangeHelpers.fillQuote(_sellToken, _swapTarget, _tokenOrders[i].callData);
-            require(success, "SWAP_CALL_FAILED");
+            require(success, "NestedFactory: SWAP_CALL_FAILED");
             uint256 amountBought = IERC20(_tokenOrders[i].token).balanceOf(address(this)) - balanceBeforePurchase;
             nestedRecords.store(_nftId, _tokenOrders[i].token, amountBought, address(reserve));
             IERC20(_tokenOrders[i].token).safeTransfer(address(reserve), amountBought);
@@ -324,7 +324,10 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         uint256 tokenLength = tokens.length;
 
         require(tokenLength == _tokenOrders.length, "MISSING_SELL_ARGS");
-        require(nestedRecords.getAssetReserve(_nftId) == address(reserve), "ASSET_IN_DIFFERENT_RESERVE");
+        require(
+            nestedRecords.getAssetReserve(_nftId) == address(reserve),
+            "NestedFactory: ASSETS_IN_DIFFERENT_RESERVE"
+        );
 
         uint256 buyTokenInitialBalance = _buyToken.balanceOf(address(this));
 

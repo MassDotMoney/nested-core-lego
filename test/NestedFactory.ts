@@ -188,6 +188,16 @@ describe("NestedFactory", () => {
                 )
             })
 
+            it("reverts if a swap fails", async () => {
+                // corrupt swap call to make it fail
+                const abi = ["function missing()"]
+                const iface = new Interface(abi)
+                buyTokenOrders[1].callData = iface.encodeFunctionData("missing")
+                await expect(createNFTFromERC20(buyTokenOrders, totalSellAmount)).to.be.revertedWith(
+                    "NestedFactory: SWAP_CALL_FAILED",
+                )
+            })
+
             it("creates the NFT", async () => {
                 const initialWethBalance = await mockWETH.balanceOf(alice.address)
 
@@ -361,6 +371,14 @@ describe("NestedFactory", () => {
             expect(aliceTokens.length).to.equal(0)
         })
 
+        it("should revert when destroying a migrated nft", async () => {
+            await factory.registerReserve(bob.address)
+            await factory.migrateAssets(assets[0], bob.address)
+            await expect(
+                factory.destroyForERC20(assets[0], mockWETH.address, dummyRouter.address, sellTokenOrders),
+            ).to.be.revertedWith("NestedFactory: ASSETS_IN_DIFFERENT_RESERVE")
+        })
+
         describe("#destroyForERC20", () => {
             it("reverts if sell args missing", async () => {
                 await expect(
@@ -529,6 +547,14 @@ describe("NestedFactory", () => {
             expect(await records.getAssetReserve(assets[0])).to.equal(bob.address)
             expect(await mockUNI.balanceOf(bob.address)).to.equal(appendDecimals(4))
             expect(await mockKNC.balanceOf(bob.address)).to.equal(appendDecimals(6))
+        })
+
+        it("should revert because assets are not in the right reserve", async () => {
+            await factory.registerReserve(bob.address)
+            await factory.migrateAssets(assets[0], bob.address)
+            await expect(factory.migrateAssets(assets[0], bob.address)).to.be.revertedWith(
+                "NestedFactory: ASSETS_NOT_IN_RESERVE",
+            )
         })
     })
 
