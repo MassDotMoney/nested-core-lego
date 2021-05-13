@@ -62,15 +62,13 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         uint256 _royaltiesWeight,
         address _weth,
         uint256 _vipDiscount,
-        uint256 _vipMinAmount,
-        MinimalSmartChef _smartChef
+        uint256 _vipMinAmount
     ) {
         setShareholders(_accounts, _weights);
         setRoyaltiesWeight(_royaltiesWeight);
         weth = _weth;
         vipDiscount = _vipDiscount;
         vipMinAmount = _vipMinAmount;
-        smartChef = _smartChef;
     }
 
     // receive ether after a WETH withdraw call
@@ -179,8 +177,9 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
      * @return a boolean indicating if user is VIP
      */
     function _isVIP(address _account) internal view returns (bool) {
-        uint256 stakedNst = smartChef.userInfo(_account).amount;
-        return stakedNst >= vipMinAmount;
+        return false;
+        // uint256 stakedNst = smartChef.userInfo(_account).amount;
+        // return stakedNst >= vipMinAmount;
     }
 
     function _computeShareCount(
