@@ -86,7 +86,7 @@ async function main() {
     responses = responses.filter(element => element !== undefined)
 
     let sellAmounts = []
-    let tokenOrders = [{}]
+    let tokenOrders = []
 
     responses.forEach(response => {
         sellAmounts.push(ethers.BigNumber.from(response.data.sellAmount))
@@ -94,10 +94,7 @@ async function main() {
     })
     totalSellAmount = sellAmounts.reduce((p, c) => p.add(c))
 
-    console.log("----")
-    console.log(totalSellAmount)
-    console.log(responses[0].data.to)
-    console.log(tokenOrders)
+    const totalSellAmountWithFees = totalSellAmount.add(totalSellAmount.div(100))
 
     await nestedFactory.create(
         0,
@@ -106,10 +103,13 @@ async function main() {
         totalSellAmount,
         responses[0].data.to,
         tokenOrders,
-        { value: totalSellAmount }, // + fees
+        { value: totalSellAmountWithFees },
     )
 
-    console.log("NFT created")
+    console.log("\nNFT created\n")
+
+    const holdings = await nestedFactory.tokenHoldings(1)
+    console.log("Holdings: ", holdings)
 }
 
 main()
