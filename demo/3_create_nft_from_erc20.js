@@ -3,9 +3,13 @@ const axios = require("axios").default
 const qs = require("qs")
 
 async function main() {
-    const env = "local"
+    const env = hre.network.name
+
     const NestedFactory = await ethers.getContractFactory("NestedFactory")
     const nestedFactory = await NestedFactory.attach(addresses[env].factory)
+
+    const WethContract = await ethers.getContractFactory("WETH9")
+    const wethContract = await WethContract.attach(addresses[env].WETH)
 
     const orders = [
         {
@@ -85,7 +89,7 @@ async function main() {
     responses = responses.filter(element => element !== undefined)
 
     let sellAmounts = []
-    let tokenOrders = [{}]
+    let tokenOrders = []
 
     responses.forEach(response => {
         sellAmounts.push(ethers.BigNumber.from(response.data.sellAmount))
@@ -93,17 +97,17 @@ async function main() {
     })
     totalSellAmount = sellAmounts.reduce((p, c) => p.add(c))
 
-    await nestedFactory.create(
-        0,
-        "",
-        "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-        totalSellAmount,
-        responses[0].data.to,
-        tokenOrders,
-        { value: totalSellAmount },
-    )
+    const totalSellAmountWithFees = totalSellAmount.add(totalSellAmount.div(100))
 
-    console.log("NFT created")
+    await wethContract.deposit({ value: totalSellAmountWithFees })
+    await wethContract.approve(nestedFactory.address, totalSellAmountWithFees)
+
+    await nestedFactory.create(0, "", addresses[env].WETH, totalSellAmount, responses[0].data.to, tokenOrders)
+
+    console.log("\nNFT created\n")
+
+    const holdings = await nestedFactory.tokenHoldings(1)
+    console.log("Holdings: ", holdings)
 }
 
 main()
