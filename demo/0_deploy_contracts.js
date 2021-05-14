@@ -1,6 +1,8 @@
-const addresses = require("./addresses.json")
+const fs = require('fs');
+let addresses = require("./addresses.json")
 
 async function main() {
+    const env = hre.network.name
     const accounts = await ethers.getSigners()
 
     const dev = accounts[0].address
@@ -44,6 +46,10 @@ async function main() {
     await factory.setReserve(reserve.address)
 
     console.log("Factory address: ", factory.address)
+    addresses[env].factory = factory.address
+    // write factory address to addresses.json
+    fs.writeFileSync('./demo/addresses.json', JSON.stringify(addresses, null, 2));
+
 }
 
 main()
