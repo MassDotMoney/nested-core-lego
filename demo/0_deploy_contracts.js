@@ -1,4 +1,4 @@
-const address = require("./addresses.json")
+const addresses = require("./addresses.json")
 
 async function main() {
     const accounts = await ethers.getSigners()
@@ -6,7 +6,7 @@ async function main() {
     const dev = accounts[0].address
     const nestedTreasury = accounts[1].address
     const nestedBuyBacker = accounts[2].address
-    const weth = address.kovan.WETH
+    const weth = addresses[hre.network.name].WETH
 
     const nestedTreasuryPart = ethers.BigNumber.from("50")
     const nestedBuyBackerPart = ethers.BigNumber.from("30")
@@ -35,6 +35,8 @@ async function main() {
 
     const factory = await NestedFactory.deploy(asset.address, records.address, dev, feeSplitter.address, weth)
     await factory.deployed()
+    await asset.setFactory(factory.address)
+    await records.setFactory(factory.address)
 
     const reserve = await NestedReserve.deploy(factory.address)
     await reserve.deployed()
