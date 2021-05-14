@@ -1,5 +1,5 @@
 {
-    "local": {
+    "localhost": {
         "factory": "0x99448E97D21F2255c8f0De87761e3F351A10E2Bd",
         "RPL": "0xb4efd85c19999d84251304bda99e90b92300bd93",
         "MKR": "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2",
