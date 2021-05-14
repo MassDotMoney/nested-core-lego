@@ -144,7 +144,7 @@ contract NestedRecords is Ownable {
     @param _token the address of the token
     @param _amountSold the amount of tokens sold
     */
-    function update(uint256 _nftId, uint256 _tokenIndex, address _token, uint256 _amountSold) external onlyFactory {
+    function updateSoldAsset(uint256 _nftId, uint256 _tokenIndex, address _token, uint256 _amountSold) external onlyFactory {
         NestedStructs.Holding memory holding = records[_nftId].holdings[_token];
         require(holding.isActive, "ALREADY_SOLD");
         uint256 remainingAmount = holding.amount - _amountSold;

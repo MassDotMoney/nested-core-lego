@@ -246,7 +246,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         NestedStructs.TokenOrder[] calldata _tokenOrders
     ) external payable nonReentrant onlyTokenOwner(_nftId) {
         uint256 fees = _addTokens(_nftId, _sellToken, _sellTokenAmount, _swapTarget, _tokenOrders);
-        
+
         if (address(_sellToken) == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
             _sellToken = IERC20(address(weth));
         }
@@ -275,9 +275,9 @@ contract NestedFactory is ReentrancyGuard, Ownable {
             _sellToken.safeTransferFrom(msg.sender, address(this), sellAmountWithFees);
         }
 
-        uint256 balanceBeforePurchase = IERC20(_sellToken).balanceOf(address(this));
+        uint256 balanceBeforePurchase = _sellToken.balanceOf(address(this));
         exchangeAndStoreTokens(_nftId, _sellToken, _swapTarget, _tokenOrders);
-        uint256 amountSpent = balanceBeforePurchase - IERC20(_sellToken).balanceOf(address(this));
+        uint256 amountSpent = balanceBeforePurchase - _sellToken.balanceOf(address(this));
         require(amountSpent <= _sellTokenAmount, "OVERSPENT_ERROR");
         return _sellTokenAmount - amountSpent + fees;
     }
@@ -308,12 +308,12 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         NestedReserve(reserve).transfer(address(this), IERC20(holding.token), _sellTokenAmount);
         
         uint256 fees = _sellTokenAmount / 100;
-        uint256 balanceBeforePurchase = IERC20(_sellToken).balanceOf(address(this));
+        uint256 balanceBeforePurchase = _sellToken.balanceOf(address(this));
         exchangeAndStoreTokens(_nftId, _sellToken, _swapTarget, _tokenOrders);
-        uint256 amountSpent = balanceBeforePurchase - IERC20(_sellToken).balanceOf(address(this));
+        uint256 amountSpent = balanceBeforePurchase - _sellToken.balanceOf(address(this));
         require(amountSpent <= _sellTokenAmount - fees, "OVERSPENT_ERROR");
 
-        nestedRecords.update(_nftId, _sellTokenIndex, address(_sellToken), _sellTokenAmount);
+        nestedRecords.updateSoldAsset(_nftId, _sellTokenIndex, address(_sellToken), _sellTokenAmount);
         transferFee(_sellTokenAmount - amountSpent, _sellToken);
     }
 
@@ -349,7 +349,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
             bool success = ExchangeHelpers.fillQuote(_sellTokens[i], _swapTarget, _tokenOrders[_sellTokenIndexes[i]].callData);
             require(success, "SWAP_CALL_FAILED");
 
-            nestedRecords.update(_nftId, _sellTokenIndexes[i], address(_sellTokens[i]), _sellTokensAmount[i]);           
+            nestedRecords.updateSoldAsset(_nftId, _sellTokenIndexes[i], address(_sellTokens[i]), _sellTokensAmount[i]);           
         }
 
         uint256 amountBought = _buyToken.balanceOf(address(this)) - buyTokenInitialBalance;
@@ -484,7 +484,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         NestedStructs.TokenOrder[] calldata _tokenOrders
     ) external onlyTokenOwner(_nftId) {
         uint256 amountBought = _destroyForERC20(_nftId, _buyToken, _swapTarget, _tokenOrders);
-        require(IERC20(_buyToken).transfer(msg.sender, amountBought), "TOKEN_TRANSFER_ERROR");
+        require(_buyToken.transfer(msg.sender, amountBought), "TOKEN_TRANSFER_ERROR");
     }
 
     /*
