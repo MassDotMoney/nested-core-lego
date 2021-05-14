@@ -32,7 +32,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
 
     NestedReserve public reserve;
     NestedAsset public immutable nestedAsset;
-    NestedRecords private immutable nestedRecords;
+    NestedRecords public immutable nestedRecords;
 
     mapping(address => bool) public supportedReserves;
 
