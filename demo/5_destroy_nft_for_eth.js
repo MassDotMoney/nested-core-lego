@@ -18,7 +18,7 @@ async function main() {
         orders.push({
             sellToken: holdings[0].token,
             buyToken: addresses[env].WETH,
-            sellAmount: ethers.BigNumber.from(holdings[0].amount).toString(),
+            sellAmount: holding.amount.toString(),
             slippagePercentage: 0.3,
         })
     })
