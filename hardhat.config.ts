@@ -7,6 +7,9 @@ import "hardhat-gas-reporter"
 import "@nomiclabs/hardhat-solhint"
 import "hardhat-contract-sizer"
 
+const treasuryAccountKey = "954df48893ad50c69349b2422e5e21f4a9992a79f983cac8035e3673f1836891"
+const buybackerAccountKey = "1d44492875c0bae585e61ecb36e07a24cb27c300efea0ce9a4d1465d8d204a40"
+
 const accounts = {
     mnemonic: process.env.MNEMONIC,
     initialIndex: 0,
@@ -41,7 +44,7 @@ export default {
         },
         kovan: {
             url: `https://eth-kovan.alchemyapi.io/v2/${process.env.ALCHEMY_KOVAN_API_KEY}`,
-            accounts: accounts,
+            accounts: [process.env.KOVAN_WALLET_KEY, treasuryAccountKey, buybackerAccountKey].filter(k => k != null),
         },
         mainnet: {
             url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_MAINNET_API_KEY}`,

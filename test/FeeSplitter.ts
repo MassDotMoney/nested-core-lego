@@ -35,9 +35,6 @@ describe("Fee Splitter", () => {
         const MockWETHFactory = await ethers.getContractFactory("WETH9")
         mockWETH = await MockWETHFactory.deploy()
 
-        const mockSmartChefFactory = await ethers.getContractFactory("MockSmartChef")
-        const mockSmartChefNonVIP = await mockSmartChefFactory.deploy(appendDecimals(499))
-
         feeSplitter = await FeeSplitterFactory.deploy(
             [alice.address, bob.address],
             [5000, 3000],
@@ -45,7 +42,6 @@ describe("Fee Splitter", () => {
             mockWETH.address,
             500,
             appendDecimals(500),
-            mockSmartChefNonVIP.address,
         )
     })
 

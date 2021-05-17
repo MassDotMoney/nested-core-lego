@@ -177,9 +177,9 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
      * @return a boolean indicating if user is VIP
      */
     function _isVIP(address _account) internal view returns (bool) {
-        return false;
-        // uint256 stakedNst = smartChef.userInfo(_account).amount;
-        // return stakedNst >= vipMinAmount;
+        if (address(smartChef) == address(0)) return false;
+        uint256 stakedNst = smartChef.userInfo(_account).amount;
+        return stakedNst >= vipMinAmount;
     }
 
     function _computeShareCount(
