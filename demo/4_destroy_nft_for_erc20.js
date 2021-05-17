@@ -9,12 +9,12 @@ async function main() {
     const nestedFactory = await NestedFactory.attach(addresses[env].factory)
 
     const holdings = await nestedFactory.tokenHoldings(1)
-    
+
     let orders = []
     holdings.forEach(holding => {
         orders.push({
             sellToken: holdings[0].token,
-            buyToken: addresses[env].WETH,
+            buyToken: addresses[env].tokens.WETH,
             sellAmount: holding.amount.toString(),
             slippagePercentage: 0.3,
         })
@@ -33,7 +33,7 @@ async function main() {
         tokenOrders.push({ token: response.data.buyTokenAddress, callData: response.data.data })
     })
 
-    await nestedFactory.destroyForERC20(1, addresses[env].WETH, responses[0].data.to, tokenOrders)
+    await nestedFactory.destroyForERC20(1, addresses[env].tokens.WETH, responses[0].data.to, tokenOrders)
     console.log("\nNFT destroyed\n")
 
     //const holdings = await nestedFactory.tokenHoldings(1)

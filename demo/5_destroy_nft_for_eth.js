@@ -9,15 +9,15 @@ async function main() {
     const nestedFactory = await NestedFactory.attach(addresses[env].factory)
 
     const WethContract = await ethers.getContractFactory("WETH9")
-    const wethContract = await WethContract.attach(addresses[env].WETH)
+    const wethContract = await WethContract.attach(addresses[env].tokens.WETH)
 
     const holdings = await nestedFactory.tokenHoldings(1)
-    
+
     let orders = []
     holdings.forEach(holding => {
         orders.push({
             sellToken: holdings[0].token,
-            buyToken: addresses[env].WETH,
+            buyToken: addresses[env].tokens.WETH,
             sellAmount: holding.amount.toString(),
             slippagePercentage: 0.3,
         })

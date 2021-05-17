@@ -9,72 +9,72 @@ async function main() {
     const nestedFactory = await NestedFactory.attach(addresses[env].factory)
 
     const WethContract = await ethers.getContractFactory("WETH9")
-    const wethContract = await WethContract.attach(addresses[env].WETH)
+    const wethContract = await WethContract.attach(addresses[env].tokens.WETH)
 
     const orders = [
         {
-            sellToken: addresses[env].WETH,
-            buyToken: addresses[env].DAI,
+            sellToken: addresses[env].tokens.WETH,
+            buyToken: addresses[env].tokens.DAI,
             sellAmount: ethers.utils.parseEther("0.00003").toString(),
             slippagePercentage: 0.3,
         },
         {
-            sellToken: addresses[env].WETH,
-            buyToken: addresses[env].MKR,
+            sellToken: addresses[env].tokens.WETH,
+            buyToken: addresses[env].tokens.MKR,
             sellAmount: ethers.utils.parseEther("0.00001").toString(),
             slippagePercentage: 0.3,
         },
         {
-            sellToken: addresses[env].WETH,
-            buyToken: addresses[env].BAT,
+            sellToken: addresses[env].tokens.WETH,
+            buyToken: addresses[env].tokens.BAT,
             sellAmount: ethers.utils.parseEther("0.00002").toString(),
             slippagePercentage: 0.3,
         },
         {
-            sellToken: addresses[env].WETH,
-            buyToken: addresses[env].WBTC,
+            sellToken: addresses[env].tokens.WETH,
+            buyToken: addresses[env].tokens.WBTC,
             sellAmount: ethers.utils.parseEther("0.00003").toString(),
             slippagePercentage: 0.3,
         },
         {
-            sellToken: addresses[env].WETH,
-            buyToken: addresses[env].KNC,
+            sellToken: addresses[env].tokens.WETH,
+            buyToken: addresses[env].tokens.KNC,
             sellAmount: ethers.utils.parseEther("0.000009").toString(),
             slippagePercentage: 0.3,
         },
         {
-            sellToken: addresses[env].WETH,
-            buyToken: addresses[env].REP,
+            sellToken: addresses[env].tokens.WETH,
+            buyToken: addresses[env].tokens.REP,
             sellAmount: ethers.utils.parseEther("0.00005").toString(),
             slippagePercentage: 0.3,
         },
         {
-            sellToken: addresses[env].WETH,
-            buyToken: addresses[env].USDC,
+            sellToken: addresses[env].tokens.WETH,
+            buyToken: addresses[env].tokens.USDC,
             sellAmount: ethers.utils.parseEther("0.00002").toString(),
             slippagePercentage: 0.3,
         },
         {
-            sellToken: addresses[env].WETH,
-            buyToken: addresses[env].ZRX,
+            sellToken: addresses[env].tokens.WETH,
+            buyToken: addresses[env].tokens.ZRX,
             sellAmount: ethers.utils.parseEther("0.00001").toString(),
             slippagePercentage: 0.3,
         },
         {
-            sellToken: addresses[env].WETH,
-            buyToken: addresses[env].SAI,
+            sellToken: addresses[env].tokens.WETH,
+            buyToken: addresses[env].tokens.SAI,
             sellAmount: ethers.utils.parseEther("0.00001").toString(),
             slippagePercentage: 0.3,
         },
         {
-            sellToken: addresses[env].WETH,
-            buyToken: addresses[env].POLY,
+            sellToken: addresses[env].tokens.WETH,
+            buyToken: addresses[env].tokens.POLY,
             sellAmount: ethers.utils.parseEther("0.00005").toString(),
             slippagePercentage: 0.3,
         },
         {
-            sellToken: addresses[env].WETH,
-            buyToken: addresses[env].LINK,
+            sellToken: addresses[env].tokens.WETH,
+            buyToken: addresses[env].tokens.LINK,
             sellAmount: ethers.utils.parseEther("0.00009").toString(),
             slippagePercentage: 0.3,
         },
@@ -102,7 +102,7 @@ async function main() {
     await wethContract.deposit({ value: totalSellAmountWithFees })
     await wethContract.approve(nestedFactory.address, totalSellAmountWithFees)
 
-    await nestedFactory.create(0, "", addresses[env].WETH, totalSellAmount, responses[0].data.to, tokenOrders)
+    await nestedFactory.create(0, "", addresses[env].tokens.WETH, totalSellAmount, responses[0].data.to, tokenOrders)
 
     console.log("\nNFT created\n")
 
