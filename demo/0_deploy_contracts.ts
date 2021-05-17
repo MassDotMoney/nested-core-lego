@@ -1,24 +1,25 @@
-const fs = require('fs');
-let addresses = require("./addresses.json")
+import fs from "fs"
+const addresses = require("./addresses.json")
+import { ethers, network } from "hardhat"
 
 async function main() {
-    const env = hre.network.name
+    const env = network.name
     const accounts = await ethers.getSigners()
 
     const dev = accounts[0].address
     const nestedTreasury = accounts[1].address
     const nestedBuyBacker = accounts[2].address
-    const weth = addresses[hre.network.name].WETH
+    const weth = addresses[network.name].tokens.WETH
 
     const nestedTreasuryPart = ethers.BigNumber.from("50")
     const nestedBuyBackerPart = ethers.BigNumber.from("30")
     const royaltiesPartPart = ethers.BigNumber.from("20")
 
-    const FeeSplitter = await hre.ethers.getContractFactory("FeeSplitter")
-    const NestedAsset = await hre.ethers.getContractFactory("NestedAsset")
-    const NestedRecords = await hre.ethers.getContractFactory("NestedRecords")
-    const NestedFactory = await hre.ethers.getContractFactory("NestedFactory")
-    const NestedReserve = await hre.ethers.getContractFactory("NestedReserve")
+    const FeeSplitter = await ethers.getContractFactory("FeeSplitter")
+    const NestedAsset = await ethers.getContractFactory("NestedAsset")
+    const NestedRecords = await ethers.getContractFactory("NestedRecords")
+    const NestedFactory = await ethers.getContractFactory("NestedFactory")
+    const NestedReserve = await ethers.getContractFactory("NestedReserve")
 
     const feeSplitter = await FeeSplitter.deploy(
         [nestedTreasury, nestedBuyBacker],
@@ -28,17 +29,19 @@ async function main() {
         0,
         0,
     )
-    const asset = await NestedAsset.deploy()
-    const records = await NestedRecords.deploy()
-
     await feeSplitter.deployed()
+    const asset = await NestedAsset.deploy()
     await asset.deployed()
+    const records = await NestedRecords.deploy()
     await records.deployed()
 
     const factory = await NestedFactory.deploy(asset.address, records.address, dev, feeSplitter.address, weth)
     await factory.deployed()
-    await asset.setFactory(factory.address)
-    await records.setFactory(factory.address)
+    const tx0 = await asset.setFactory(factory.address)
+    await tx0.wait()
+
+    const tx1 = await records.setFactory(factory.address)
+    await tx1.wait()
 
     const reserve = await NestedReserve.deploy(factory.address)
     await reserve.deployed()
@@ -48,8 +51,7 @@ async function main() {
     console.log("Factory address: ", factory.address)
     addresses[env].factory = factory.address
     // write factory address to addresses.json
-    fs.writeFileSync('./demo/addresses.json', JSON.stringify(addresses, null, 2));
-
+    fs.writeFileSync("./demo/addresses.json", JSON.stringify(addresses, null, 2))
 }
 
 main()
