@@ -50,11 +50,6 @@ const config: HardhatUserConfig = {
             url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_MAINNET_API_KEY}`,
             accounts: accounts,
         },
-        "ropsten-fork": {
-            url: "http://localhost:8545",
-            accounts: accounts,
-            timeout: 200000,
-        },
     },
     solidity: {
         version: "0.8.4",

@@ -44,44 +44,23 @@
     },
     "ropsten": {
         "uniswapRouter": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
-        "factory": "0x3a000AC0f7F91A78B21E6B49A6a5D110Be36dCA9",
+        "factory": "0xDD6c0ADAeb7A6B3C0cb1bf82D94ecc9BB9a81B2C",
         "tokens": {
             "WETH": "0xc778417E063141139Fce010982780140Aa0cD5Ab",
+            "MKR": "0xaaf64bfcc32d0f15873a02163e7e500671a4ffcd",
             "DAI": "0x67F9c92051eF31F91374B46730Bf04E903B2c1aE",
-            "MKR": "0x3e7F971AE408084A1417a2dE63E7652a582ef339",
-            "BAT": "0xf593928BAf4952b8141808F9E68CA1d70fE25853",
-            "WBTC": "0x2afc1AA31E68db2f541198f6E515585c1FF9F17d",
-            "KNC": "0x292CEcDF281ACf0aaf25C0C603a3f80745875b51",
-            "REP": "0x3c98851CCaeDDd64Fa26EEE115D9904C19FFe669",
-            "USDC": "0x49dB132a09381BC26709bab0D7300BEA764b30e1",
-            "cZRX": "0xe7d6C37d2629e66C6E737BA0A18b478213D4cd37",
-            "ZRX": "0xFb91F492Bb13f0239aA1e3Dc60b07a981bf4DA8e",
-            "SAI": "0x25FA9e258dcd9C5eC34D7bd4980FA154C9D16A7D",
-            "cREP": "0xded317D9AD56E402a5d3b629564De90CF4BAa789",
-            "ADAI": "0xaD0778533E52EA74CD7dbdc00A0fdB36E6524C42",
-            "POLY": "0xE3021E1FFaB41D2070E4bB3FF4D74AF9B31e882D",
-            "LINK": "0xd08281E46BC3A8cc4839A534a5D2dbE693d074Cf"
-        }
-    },
-    "ropsten-fork": {
-        "uniswapRouter": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
-        "factory": "0x3a000AC0f7F91A78B21E6B49A6a5D110Be36dCA9",
-        "tokens": {
-            "WETH": "0xc778417E063141139Fce010982780140Aa0cD5Ab",
-            "DAI": "0x67F9c92051eF31F91374B46730Bf04E903B2c1aE",
-            "MKR": "0x3e7F971AE408084A1417a2dE63E7652a582ef339",
-            "BAT": "0xf593928BAf4952b8141808F9E68CA1d70fE25853",
-            "WBTC": "0x2afc1AA31E68db2f541198f6E515585c1FF9F17d",
-            "KNC": "0x292CEcDF281ACf0aaf25C0C603a3f80745875b51",
-            "REP": "0x3c98851CCaeDDd64Fa26EEE115D9904C19FFe669",
-            "USDC": "0x49dB132a09381BC26709bab0D7300BEA764b30e1",
-            "cZRX": "0xe7d6C37d2629e66C6E737BA0A18b478213D4cd37",
-            "ZRX": "0xFb91F492Bb13f0239aA1e3Dc60b07a981bf4DA8e",
-            "SAI": "0x25FA9e258dcd9C5eC34D7bd4980FA154C9D16A7D",
-            "cREP": "0xded317D9AD56E402a5d3b629564De90CF4BAa789",
-            "ADAI": "0xaD0778533E52EA74CD7dbdc00A0fdB36E6524C42",
-            "POLY": "0xE3021E1FFaB41D2070E4bB3FF4D74AF9B31e882D",
-            "LINK": "0xd08281E46BC3A8cc4839A534a5D2dbE693d074Cf"
+            "BAT": "0x9f8cfb61d3b2af62864408dd703f9c3beb55dff7",
+            "WBTC": "0xa0a5ad2296b38bd3e3eb59aaeaf1589e8d9a29a9",
+            "KNC": "0xad67cb4d63c9da94aca37fdf2761aadf780ff4a2",
+            "REP": "0x4e5cb5a0caca30d1ad27d8cd8200a907854fb518",
+            "USDC": "0x75b0622cec14130172eae9cf166b92e5c112faff",
+            "cZRX": "0xc014dc10a57ac78350c5fddb26bb66f1cb0960a0",
+            "ZRX": "0x2002d3812f58e35f0ea1ffbf80a75a38c32175fa",
+            "SAI": "0xc4375b7de8af5a38a93548eb8453a498222c4ff2",
+            "cREP": "0xfd874be7e6733bdc6dca9c7cdd97c225ec235d39",
+            "ADAI": "0xdcf0af9e59c002fa3aa091a46196b37530fd48a8",
+            "POLY": "0xb347b9f5b56b431b2cf4e1d90a5995f7519ca792",
+            "LINK": "0xa36085f69e2889c224210f603d836748e7dc0088"
         }
     },
     "mainnet": {

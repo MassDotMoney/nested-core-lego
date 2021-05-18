@@ -25,7 +25,8 @@ library ExchangeHelpers {
     ) internal returns (bool) {
         setMaxAllowance(_sellToken, _swapTarget);
         // solhint-disable-next-line avoid-low-level-calls
-        (bool success, ) = _swapTarget.call(_swapCallData);
+        (bool success, bytes memory data) = _swapTarget.call(_swapCallData);
+        console.log(_getRevertMsg(data));
         return success;
     }
 
