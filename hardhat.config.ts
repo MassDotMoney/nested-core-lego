@@ -7,8 +7,7 @@ import "hardhat-gas-reporter"
 import "@nomiclabs/hardhat-solhint"
 import "hardhat-contract-sizer"
 
-const treasuryAccountKey = "954df48893ad50c69349b2422e5e21f4a9992a79f983cac8035e3673f1836891"
-const buybackerAccountKey = "1d44492875c0bae585e61ecb36e07a24cb27c300efea0ce9a4d1465d8d204a40"
+import { HardhatUserConfig } from "hardhat/config"
 
 const accounts = {
     mnemonic: process.env.MNEMONIC,
@@ -21,7 +20,7 @@ const accounts = {
  * Go to https://hardhat.org/config/ to learn more
  * @type import('hardhat/config').HardhatUserConfig
  */
-export default {
+const config: HardhatUserConfig = {
     defaultNetwork: "hardhat",
     networks: {
         hardhat: {
@@ -44,7 +43,7 @@ export default {
         },
         kovan: {
             url: `https://eth-kovan.alchemyapi.io/v2/${process.env.ALCHEMY_KOVAN_API_KEY}`,
-            accounts: [process.env.KOVAN_WALLET_KEY, treasuryAccountKey, buybackerAccountKey].filter(k => k != null),
+            accounts: accounts,
         },
         mainnet: {
             url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_MAINNET_API_KEY}`,
@@ -67,3 +66,5 @@ export default {
         excludeContracts: ["contracts/mocks/", "contracts/libraries/", "contracts/interfaces/"],
     },
 }
+
+export default config

@@ -1,15 +1,16 @@
 import fs from "fs"
-const addresses = require("./addresses.json")
+import addresses from "./addresses.json"
 import { ethers, network } from "hardhat"
+import { NetworkName } from "./demo-types"
 
 async function main() {
-    const env = network.name
+    const env = network.name as NetworkName
     const accounts = await ethers.getSigners()
 
     const dev = accounts[0].address
     const nestedTreasury = accounts[1].address
     const nestedBuyBacker = accounts[2].address
-    const weth = addresses[network.name].tokens.WETH
+    const weth = addresses[env].tokens.WETH
 
     const nestedTreasuryPart = ethers.BigNumber.from("50")
     const nestedBuyBackerPart = ethers.BigNumber.from("30")
