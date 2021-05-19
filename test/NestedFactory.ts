@@ -1,11 +1,11 @@
-import { expect } from "chai"
-
-import { ethers } from "hardhat"
 import { Contract, ContractFactory } from "@ethersproject/contracts"
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { Interface } from "@ethersproject/abi"
 import { appendDecimals, getETHSpentOnGas } from "./helpers"
+
 import { BigNumber } from "@ethersproject/bignumber"
+import { Interface } from "@ethersproject/abi"
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
+import { ethers } from "hardhat"
+import { expect } from "chai"
 
 describe("NestedFactory", () => {
     let nestedFactory: ContractFactory, factory: Contract

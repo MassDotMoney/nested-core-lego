@@ -40,6 +40,7 @@ const config: HardhatUserConfig = {
         ropsten: {
             url: `https://eth-ropsten.alchemyapi.io/v2/${process.env.ALCHEMY_ROPSTEN_API_KEY}`,
             accounts: accounts,
+            gasPrice: 1100000000,
         },
         kovan: {
             url: `https://eth-kovan.alchemyapi.io/v2/${process.env.ALCHEMY_KOVAN_API_KEY}`,
@@ -48,6 +49,11 @@ const config: HardhatUserConfig = {
         mainnet: {
             url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_MAINNET_API_KEY}`,
             accounts: accounts,
+        },
+        "ropsten-fork": {
+            url: "http://localhost:8545",
+            accounts: accounts,
+            timeout: 200000,
         },
     },
     solidity: {

@@ -1,7 +1,8 @@
-import fs from "fs"
-import addresses from "./addresses.json"
 import { ethers, network } from "hardhat"
+
 import { NetworkName } from "./demo-types"
+import addresses from "./addresses.json"
+import fs from "fs"
 
 async function main() {
     const env = network.name as NetworkName
