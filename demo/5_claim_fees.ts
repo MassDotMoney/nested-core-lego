@@ -20,19 +20,19 @@ async function main(replicateNFT: number = 0) {
         const assets = await nestedFactory.tokensOf(user1.address)
         console.log(`NFT created and has ID ${assets[0]}`)
         replicateNFT = assets[0]
-    }
-    const user1Balance = await user1.getBalance()
-    console.log(`Replicating user 1 asset... User 1 balance is ${ethers.utils.formatEther(user1Balance)}`)
-    await createNFT(user2, replicateNFT)
-    const assetsUser2 = await nestedFactory.tokensOf(user2.address)
-    console.log(`NFT replicated by user 2. It has ID ${assetsUser2[0]}`)
 
-    console.log("Claiming fees as user 1...")
+        await createNFT(user2, replicateNFT)
+        const assetsUser2 = await nestedFactory.tokensOf(user2.address)
+        console.log(`NFT replicated by user 2. It has ID ${assetsUser2[0]}`)
+    }
+
+    const user1Balance = await user1.getBalance()
+    console.log(`User 1 balance is ${ethers.utils.formatEther(user1Balance)}. Claiming fees...`)
     const tx0 = await feeSplitter.releaseETH()
     await tx0.wait()
 
     const user1newBalance = await user1.getBalance()
-    console.log(`User 1 earned 20% of the fees and their new balance is ${ethers.utils.formatEther(user1newBalance)}`)
+    console.log(`User 1 new balance is ${ethers.utils.formatEther(user1newBalance)}`)
 }
 
 main(1)

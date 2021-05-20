@@ -2,13 +2,12 @@ import axios, { AxiosResponse } from "axios"
 import { ethers, network } from "hardhat"
 
 import { BigNumber } from "ethers"
-import { Interface } from "@ethersproject/abi"
 import { NetworkName } from "./demo-types"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import addresses from "./addresses.json"
 import qs from "qs"
 
-export const createNFT = async (user?: SignerWithAddress, replicateNFT: number = 0) => {
+const create = async (useWeth: boolean, user?: SignerWithAddress, replicateNFT: number = 0) => {
     const env = network.name as NetworkName
     const WETH = addresses[env].tokens.WETH
     if (!user) [user] = await ethers.getSigners()
@@ -116,14 +115,27 @@ export const createNFT = async (user?: SignerWithAddress, replicateNFT: number =
 
     const totalSellAmountWithFees = totalSellAmount.add(totalSellAmount.div(100))
 
-    const tx0 = await wethContract.connect(user).deposit({ value: totalSellAmountWithFees })
-    await tx0.wait()
-    const tx1 = await wethContract.connect(user).approve(nestedFactory.address, totalSellAmountWithFees)
-    await tx1.wait()
+    let sellToken = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+
+    if (useWeth) {
+        const tx0 = await wethContract.connect(user).deposit({ value: totalSellAmountWithFees })
+        await tx0.wait()
+        const tx1 = await wethContract.connect(user).approve(nestedFactory.address, totalSellAmountWithFees)
+        await tx1.wait()
+        sellToken = WETH
+    }
 
     const metadataUri = "ipfs://bafybeiam5u4xc5527tv6ghlwamd6azfthmcuoa6uwnbbvqbtsyne4p7khq/metadata.json"
     const tx2 = await nestedFactory
         .connect(user)
-        .create(replicateNFT, metadataUri, WETH, totalSellAmount, responses[0].data.to, tokenOrders)
+        .create(replicateNFT, metadataUri, sellToken, totalSellAmount, responses[0].data.to, tokenOrders, {
+            value: !useWeth && totalSellAmountWithFees,
+        })
     return tx2.wait()
 }
+
+export const createNFTFromETH = (user?: SignerWithAddress, replicateNFT: number = 0) =>
+    create(false, user, replicateNFT)
+
+export const createNFTFromWETH = (user?: SignerWithAddress, replicateNFT: number = 0) =>
+    create(true, user, replicateNFT)
