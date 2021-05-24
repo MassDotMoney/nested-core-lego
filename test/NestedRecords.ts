@@ -1,8 +1,7 @@
-import { expect } from "chai"
-
-import { ethers } from "hardhat"
 import { Contract } from "@ethersproject/contracts"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
+import { ethers } from "hardhat"
+import { expect } from "chai"
 
 describe("NestedRecords", () => {
     let nestedRecords: Contract
@@ -38,7 +37,7 @@ describe("NestedRecords", () => {
         )
         await nestedRecords.store(0, bob.address, 20, alice.address)
         await expect(nestedRecords.store(0, bob.address, 20, bob.address)).to.be.revertedWith(
-            "NestedRecords: INVALID_RESERVE",
+            "NestedRecords: RESERVE_MISSMATCH",
         )
     })
 
@@ -46,7 +45,7 @@ describe("NestedRecords", () => {
         const MAX_HOLDING_COUNT = 15
         const signers = await ethers.getSigners()
         for (let i = 0; i < MAX_HOLDING_COUNT; i++) {
-            await nestedRecords.store(0, signers[i+3].address, 20, alice.address)
+            await nestedRecords.store(0, signers[i + 3].address, 20, alice.address)
         }
         await expect(nestedRecords.store(0, bob.address, 20, alice.address)).to.be.revertedWith(
             "NestedRecords: TOO_MANY_ORDERS",
