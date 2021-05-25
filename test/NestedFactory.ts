@@ -368,46 +368,42 @@ describe("NestedFactory", () => {
         })
 
         it("reverts if token id is invalid", async () => {
-            await expect(factory.addTokens(
-                ethers.utils.parseEther("999").toString(), 
-                mockWETH.address, 
-                totalSellAmount, 
-                dummyRouter.address, 
-                addTokenOrders
-            )).to.be.revertedWith(
-                "revert ERC721: owner query for nonexistent token",
-            )
+            await expect(
+                factory.addTokens(
+                    ethers.utils.parseEther("999").toString(),
+                    mockWETH.address,
+                    totalSellAmount,
+                    dummyRouter.address,
+                    addTokenOrders,
+                ),
+            ).to.be.revertedWith("revert ERC721: owner query for nonexistent token")
         })
 
         it("reverts if insufficient amount", async () => {
-            await expect(factory.addTokens(
-                assets[0], 
-                mockWETH.address, 
-                totalSellAmount.sub(1), 
-                dummyRouter.address, 
-                addTokenOrders,
-            )).to.be.revertedWith(
-                "revert OVERSPENT_ERROR",
-            )
+            await expect(
+                factory.addTokens(
+                    assets[0],
+                    mockWETH.address,
+                    totalSellAmount.sub(1),
+                    dummyRouter.address,
+                    addTokenOrders,
+                ),
+            ).to.be.revertedWith("revert OVERSPENT_ERROR")
         })
 
         it("reverts if not owner", async () => {
-            await expect(factory.connect(bob).addTokens(assets[0], mockWETH.address, totalSellAmount, dummyRouter.address, addTokenOrders)).to.be.revertedWith(
-                "NestedFactory: NOT_TOKEN_OWNER",
-            )
+            await expect(
+                factory
+                    .connect(bob)
+                    .addTokens(assets[0], mockWETH.address, totalSellAmount, dummyRouter.address, addTokenOrders),
+            ).to.be.revertedWith("NestedFactory: NOT_TOKEN_OWNER")
         })
 
         it("Update NFT", async () => {
             const initialWethBalance = await mockWETH.balanceOf(alice.address)
             const initialFeeBalance = await mockWETH.balanceOf(factory.feeTo())
 
-            await factory.addTokens(
-                assets[0],
-                mockWETH.address, 
-                totalSellAmount, 
-                dummyRouter.address, 
-                addTokenOrders,
-            )
+            await factory.addTokens(assets[0], mockWETH.address, totalSellAmount, dummyRouter.address, addTokenOrders)
 
             const expectedAliceWethBalance = initialWethBalance.sub(totalSellAmount).sub(expectedFee)
             const expectedFeeWethBalance = initialFeeBalance.add(expectedFee)
@@ -427,17 +423,15 @@ describe("NestedFactory", () => {
             const tx = await factory.addTokens(
                 assets[0],
                 "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-                appendDecimals(10), 
-                dummyRouter.address, 
+                appendDecimals(10),
+                dummyRouter.address,
                 addTokenOrders,
                 {
                     value: appendDecimals(10.1),
-                }
+                },
             )
 
-            const expectedAliceBalance = initialAliceBalance
-                .sub(appendDecimals(10.1))
-                .sub(await getETHSpentOnGas(tx))
+            const expectedAliceBalance = initialAliceBalance.sub(appendDecimals(10.1)).sub(await getETHSpentOnGas(tx))
 
             expect(await alice.getBalance()).to.equal(expectedAliceBalance)
 
@@ -513,65 +507,66 @@ describe("NestedFactory", () => {
         })
 
         it("reverts if token id is invalid", async () => {
-            await expect(factory.swapTokenForToken(
-                ethers.utils.parseEther("999").toString(),
-                0,
-                tokensToBuy[0], 
-                appendDecimals(2),
-                dummyRouter.address, 
-                swapTokenOrders
-            )).to.be.revertedWith(
-                "revert ERC721: owner query for nonexistent token",
-            )
+            await expect(
+                factory.swapTokenForToken(
+                    ethers.utils.parseEther("999").toString(),
+                    0,
+                    tokensToBuy[0],
+                    appendDecimals(2),
+                    dummyRouter.address,
+                    swapTokenOrders,
+                ),
+            ).to.be.revertedWith("revert ERC721: owner query for nonexistent token")
         })
 
         it("reverts if not owner", async () => {
-            await expect(factory.connect(bob).swapTokenForToken(
-                assets[0],
-                0,
-                tokensToBuy[0], 
-                appendDecimals(2), 
-                dummyRouter.address, 
-                swapTokenOrders
-            )).to.be.revertedWith(
-                "NestedFactory: NOT_TOKEN_OWNER",
-            )
+            await expect(
+                factory
+                    .connect(bob)
+                    .swapTokenForToken(
+                        assets[0],
+                        0,
+                        tokensToBuy[0],
+                        appendDecimals(2),
+                        dummyRouter.address,
+                        swapTokenOrders,
+                    ),
+            ).to.be.revertedWith("NestedFactory: NOT_TOKEN_OWNER")
         })
 
         it("reverts if insufficient amount", async () => {
-            await expect(factory.swapTokenForToken(
-                assets[0],
-                0,
-                tokensToBuy[0],
-                appendDecimals(50), 
-                dummyRouter.address, 
-                swapTokenOrders,
-            )).to.be.revertedWith(
-                "INSUFFICIENT_AMOUNT",
-            )
+            await expect(
+                factory.swapTokenForToken(
+                    assets[0],
+                    0,
+                    tokensToBuy[0],
+                    appendDecimals(50),
+                    dummyRouter.address,
+                    swapTokenOrders,
+                ),
+            ).to.be.revertedWith("INSUFFICIENT_AMOUNT")
         })
 
         it("swap an NFT asset", async () => {
             let tokenHoldings = await factory.tokenHoldings(assets[0])
             let initialUNI = tokenHoldings[0].amount
             let swapAmount = appendDecimals(2)
-            
+
             await factory.swapTokenForToken(
                 assets[0],
                 0,
                 tokensToBuy[0],
-                swapAmount, 
-                dummyRouter.address, 
+                swapAmount,
+                dummyRouter.address,
                 swapTokenOrders,
             )
 
             tokenHoldings = await factory.tokenHoldings(assets[0])
-            let currentUNI = tokenHoldings[0].amount;
+            let currentUNI = tokenHoldings[0].amount
 
             expect(currentUNI).to.equal(initialUNI.sub(swapAmount))
         })
     })
-
 
     describe("#sell", () => {
         const totalSellAmount = appendDecimals(10)
@@ -617,7 +612,7 @@ describe("NestedFactory", () => {
                         mockWETH.address,
                         appendDecimals(3),
                     ]),
-                }
+                },
             ]
 
             buyTokenOrders = [
@@ -645,72 +640,73 @@ describe("NestedFactory", () => {
         })
 
         it("reverts if token id is invalid", async () => {
-            await expect(factory.sellTokensToWallet(
-                ethers.utils.parseEther("999").toString(),
-                mockWETH.address,
-                [0,1],
-                tokensToSell, 
-                [appendDecimals(4), appendDecimals(2)],
-                dummyRouter.address, 
-                sellTokenOrders
-            )).to.be.revertedWith(
-                "revert ERC721: owner query for nonexistent token",
-            )
+            await expect(
+                factory.sellTokensToWallet(
+                    ethers.utils.parseEther("999").toString(),
+                    mockWETH.address,
+                    [0, 1],
+                    tokensToSell,
+                    [appendDecimals(4), appendDecimals(2)],
+                    dummyRouter.address,
+                    sellTokenOrders,
+                ),
+            ).to.be.revertedWith("revert ERC721: owner query for nonexistent token")
         })
 
         it("reverts if not owner", async () => {
-            await expect(factory.connect(bob).sellTokensToWallet(
-                assets[0],
-                mockWETH.address,
-                [0,1],
-                tokensToSell, 
-                [appendDecimals(4), appendDecimals(2)], 
-                dummyRouter.address, 
-                sellTokenOrders
-            )).to.be.revertedWith(
-                "NestedFactory: NOT_TOKEN_OWNER",
-            )
+            await expect(
+                factory
+                    .connect(bob)
+                    .sellTokensToWallet(
+                        assets[0],
+                        mockWETH.address,
+                        [0, 1],
+                        tokensToSell,
+                        [appendDecimals(4), appendDecimals(2)],
+                        dummyRouter.address,
+                        sellTokenOrders,
+                    ),
+            ).to.be.revertedWith("NestedFactory: NOT_TOKEN_OWNER")
         })
 
         it("reverts if insufficient amount", async () => {
-            await expect(factory.sellTokensToWallet(
-                assets[0],
-                mockWETH.address,
-                [0,1],
-                tokensToSell,
-                [appendDecimals(50), appendDecimals(50)], 
-                dummyRouter.address, 
-                sellTokenOrders,
-            )).to.be.revertedWith(
-                "INSUFFICIENT_AMOUNT",
-            )
+            await expect(
+                factory.sellTokensToWallet(
+                    assets[0],
+                    mockWETH.address,
+                    [0, 1],
+                    tokensToSell,
+                    [appendDecimals(50), appendDecimals(50)],
+                    dummyRouter.address,
+                    sellTokenOrders,
+                ),
+            ).to.be.revertedWith("INSUFFICIENT_AMOUNT")
         })
 
         it("sell NFT assets", async () => {
             let tokenHoldings = await factory.tokenHoldings(assets[0])
             let initialUNI = tokenHoldings[0].amount
             let initialKNC = tokenHoldings[1].amount
-            
+
             await factory.sellTokensToWallet(
                 assets[0],
                 mockWETH.address,
-                [0,1],
-                tokensToSell, 
-                [appendDecimals(2), appendDecimals(3)], 
-                dummyRouter.address, 
+                [0, 1],
+                tokensToSell,
+                [appendDecimals(2), appendDecimals(3)],
+                dummyRouter.address,
                 sellTokenOrders,
             )
 
             tokenHoldings = await factory.tokenHoldings(assets[0])
             let currentUNI = tokenHoldings[0].amount
             let currentKNC = tokenHoldings[1].amount
-            
+
             expect(tokenHoldings.length).to.equal(2)
             expect(currentUNI).to.equal(initialUNI.sub(appendDecimals(2)))
             expect(currentKNC).to.equal(initialKNC.sub(appendDecimals(3)))
         })
     })
-
 
     describe("#destroy", () => {
         const totalSellAmount = appendDecimals(10)

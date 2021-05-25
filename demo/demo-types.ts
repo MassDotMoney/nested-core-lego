@@ -1,1 +1,1 @@
-export type NetworkName = "localhost" | "mainnet" | "kovan" | "ropsten-fork"
+export type NetworkName = "localhost" | "mainnet" | "kovan"

@@ -40,7 +40,6 @@ const config: HardhatUserConfig = {
         ropsten: {
             url: `https://eth-ropsten.alchemyapi.io/v2/${process.env.ALCHEMY_ROPSTEN_API_KEY}`,
             accounts: accounts,
-            gasPrice: 1100000000,
         },
         kovan: {
             url: `https://eth-kovan.alchemyapi.io/v2/${process.env.ALCHEMY_KOVAN_API_KEY}`,

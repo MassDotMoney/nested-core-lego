@@ -15,3 +15,6 @@ export const displayHoldings = (holdings: any[]) =>
             amount: ethers.utils.formatEther(holding.amount),
         })),
     )
+
+export const getTokenName = (address: string, tokens: Record<string, string>) =>
+    Object.entries(tokens).find(([_, value]) => value === address)[0]
