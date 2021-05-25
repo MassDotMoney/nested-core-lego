@@ -92,7 +92,7 @@ contract NestedRecords is Ownable {
     }
 
     /**
-    Delete a holding item in holding mapping. Does not remove token in token array
+    Delete a holding item in holding mapping. Does not remove token in NftRecord.tokens array
     @param _nftId [uint256] NFT's identifier
     @param _token [address] token address for holding to remove
      */
@@ -108,7 +108,7 @@ contract NestedRecords is Ownable {
         delete records[_nftId];
     }
 
-    /*
+    /**
     add a record for NFT data into our mappings
     @param _nftId the id of the NFT
     @param _token the address of the token
@@ -128,7 +128,7 @@ contract NestedRecords is Ownable {
         );
 
         NestedStructs.Holding memory holding = records[_nftId].holdings[_token];
-        require(!holding.isActive, "NestedRecords: ASSET_EXISTS");
+        require(!holding.isActive, "NestedRecords: HOLDING_EXISTS");
 
         records[_nftId].holdings[_token] = NestedStructs.Holding({ token: _token, amount: _amount, isActive: true });
         records[_nftId].tokens.push(_token);
@@ -180,7 +180,7 @@ contract NestedRecords is Ownable {
     ) external onlyFactory {
         NestedStructs.Holding memory holding = records[_nftId].holdings[_token];
         if (holding.isActive) {
-            require(records[_nftId].reserve == _reserve, "NestedRecords: RESERVE_MISSMATCH");
+            require(records[_nftId].reserve == _reserve, "NestedRecords: RESERVE_MISMATCH");
             updateHoldingAmount(_nftId, _token, holding.amount + _amount);
             return;
         }
