@@ -317,7 +317,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     }
 
     /**
-    Sell one or more tokens and update NFT.
+    Liquidiate one or more holdings and transfer the sale amount to the User. Fee is collected without paying roylaties.
     @param _nftId [uint] the id of the NFT to update
     @param _sellTokens [<IERC20>] tokens used to make swaps
     @param _sellTokensAmount [<uint>] amount of sell tokens to exchange
@@ -357,25 +357,6 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         amountBought = amountBought - amountFees;
         require(_buyToken.transfer(msg.sender, amountBought), "TOKEN_TRANSFER_ERROR");
         transferFee(amountFees, _buyToken);
-    }
-
-    /*
-    burn NFT and return tokens to the user.
-    @param _nftId uint256 NFT token Id
-    */
-    function destroy(uint256 _nftId) external onlyTokenOwner(_nftId) {
-        address[] memory tokens = nestedRecords.getAssetTokens(_nftId);
-
-        // get assets list for this NFT and send back all ERC20 to user
-        for (uint256 i = 0; i < tokens.length; i++) {
-            NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
-            reserve.withdraw(IERC20(holding.token), holding.amount);
-            _transferToWallet(_nftId, holding);
-        }
-
-        // burn token
-        nestedRecords.removeNFT(_nftId);
-        nestedAsset.burn(msg.sender, _nftId);
     }
 
     /*
