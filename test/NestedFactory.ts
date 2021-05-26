@@ -634,7 +634,6 @@ describe("NestedFactory", () => {
                 factory.sellTokensToWallet(
                     ethers.utils.parseEther("999").toString(),
                     mockWETH.address,
-                    [0, 1],
                     tokensToSell,
                     [appendDecimals(4), appendDecimals(2)],
                     dummyRouter.address,
@@ -650,7 +649,6 @@ describe("NestedFactory", () => {
                     .sellTokensToWallet(
                         assets[0],
                         mockWETH.address,
-                        [0, 1],
                         tokensToSell,
                         [appendDecimals(4), appendDecimals(2)],
                         dummyRouter.address,
@@ -664,7 +662,6 @@ describe("NestedFactory", () => {
                 factory.sellTokensToWallet(
                     assets[0],
                     mockWETH.address,
-                    [0, 1],
                     tokensToSell,
                     [appendDecimals(50), appendDecimals(50)],
                     dummyRouter.address,
@@ -681,7 +678,6 @@ describe("NestedFactory", () => {
             await factory.sellTokensToWallet(
                 assets[0],
                 mockWETH.address,
-                [0, 1],
                 tokensToSell,
                 [appendDecimals(2), appendDecimals(3)],
                 dummyRouter.address,

@@ -47,7 +47,6 @@ async function main() {
     }
     const assetPickAnswer = await inquirer.prompt([assetPickQuestion])
     const pickedHolding = assetPickAnswer.asset
-    const pickedHoldingIndex = holdings.findIndex((holding: any) => holding.token === pickedHolding.token)
 
     const order = {
         sellToken: pickedHolding.token,
@@ -63,7 +62,6 @@ async function main() {
     const tx = await nestedFactory.sellTokensToWallet(
         nftPickAnswer.nftId,
         wethContract.address,
-        [pickedHoldingIndex],
         [pickedHolding.token],
         [pickedHolding.amount],
         response.data.to,

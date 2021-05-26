@@ -88,7 +88,9 @@ const create = async (useWeth: boolean, user?: SignerWithAddress, replicateNFT: 
     ]
     let responses = (await Promise.all(
         orders.map(async order =>
-            axios.get(`https://${env}.api.0x.org/swap/v1/quote?${qs.stringify(order)}`).catch(err => console.log(err)),
+            axios
+                .get(`https://${env === "localhost" ? "ropsten" : env}.api.0x.org/swap/v1/quote?${qs.stringify(order)}`)
+                .catch(err => console.log(err)),
         ),
     )) as AxiosResponse<any>[]
 

@@ -15,7 +15,7 @@ async function main() {
 
     console.log("\nNFT created\n")
 
-    const holdings = await nestedFactory.tokenHoldings(1)
+    const holdings = await nestedFactory.tokenHoldings(0)
     displayHoldings(holdings)
 }
 

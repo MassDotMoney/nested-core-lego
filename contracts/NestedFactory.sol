@@ -327,7 +327,6 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     function sellTokensToWallet(
         uint256 _nftId,
         IERC20 _buyToken,
-        uint256[] memory _sellTokenIndexes,
         IERC20[] memory _sellTokens,
         uint256[] memory _sellTokensAmount,
         address payable _swapTarget,
@@ -345,8 +344,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
 
             // we transfer from reserve to factory
             reserve.withdraw(IERC20(holding.token), _sellTokensAmount[i]);
-            bool success =
-                ExchangeHelpers.fillQuote(_sellTokens[i], _swapTarget, _tokenOrders[_sellTokenIndexes[i]].callData);
+            bool success = ExchangeHelpers.fillQuote(_sellTokens[i], _swapTarget, _tokenOrders[i].callData);
             require(success, "SWAP_CALL_FAILED");
 
             nestedRecords.updateHoldingAmount(_nftId, address(_sellTokens[i]), holding.amount - _sellTokensAmount[i]);
