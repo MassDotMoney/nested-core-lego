@@ -1,11 +1,9 @@
 import { ethers, network } from "hardhat"
+import { pickHolding, pickNFT } from "./cli-interaction"
 
-import { BigNumber } from "@ethersproject/bignumber"
 import { NetworkName } from "./demo-types"
 import addresses from "./addresses.json"
 import axios from "axios"
-import { getTokenName } from "../test/helpers"
-import inquirer from "inquirer"
 import qs from "qs"
 
 async function main() {
@@ -18,35 +16,8 @@ async function main() {
     const WethContract = await ethers.getContractFactory("WETH9")
     const wethContract = await WethContract.attach(addresses[env].tokens.WETH)
 
-    const nftIds = await nestedFactory.tokensOf(user.address)
-
-    const pickNftQuestion = {
-        name: "nftId",
-        message: "Pick the NFT you want to update",
-        id: "sell",
-        type: "list",
-        choices: nftIds.map((id: BigNumber) => ({
-            name: `#${id.toString()}`,
-            value: id,
-        })),
-    }
-    const nftPickAnswer = await inquirer.prompt([pickNftQuestion])
-
-    const holdings = await nestedFactory.tokenHoldings(nftPickAnswer.nftId)
-    if (holdings.length === 0) throw new Error("NFT is empty")
-
-    const assetPickQuestion = {
-        name: "asset",
-        message: "Pick the asset you want to sell",
-        id: "sell",
-        type: "list",
-        choices: holdings.map((holding: any) => ({
-            name: `${getTokenName(holding.token, addresses[env].tokens)} (${holding.amount})`,
-            value: holding,
-        })),
-    }
-    const assetPickAnswer = await inquirer.prompt([assetPickQuestion])
-    const pickedHolding = assetPickAnswer.asset
+    const nftId = await pickNFT()
+    const pickedHolding = await pickHolding(nftId)
 
     const order = {
         sellToken: pickedHolding.token,
@@ -60,7 +31,7 @@ async function main() {
     if (!response) return
 
     const tx = await nestedFactory.sellTokensToWallet(
-        nftPickAnswer.nftId,
+        nftId,
         wethContract.address,
         [pickedHolding.token],
         [pickedHolding.amount],
