@@ -37,7 +37,7 @@ describe("NestedRecords", () => {
         )
         await nestedRecords.store(0, bob.address, 20, alice.address)
         await expect(nestedRecords.store(0, bob.address, 20, bob.address)).to.be.revertedWith(
-            "NestedRecords: RESERVE_MISSMATCH",
+            "NestedRecords: RESERVE_MISMATCH",
         )
     })
 

@@ -370,7 +370,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         for (uint256 i = 0; i < tokens.length; i++) {
             NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
             reserve.withdraw(IERC20(holding.token), holding.amount);
-            _withdraw(_nftId, holding);
+            _transferToWallet(_nftId, holding);
         }
 
         // burn token
@@ -384,16 +384,18 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     @param _nftId [uint256] NFT token ID
     @param _holding [Holding] holding to withdraw
     */
-    function _withdraw(uint256 _nftId, NestedStructs.Holding memory _holding) internal onlyTokenOwner(_nftId) {
+    function _transferToWallet(uint256 _nftId, NestedStructs.Holding memory _holding) internal onlyTokenOwner(_nftId) {
         uint256 assetTokensLength = nestedRecords.getAssetTokensLength(_nftId);
 
         require(assetTokensLength > 1, "ERR_EMPTY_NFT");
 
+        IERC20 token = IERC20(_holding.token);
         uint256 feeAmount = _holding.amount / 100;
-        transferFeeWithRoyalty(feeAmount, IERC20(_holding.token), _nftId, msg.sender);
-        IERC20(_holding.token).transfer(msg.sender, _holding.amount - feeAmount);
 
-        emit FailsafeWithdraw(_nftId, _holding.token);
+        transferFee(feeAmount, token);
+        token.transfer(msg.sender, _holding.amount - feeAmount);
+
+        emit FailsafeWithdraw(_nftId, address(token));
     }
 
     /*
@@ -415,7 +417,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
 
         NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_token));
         reserve.withdraw(IERC20(holding.token), holding.amount);
-        _withdraw(_nftId, holding);
+        _transferToWallet(_nftId, holding);
 
         nestedRecords.deleteAsset(_nftId, _tokenIndex);
     }
@@ -450,7 +452,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
             reserve.withdraw(IERC20(holding.token), holding.amount);
             bool success =
                 ExchangeHelpers.fillQuote(IERC20(_tokenOrders[i].token), _swapTarget, _tokenOrders[i].callData);
-            if (!success) _withdraw(_nftId, holding);
+            if (!success) _transferToWallet(_nftId, holding);
             nestedRecords.freeHolding(_nftId, tokens[i]);
         }
 
