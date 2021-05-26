@@ -6,6 +6,8 @@ import "hardhat/console.sol";
 
 // import "hardhat/console.sol";
 
+// import "hardhat/console.sol";
+
 /**
  * Helpers for swapping tokens
  */
@@ -26,7 +28,6 @@ library ExchangeHelpers {
         setMaxAllowance(_sellToken, _swapTarget);
         // solhint-disable-next-line avoid-low-level-calls
         (bool success, bytes memory data) = _swapTarget.call(_swapCallData);
-        console.log(_getRevertMsg(data));
         return success;
     }
 

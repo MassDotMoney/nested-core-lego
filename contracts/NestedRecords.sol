@@ -81,22 +81,22 @@ contract NestedRecords is Ownable {
     }
 
     /**
-    Remove a token from the array of tokens in assetTokens
+    Remove a token from the array of tokens in assetTokens. Does not remove holding record
     @param _nftId [uint256] ID for the NFT
     @param _tokenIndex [uint256] token index to delete in the array of tokens
     */
-    function removeToken(uint256 _nftId, uint256 _tokenIndex) external onlyFactory {
+    function freeToken(uint256 _nftId, uint256 _tokenIndex) public onlyFactory {
         address[] storage tokens = records[_nftId].tokens;
         tokens[_tokenIndex] = tokens[tokens.length - 1];
         tokens.pop();
     }
 
-    /*
-    delete from mapping assetHoldings
-    @param _nftId the id of the NFT
-    @param _token the address of the token
-    */
-    function removeHolding(uint256 _nftId, address _token) external onlyFactory {
+    /**
+    Delete a holding item in holding mapping. Does not remove token in NftRecord.tokens array
+    @param _nftId [uint256] NFT's identifier
+    @param _token [address] token address for holding to remove
+     */
+    function freeHolding(uint256 _nftId, address _token) public onlyFactory {
         delete records[_nftId].holdings[_token];
     }
 
@@ -108,19 +108,19 @@ contract NestedRecords is Ownable {
         delete records[_nftId];
     }
 
-    /*
-    store NFT data into our mappings
+    /**
+    add a record for NFT data into our mappings
     @param _nftId the id of the NFT
     @param _token the address of the token
-    @param _amountBought the amount of tokens bought
+    @param _amount the amount of tokens bought
     @param _reserve the address of the reserve
     */
-    function store(
+    function createRecord(
         uint256 _nftId,
         address _token,
-        uint256 _amountBought,
+        uint256 _amount,
         address _reserve
-    ) external onlyFactory {
+    ) public onlyFactory {
         require(records[_nftId].tokens.length < MAX_HOLDINGS_COUNT, "NestedRecords: TOO_MANY_ORDERS");
         require(
             _reserve != address(0) && (_reserve == records[_nftId].reserve || records[_nftId].reserve == address(0)),
@@ -128,14 +128,63 @@ contract NestedRecords is Ownable {
         );
 
         NestedStructs.Holding memory holding = records[_nftId].holdings[_token];
-        // if stored token already exist, update it 
+        require(!holding.isActive, "NestedRecords: HOLDING_EXISTS");
+
+        records[_nftId].holdings[_token] = NestedStructs.Holding({ token: _token, amount: _amount, isActive: true });
+        records[_nftId].tokens.push(_token);
+        records[_nftId].reserve = _reserve;
+    }
+
+    /**
+    Fully delete a holding record for an NFT
+    @param _nftId [uint256] the id of the NFT
+    @param _tokenIndex [uint256] the token index in holdings array
+    */
+    function deleteAsset(uint256 _nftId, uint256 _tokenIndex) external onlyFactory {
+        address[] storage tokens = records[_nftId].tokens;
+        address token = tokens[_tokenIndex];
+        NestedStructs.Holding memory holding = records[_nftId].holdings[token];
+
+        require(holding.isActive, "NestedRecords: HOLDING_INACTIVE");
+
+        delete records[_nftId].holdings[token];
+        freeToken(_nftId, _tokenIndex);
+    }
+
+    /**
+    Update the amount for a specific holding
+    @param _nftId [uint256] the id of the NFT
+    @param _token [address] the token/holding address
+    @param _amount [uint256] updated amount for this asset
+    */
+    function updateHoldingAmount(
+        uint256 _nftId,
+        address _token,
+        uint256 _amount
+    ) public onlyFactory {
+        records[_nftId].holdings[_token].amount = _amount;
+    }
+
+    /**
+    Helper function that creates a record or add the holding if record already exists
+    @param _nftId [uint256] the NFT's identifier
+    @param _token [address] the token/holding address
+    @param _amount [uint256] amount to add for this asset
+    @param _reserve [address] reserve address
+    */
+    function store(
+        uint256 _nftId,
+        address _token,
+        uint256 _amount,
+        address _reserve
+    ) external onlyFactory {
+        NestedStructs.Holding memory holding = records[_nftId].holdings[_token];
         if (holding.isActive) {
-            records[_nftId].holdings[_token].amount = holding.amount + _amountBought;
-        } else {
-            records[_nftId].holdings[_token] = NestedStructs.Holding({ token: _token, amount: _amountBought, isActive: true });
-            records[_nftId].tokens.push(_token);
-            records[_nftId].reserve = _reserve;
+            require(records[_nftId].reserve == _reserve, "NestedRecords: RESERVE_MISMATCH");
+            updateHoldingAmount(_nftId, _token, holding.amount + _amount);
+            return;
         }
+        createRecord(_nftId, _token, _amount, _reserve);
     }
 
     /*
@@ -144,7 +193,12 @@ contract NestedRecords is Ownable {
     @param _token the address of the token
     @param _amountSold the amount of tokens sold
     */
-    function update(uint256 _nftId, uint256 _tokenIndex, address _token, uint256 _amountSold) external onlyFactory {
+    function update(
+        uint256 _nftId,
+        uint256 _tokenIndex,
+        address _token,
+        uint256 _amountSold
+    ) external onlyFactory {
         NestedStructs.Holding memory holding = records[_nftId].holdings[_token];
         require(holding.isActive, "ALREADY_SOLD");
         uint256 remainingAmount = holding.amount - _amountSold;
@@ -158,8 +212,6 @@ contract NestedRecords is Ownable {
             address[] storage tokens = records[_nftId].tokens;
             tokens[_tokenIndex] = tokens[tokens.length - 1];
             tokens.pop();
-    
         }
     }
-
 }

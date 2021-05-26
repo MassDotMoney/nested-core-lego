@@ -510,7 +510,6 @@ describe("NestedFactory", () => {
             await expect(
                 factory.swapTokenForToken(
                     ethers.utils.parseEther("999").toString(),
-                    0,
                     tokensToBuy[0],
                     appendDecimals(2),
                     dummyRouter.address,
@@ -525,7 +524,6 @@ describe("NestedFactory", () => {
                     .connect(bob)
                     .swapTokenForToken(
                         assets[0],
-                        0,
                         tokensToBuy[0],
                         appendDecimals(2),
                         dummyRouter.address,
@@ -538,7 +536,6 @@ describe("NestedFactory", () => {
             await expect(
                 factory.swapTokenForToken(
                     assets[0],
-                    0,
                     tokensToBuy[0],
                     appendDecimals(50),
                     dummyRouter.address,
@@ -552,14 +549,7 @@ describe("NestedFactory", () => {
             let initialUNI = tokenHoldings[0].amount
             let swapAmount = appendDecimals(2)
 
-            await factory.swapTokenForToken(
-                assets[0],
-                0,
-                tokensToBuy[0],
-                swapAmount,
-                dummyRouter.address,
-                swapTokenOrders,
-            )
+            await factory.swapTokenForToken(assets[0], tokensToBuy[0], swapAmount, dummyRouter.address, swapTokenOrders)
 
             tokenHoldings = await factory.tokenHoldings(assets[0])
             let currentUNI = tokenHoldings[0].amount
@@ -772,19 +762,6 @@ describe("NestedFactory", () => {
             assets = await factory.tokensOf(alice.address)
         })
 
-        it("reverts if token id is invalid", async () => {
-            await expect(factory.destroy(ethers.utils.parseEther("999").toString())).to.be.revertedWith(
-                "revert ERC721: owner query for nonexistent token",
-            )
-        })
-
-        it("reverts if not owner", async () => {
-            let aliceTokens = await factory.tokensOf(alice.address)
-            await expect(factory.connect(bob).destroy(aliceTokens[0])).to.be.revertedWith(
-                "NestedFactory: NOT_TOKEN_OWNER",
-            )
-        })
-
         it("reverts preventing reentrancy", async () => {
             const abi = ["function reentrancyAttackForDestroy(uint256)"]
             const iface = new Interface(abi)
@@ -805,16 +782,6 @@ describe("NestedFactory", () => {
                 appendDecimals(1000).sub(appendDecimals(6)).sub(feeInKNC),
             )
             expect((await factory.tokensOf(dummyRouter.address)).length).to.equal(0)
-        })
-
-        it("destroys NFT and send tokens to user", async () => {
-            let originalAliceTokens = await factory.tokensOf(alice.address)
-            factory.destroy(originalAliceTokens[0])
-            let aliceTokens = await factory.tokensOf(alice.address)
-            expect(aliceTokens.length).to.equal(0)
-
-            const result = await factory.tokenHoldings(originalAliceTokens[0])
-            expect(result.length).to.equal(0)
         })
 
         it("should revert when destroying a migrated nft", async () => {
@@ -886,18 +853,6 @@ describe("NestedFactory", () => {
             it("reverts if NFT has only one asset", async () => {
                 await factory.withdraw(assets[0], 0, mockUNI.address)
                 await expect(factory.withdraw(assets[0], 0, mockKNC.address)).be.revertedWith("ERR_EMPTY_NFT")
-            })
-
-            it("destroys without swapping tokens", async () => {
-                await factory.destroy(assets[0])
-                expect((await factory.tokensOf(alice.address)).length).to.equal(0)
-                // fee should be 1% of 4UNI
-                const fee = appendDecimals(4).div(100)
-                const initialUNIBalance = appendDecimals(3000000).sub(appendDecimals(1000))
-                expect(await mockUNI.balanceOf(feeTo.address)).to.equal(fee)
-                expect(await mockUNI.balanceOf(alice.address)).to.equal(
-                    initialUNIBalance.add(appendDecimals(4)).sub(fee),
-                )
             })
 
             it("uses failsafe withdraw when swap fails", async () => {
