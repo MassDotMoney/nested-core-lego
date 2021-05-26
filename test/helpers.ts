@@ -17,4 +17,4 @@ export const displayHoldings = (holdings: any[]) =>
     )
 
 export const getTokenName = (address: string, tokens: Record<string, string>) =>
-    Object.entries(tokens).find(([_, value]) => value === address)[0]
+    Object.entries(tokens).find(([_, value]) => value === address)?.[0] || "???"

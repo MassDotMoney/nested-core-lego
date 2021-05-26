@@ -1,7 +1,7 @@
 {
   "localhost": {
     "uniswapRouter": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
-    "factory": "0xdC9B8A1509F73Eb754C9F89712aDC153Cd2Aa2ec",
+    "factory": "0x3dcc6342f42A1718f2948Ad7636c9A86f9f91BdB",
     "tokens": {
       "WETH": "0xc778417E063141139Fce010982780140Aa0cD5Ab",
       "DAI": "0x67F9c92051eF31F91374B46730Bf04E903B2c1aE",
