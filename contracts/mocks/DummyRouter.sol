@@ -69,6 +69,4 @@ contract DummyRouter is IERC721Receiver {
         _data;
         return 0x150b7a02;
     }
-
-    function doNothing() external {}
 }
