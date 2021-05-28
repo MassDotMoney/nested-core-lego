@@ -290,7 +290,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     @param _swapTarget [address] the address of the contract that will swap tokens
     @param _tokenOrders [<TokenOrder>] orders for token swaps
     */
-    function swapTokenForToken(
+    function swapTokenForTokens(
         uint256 _nftId,
         IERC20 _sellToken,
         uint256 _sellTokenAmount,

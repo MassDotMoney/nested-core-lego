@@ -508,7 +508,7 @@ describe("NestedFactory", () => {
 
         it("reverts if token id is invalid", async () => {
             await expect(
-                factory.swapTokenForToken(
+                factory.swapTokenForTokens(
                     ethers.utils.parseEther("999").toString(),
                     tokensToBuy[0],
                     appendDecimals(2),
@@ -522,7 +522,7 @@ describe("NestedFactory", () => {
             await expect(
                 factory
                     .connect(bob)
-                    .swapTokenForToken(
+                    .swapTokenForTokens(
                         assets[0],
                         tokensToBuy[0],
                         appendDecimals(2),
@@ -534,7 +534,7 @@ describe("NestedFactory", () => {
 
         it("reverts if insufficient amount", async () => {
             await expect(
-                factory.swapTokenForToken(
+                factory.swapTokenForTokens(
                     assets[0],
                     tokensToBuy[0],
                     appendDecimals(50),
@@ -549,7 +549,13 @@ describe("NestedFactory", () => {
             let initialUNI = tokenHoldings[0].amount
             let swapAmount = appendDecimals(2)
 
-            await factory.swapTokenForToken(assets[0], tokensToBuy[0], swapAmount, dummyRouter.address, swapTokenOrders)
+            await factory.swapTokenForTokens(
+                assets[0],
+                tokensToBuy[0],
+                swapAmount,
+                dummyRouter.address,
+                swapTokenOrders,
+            )
 
             tokenHoldings = await factory.tokenHoldings(assets[0])
             let currentUNI = tokenHoldings[0].amount

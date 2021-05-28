@@ -73,3 +73,14 @@ export const readAmountETH = async () => {
     const response = await inquirer.prompt([amountQuestion])
     return response.amount
 }
+
+export const readNumber = async (message: string) => {
+    const question: DistinctQuestion = {
+        name: "count",
+        message,
+        type: "number",
+        default: "1",
+    }
+    const response = await inquirer.prompt([question])
+    return response.count
+}
