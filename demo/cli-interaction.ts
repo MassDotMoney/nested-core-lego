@@ -53,10 +53,10 @@ export const pickHolding = async (nftId: BigNumber) => {
     return assetPickAnswer.asset
 }
 
-export const readTokenAddress = async () => {
+export const readTokenAddress = async (message: string) => {
     const tokenPickQuestion: DistinctQuestion = {
         name: "token",
-        message: "Enter ERC20 token address",
+        message,
         type: "input",
     }
     const response = await inquirer.prompt([tokenPickQuestion])
