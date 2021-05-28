@@ -53,7 +53,7 @@ async function main() {
     console.log("Factory address: ", factory.address)
     addresses[env].factory = factory.address
     // write factory address to addresses.json
-    fs.writeFileSync("./demo/addresses.json", JSON.stringify(addresses, null, 2))
+    fs.writeFileSync("./demo/addresses.json", JSON.stringify(addresses, null, 4))
 }
 
 main()

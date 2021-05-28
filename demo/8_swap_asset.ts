@@ -19,13 +19,14 @@ async function main() {
     let orders = []
     const swapCount = await readNumber("How many tokens to add")
     for (let i = parseInt(swapCount); i > 0; i--) {
-        const token = await readTokenAddress(`#${i + 1} Enter ERC20 token address (press Enter to stop)`)
+        const token = await readTokenAddress(`#${swapCount - i + 1} Enter ERC20 token address`)
         if (!token) break
 
+        const sellAmount = saleHolding.amount.div(swapCount)
         const order = {
             sellToken: saleHolding.token,
             buyToken: token,
-            sellAmount: saleHolding.amount.div(swapCount).toString(),
+            sellAmount: sellAmount.sub(sellAmount.div(100)).toString(),
             slippagePercentage: 0.3,
         }
         orders.push(order)
@@ -48,7 +49,7 @@ async function main() {
     const tx = await nestedFactory.swapTokenForTokens(
         nftId,
         saleHolding.token,
-        totalSellAmount,
+        saleHolding.amount,
         responses[0].data.to,
         responses.map(r => ({
             token: r.data.buyTokenAddress,
