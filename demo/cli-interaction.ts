@@ -12,7 +12,7 @@ const getNestedFactory = async () => {
     return NestedFactory.attach(addresses[env].factory)
 }
 
-export const pickNFT = async () => {
+export const pickNFT = async (message: string = "Pick the NFT you want to update") => {
     const [user] = await ethers.getSigners()
 
     const nestedFactory = await getNestedFactory()
@@ -20,7 +20,7 @@ export const pickNFT = async () => {
 
     const pickNftQuestion = {
         name: "nftId",
-        message: "Pick the NFT you want to update",
+        message,
         id: "sell",
         type: "list",
         choices: nftIds.map((id: BigNumber) => ({
