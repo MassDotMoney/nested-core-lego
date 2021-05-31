@@ -194,13 +194,29 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         NestedStructs.TokenOrder[] calldata _tokenOrders
     ) internal {
         uint256 buyCount = _tokenOrders.length;
+
         for (uint256 i = 0; i < buyCount; i++) {
+            uint256 amountBought = 0;
             uint256 balanceBeforePurchase = IERC20(_tokenOrders[i].token).balanceOf(address(this));
-            bool success = ExchangeHelpers.fillQuote(_sellToken, _swapTarget, _tokenOrders[i].callData);
-            require(success, "NestedFactory: SWAP_CALL_FAILED");
-            uint256 amountBought = IERC20(_tokenOrders[i].token).balanceOf(address(this)) - balanceBeforePurchase;
+
+            /* If token being exchanged is the sell token, the callData sent by the caller
+             ** will be used on the reserve to call the transferFromFactory taking the funds
+             ** directly instead of swapping
+             */
+            if (_tokenOrders[i].token == address(_sellToken)) {
+                ExchangeHelpers.setMaxAllowance(_sellToken, address(reserve));
+                (bool success, ) = address(reserve).call(_tokenOrders[i].callData);
+                require(success, "NestedFactory: RESERVE_CALL_FAILED");
+
+                amountBought = balanceBeforePurchase - IERC20(_tokenOrders[i].token).balanceOf(address(this));
+            } else {
+                bool success = ExchangeHelpers.fillQuote(_sellToken, _swapTarget, _tokenOrders[i].callData);
+                require(success, "NestedFactory: SWAP_CALL_FAILED");
+
+                amountBought = IERC20(_tokenOrders[i].token).balanceOf(address(this)) - balanceBeforePurchase;
+                IERC20(_tokenOrders[i].token).safeTransfer(address(reserve), amountBought);
+            }
             nestedRecords.store(_nftId, _tokenOrders[i].token, amountBought, address(reserve));
-            IERC20(_tokenOrders[i].token).safeTransfer(address(reserve), amountBought);
         }
     }
 
@@ -344,8 +360,11 @@ contract NestedFactory is ReentrancyGuard, Ownable {
 
             // we transfer from reserve to factory
             reserve.withdraw(IERC20(holding.token), _sellTokensAmount[i]);
-            bool success = ExchangeHelpers.fillQuote(_sellTokens[i], _swapTarget, _tokenOrders[i].callData);
-            require(success, "SWAP_CALL_FAILED");
+
+            if (_sellTokens[i] != _buyToken) {
+                bool success = ExchangeHelpers.fillQuote(_sellTokens[i], _swapTarget, _tokenOrders[i].callData);
+                require(success, "SWAP_CALL_FAILED");
+            }
 
             nestedRecords.updateHoldingAmount(_nftId, address(_sellTokens[i]), holding.amount - _sellTokensAmount[i]);
         }
@@ -429,8 +448,14 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         for (uint256 i = 0; i < tokenLength; i++) {
             NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
             reserve.withdraw(IERC20(holding.token), holding.amount);
-            bool success =
-                ExchangeHelpers.fillQuote(IERC20(_tokenOrders[i].token), _swapTarget, _tokenOrders[i].callData);
+
+            bool success = false;
+            if (holding.token != address(_buyToken))
+                success = ExchangeHelpers.fillQuote(
+                    IERC20(_tokenOrders[i].token),
+                    _swapTarget,
+                    _tokenOrders[i].callData
+                );
             if (!success) _transferToWallet(_nftId, holding);
             nestedRecords.freeHolding(_nftId, tokens[i]);
         }

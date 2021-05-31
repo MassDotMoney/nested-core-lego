@@ -399,7 +399,7 @@ describe("NestedFactory", () => {
             ).to.be.revertedWith("NestedFactory: NOT_TOKEN_OWNER")
         })
 
-        it("Update NFT", async () => {
+        it("updates NFT", async () => {
             const initialWethBalance = await mockWETH.balanceOf(alice.address)
             const initialFeeBalance = await mockWETH.balanceOf(factory.feeTo())
 
@@ -415,7 +415,41 @@ describe("NestedFactory", () => {
             expect(tokenHoldings[0].amount).to.equal(appendDecimals(8))
         })
 
-        it("Update NFT with ETH", async () => {
+        it("adds a token without doing a swap", async () => {
+            const initialAliceBalance = await alice.getBalance()
+
+            const abi = ["function transferFromFactory(address _token, uint256 _amount)"]
+            const iface = new Interface(abi)
+
+            const tx = await factory.addTokens(
+                assets[0],
+                mockWETH.address,
+                appendDecimals(1),
+                ethers.constants.AddressZero,
+                [
+                    {
+                        token: mockWETH.address,
+                        callData: iface.encodeFunctionData("transferFromFactory", [
+                            mockWETH.address,
+                            appendDecimals(1),
+                        ]),
+                    },
+                ],
+                {
+                    value: appendDecimals(1.01),
+                },
+            )
+            await tx.wait()
+
+            const expectedAliceBalance = initialAliceBalance.sub(appendDecimals(1.01)).sub(await getETHSpentOnGas(tx))
+            expect(await alice.getBalance()).to.equal(expectedAliceBalance)
+
+            let tokenHoldings = await factory.tokenHoldings(assets[0])
+            expect(tokenHoldings[2].amount).to.equal(appendDecimals(1))
+            expect(await mockWETH.balanceOf(reserve.address)).to.equal(appendDecimals(1))
+        })
+
+        it("updates NFT with ETH", async () => {
             const initialWethBalance = await mockWETH.balanceOf(alice.address)
             const initialFeeBalance = await mockWETH.balanceOf(factory.feeTo())
             const initialAliceBalance = await alice.getBalance()
@@ -564,8 +598,8 @@ describe("NestedFactory", () => {
         })
     })
 
-    describe("#sell", () => {
-        const totalSellAmount = appendDecimals(10)
+    describe("#sellTokensToWallet", () => {
+        const totalSellAmount = appendDecimals(11)
         let tokensToBuy: string[] = []
         let tokensToSell: string[] = []
         let buyTokenOrders: TokenOrder[] = []
@@ -583,13 +617,16 @@ describe("NestedFactory", () => {
             mockKNC.transfer(dummyRouter.address, appendDecimals(1000))
             mockDAI.transfer(dummyRouter.address, appendDecimals(1000))
 
-            tokensToBuy = [mockUNI.address, mockKNC.address]
-            tokensToSell = [mockUNI.address, mockKNC.address]
+            tokensToBuy = [mockUNI.address, mockKNC.address, mockWETH.address]
+            tokensToSell = [mockUNI.address, mockKNC.address, mockWETH.address]
 
             mockWETH.approve(factory.address, appendDecimals(10.1))
             await mockWETH.deposit({ value: appendDecimals(10.1) })
 
-            const abi = ["function dummyswapToken(address _inputToken, address _outputToken, uint256 _amount)"]
+            const abi = [
+                "function dummyswapToken(address _inputToken, address _outputToken, uint256 _amount)",
+                "function transferFromFactory(address _token, uint256 _amount)",
+            ]
             const iface = new Interface(abi)
 
             sellTokenOrders = [
@@ -608,6 +645,10 @@ describe("NestedFactory", () => {
                         mockWETH.address,
                         appendDecimals(3),
                     ]),
+                },
+                {
+                    token: mockWETH.address,
+                    callData: [],
                 },
             ]
 
@@ -628,9 +669,13 @@ describe("NestedFactory", () => {
                         appendDecimals(6),
                     ]),
                 },
+                {
+                    token: mockWETH.address,
+                    callData: iface.encodeFunctionData("transferFromFactory", [mockWETH.address, appendDecimals(1)]),
+                },
             ]
 
-            await mockWETH.deposit({ value: appendDecimals(10.1) })
+            await mockWETH.deposit({ value: appendDecimals(11.1) })
             await createNFTFromETH(buyTokenOrders, totalSellAmount, totalSellAmount.add(expectedFee))
             assets = await factory.tokensOf(alice.address)
         })
@@ -669,7 +714,7 @@ describe("NestedFactory", () => {
                     assets[0],
                     mockWETH.address,
                     tokensToSell,
-                    [appendDecimals(50), appendDecimals(50)],
+                    [appendDecimals(50), appendDecimals(50), appendDecimals(1)],
                     dummyRouter.address,
                     sellTokenOrders,
                 ),
@@ -677,26 +722,28 @@ describe("NestedFactory", () => {
         })
 
         it("sell NFT assets", async () => {
-            let tokenHoldings = await factory.tokenHoldings(assets[0])
-            let initialUNI = tokenHoldings[0].amount
-            let initialKNC = tokenHoldings[1].amount
+            const prevTokenHoldings = await factory.tokenHoldings(assets[0])
+            const initialUNI = prevTokenHoldings[0].amount
+            const initialKNC = prevTokenHoldings[1].amount
+            const initialWETH = prevTokenHoldings[2].amount
 
             await factory.sellTokensToWallet(
                 assets[0],
                 mockWETH.address,
                 tokensToSell,
-                [appendDecimals(2), appendDecimals(3)],
+                [appendDecimals(2), appendDecimals(3), appendDecimals(1)],
                 dummyRouter.address,
                 sellTokenOrders,
             )
 
-            tokenHoldings = await factory.tokenHoldings(assets[0])
-            let currentUNI = tokenHoldings[0].amount
-            let currentKNC = tokenHoldings[1].amount
+            const nextTokenHoldings = await factory.tokenHoldings(assets[0])
+            const currentUNI = nextTokenHoldings[0].amount
+            const currentKNC = nextTokenHoldings[1].amount
+            const currentWETH = nextTokenHoldings[2].amount
 
-            expect(tokenHoldings.length).to.equal(2)
             expect(currentUNI).to.equal(initialUNI.sub(appendDecimals(2)))
             expect(currentKNC).to.equal(initialKNC.sub(appendDecimals(3)))
+            expect(currentWETH).to.equal(0)
         })
     })
 
@@ -993,6 +1040,6 @@ describe("NestedFactory", () => {
 
     interface TokenOrder {
         token: string
-        callData: string
+        callData: string | []
     }
 })
