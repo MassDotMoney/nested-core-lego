@@ -443,7 +443,7 @@ describe("NestedFactory", () => {
         })
     })
 
-    describe("#swap", () => {
+    describe("#swapTokenForTokens", () => {
         const totalSellAmount = appendDecimals(10)
         let tokensToBuy: string[] = []
         let tokensToSwap: string[] = []
