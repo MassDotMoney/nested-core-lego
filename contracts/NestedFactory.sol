@@ -200,19 +200,17 @@ contract NestedFactory is ReentrancyGuard, Ownable {
             uint256 balanceBeforePurchase = IERC20(_tokenOrders[i].token).balanceOf(address(this));
 
             /* If token being exchanged is the sell token, the callData sent by the caller
-             ** will be used on the reserve to call the transferFromFactory taking the funds
+             ** will be used on the reserve to call the transferFromFactory, taking the funds
              ** directly instead of swapping
              */
             if (_tokenOrders[i].token == address(_sellToken)) {
                 ExchangeHelpers.setMaxAllowance(_sellToken, address(reserve));
                 (bool success, ) = address(reserve).call(_tokenOrders[i].callData);
                 require(success, "NestedFactory: RESERVE_CALL_FAILED");
-
                 amountBought = balanceBeforePurchase - IERC20(_tokenOrders[i].token).balanceOf(address(this));
             } else {
                 bool success = ExchangeHelpers.fillQuote(_sellToken, _swapTarget, _tokenOrders[i].callData);
                 require(success, "NestedFactory: SWAP_CALL_FAILED");
-
                 amountBought = IERC20(_tokenOrders[i].token).balanceOf(address(this)) - balanceBeforePurchase;
                 IERC20(_tokenOrders[i].token).safeTransfer(address(reserve), amountBought);
             }
