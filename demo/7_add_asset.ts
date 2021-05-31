@@ -1,6 +1,6 @@
 import axios, { AxiosResponse } from "axios"
 import { ethers, network } from "hardhat"
-import { pickHolding, pickNFT, readAmountETH, readTokenAddress } from "./cli-interaction"
+import { pickNFT, readAmountETH, readTokenAddress } from "./cli-interaction"
 
 import { NetworkName } from "./demo-types"
 import addresses from "./addresses.json"
