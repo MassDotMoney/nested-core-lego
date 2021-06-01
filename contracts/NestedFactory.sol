@@ -372,13 +372,8 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         amountBought = amountBought - amountFees;
 
         // if buy token is WETH, unwrap it instead of transferring it to the sender
-        if (address(_buyToken) == address(weth)) {
-            IWETH(weth).withdraw(amountBought);
-            (bool success, ) = msg.sender.call{ value: amountBought }("");
-            require(success, "ETH_TRANSFER_ERROR");
-        } else {
-            require(_buyToken.transfer(msg.sender, amountBought), "TOKEN_TRANSFER_ERROR");
-        }
+        if (address(_buyToken) == address(weth)) _unwrapWeth(amountBought);
+        else require(_buyToken.transfer(msg.sender, amountBought), "TOKEN_TRANSFER_ERROR");
 
         transferFee(amountFees, _buyToken);
     }
@@ -543,5 +538,15 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     function transferFee(uint256 _amount, IERC20 _token) internal {
         ExchangeHelpers.setMaxAllowance(_token, address(feeTo));
         feeTo.sendFees(msg.sender, _token, _amount);
+    }
+
+    /**
+     * @dev unwrap ether and transfer it to sender
+     * @param _amount [uint256] amount to unwrap
+     */
+    function _unwrapWeth(uint256 _amount) internal {
+        IWETH(weth).withdraw(_amount);
+        (bool success, ) = msg.sender.call{ value: _amount }("");
+        require(success, "ETH_TRANSFER_ERROR");
     }
 }
