@@ -21,10 +21,11 @@ import "./libraries/ExchangeHelpers.sol";
  */
 contract NestedFactory is ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
+    event NftCreated(uint256 indexed nftId, uint256 originalNftId);
     event FailsafeWithdraw(uint256 indexed nftId, address indexed token);
     event ReserveRegistered(address indexed reserve);
     event AssetsMigrated(uint256 indexed nftId, address to);
-    event NftUpdated(uint256 indexed nftId); // TODO emit this with update
+    event NftUpdated(uint256 indexed nftId);
 
     IWETH public immutable weth;
     FeeSplitter public feeTo;
@@ -242,6 +243,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
             _sellToken = IERC20(address(weth));
         }
         transferFeeWithRoyalty(fees, _sellToken, nftId, msg.sender);
+        emit NftCreated(nftId, _originalTokenId);
     }
 
     /*
@@ -265,6 +267,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
             _sellToken = IERC20(address(weth));
         }
         transferFee(fees, _sellToken);
+        emit NftUpdated(_nftId);
     }
 
     function _addTokens(
@@ -293,6 +296,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         exchangeAndStoreTokens(_nftId, _sellToken, _swapTarget, _tokenOrders);
         uint256 amountSpent = balanceBeforePurchase - _sellToken.balanceOf(address(this));
         require(amountSpent <= _sellTokenAmount, "OVERSPENT_ERROR");
+
         return _sellTokenAmount - amountSpent + fees;
     }
 
@@ -328,6 +332,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
 
         nestedRecords.updateHoldingAmount(_nftId, address(_sellToken), holding.amount - _sellTokenAmount);
         transferFee(_sellTokenAmount - amountSpent, _sellToken);
+        emit NftUpdated(_nftId);
     }
 
     /**
@@ -376,6 +381,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         else require(_buyToken.transfer(msg.sender, amountBought), "TOKEN_TRANSFER_ERROR");
 
         transferFee(amountFees, _buyToken);
+        emit NftUpdated(_nftId);
     }
 
     /*
@@ -420,6 +426,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         _transferToWallet(_nftId, holding);
 
         nestedRecords.deleteAsset(_nftId, _tokenIndex);
+        emit NftUpdated(_nftId);
     }
 
     /*
