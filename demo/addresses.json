@@ -1,7 +1,7 @@
 {
     "localhost": {
         "uniswapRouter": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
-        "factory": "0x81911FbE49157Cd03c48A6BF7B8dd3CBFA001209",
+        "factory": "0xa04E2CB8B74a602eED85330B9b51E7ECc27809e2",
         "tokens": {
             "WETH": "0xc778417E063141139Fce010982780140Aa0cD5Ab",
             "DAI": "0x67F9c92051eF31F91374B46730Bf04E903B2c1aE",
@@ -43,7 +43,7 @@
     },
     "ropsten": {
         "uniswapRouter": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
-        "factory": "0x81911FbE49157Cd03c48A6BF7B8dd3CBFA001209",
+        "factory": "0xa04E2CB8B74a602eED85330B9b51E7ECc27809e2",
         "tokens": {
             "WETH": "0xc778417E063141139Fce010982780140Aa0cD5Ab",
             "DAI": "0x67F9c92051eF31F91374B46730Bf04E903B2c1aE",

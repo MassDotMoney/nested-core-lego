@@ -1,10 +1,10 @@
+import { appendDecimals, displayHoldings } from "../test/helpers"
 import { ethers, network } from "hardhat"
 import { pickNFT, readNumber } from "./cli-interaction"
 
 import { BigNumber } from "ethers"
 import { NetworkName } from "./demo-types"
 import addresses from "./addresses.json"
-import { appendDecimals } from "../test/helpers"
 import axios from "axios"
 import qs from "qs"
 
@@ -17,44 +17,41 @@ const main = async () => {
 
     const nftId = await pickNFT()
     let holdings = await nestedFactory.tokenHoldings(nftId)
+    holdings = holdings.filter((holding: any) => holding.isActive && holding.amount.gt(0))
 
     const budgetUserInput = await readNumber("What is your budget in Ether?")
     const budget = ethers.utils.parseEther(budgetUserInput.toString())
 
     const sellToken = addresses[env].tokens.WETH
 
-    const holdingPrices = (await Promise.all(
+    const holdingValues = (await Promise.all(
         holdings.map(async (holding: any) => {
-            if (holding.token == sellToken) return appendDecimals(1).toString()
+            if (holding.token == sellToken) return appendDecimals(1)
             const order = {
                 sellToken,
                 buyToken: holding.token,
-                buyAmount: appendDecimals(1).toString(),
+                buyAmount: holding.amount.toString(),
             }
             const response: any = await axios.get(
                 `https://${envPrefix}.api.0x.org/swap/v1/price?${qs.stringify(order)}`,
             )
-            return response.data.sellAmount
+            return BigNumber.from(response.data.sellAmount)
         }),
-    )) as string[]
+    )) as BigNumber[]
 
     // get the total value of the holdings in sellToken.
-    const totalHoldingsValue = holdingPrices.reduce(
+    const totalHoldingsValue = holdingValues.reduce(
         (prev, next) => prev.add(ethers.BigNumber.from(next)),
         ethers.BigNumber.from(0),
     )
 
     const orders = holdings.map((holding: any, index: number) => {
-        const buyAmount = holding.amount
-            .mul(budget)
-            .mul(holdingPrices[index])
-            .div(totalHoldingsValue)
-            .div(appendDecimals(1))
+        const sellAmount = holdingValues[index].mul(budget).div(totalHoldingsValue)
 
         return {
             sellToken: sellToken,
             buyToken: holding.token,
-            buyAmount: buyAmount.toString(),
+            sellAmount: sellAmount.toString(),
             slippagePercentage: 0.3,
         }
     })
@@ -73,8 +70,8 @@ const main = async () => {
         tokenOrders.push({ token: response.data.buyTokenAddress, callData: response.data.data })
     })
     const totalSellAmount = sellAmounts.reduce((p, c) => p.add(c), ethers.BigNumber.from(0))
-    const totalSellAmountWithFees = totalSellAmount.add(totalSellAmount.div(100))
 
+    const totalSellAmountWithFees = totalSellAmount.add(totalSellAmount.div(100))
     await nestedFactory.create(
         nftId,
         "",
@@ -82,12 +79,12 @@ const main = async () => {
         totalSellAmount,
         responses[0].data.to,
         tokenOrders,
-        { value: totalSellAmountWithFees },
+        { value: totalSellAmountWithFees.mul(2) },
     )
 
     console.log("\nNFT replicated\n")
-
-    console.log("Holdings: ", holdings)
+    const replicatedHoldings = await nestedFactory.tokenHoldings(nftId + 1)
+    displayHoldings(replicatedHoldings)
 }
 
 main()
