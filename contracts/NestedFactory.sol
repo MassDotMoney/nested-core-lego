@@ -25,7 +25,9 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     event FailsafeWithdraw(uint256 indexed nftId, address indexed token);
     event ReserveRegistered(address indexed reserve);
     event AssetsMigrated(uint256 indexed nftId, address to);
-    event NftUpdated(uint256 indexed nftId);
+
+    enum UpdateOperation { AddToken, RemoveToken, SwapToken }
+    event NftUpdated(uint256 indexed nftId, UpdateOperation updateOperation);
 
     IWETH public immutable weth;
     FeeSplitter public feeTo;
@@ -267,7 +269,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
             _sellToken = IERC20(address(weth));
         }
         transferFee(fees, _sellToken);
-        emit NftUpdated(_nftId);
+        emit NftUpdated(_nftId, UpdateOperation.AddToken);
     }
 
     function _addTokens(
@@ -332,7 +334,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
 
         nestedRecords.updateHoldingAmount(_nftId, address(_sellToken), holding.amount - _sellTokenAmount);
         transferFee(_sellTokenAmount - amountSpent, _sellToken);
-        emit NftUpdated(_nftId);
+        emit NftUpdated(_nftId, UpdateOperation.SwapToken);
     }
 
     /**
@@ -381,7 +383,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         else require(_buyToken.transfer(msg.sender, amountBought), "TOKEN_TRANSFER_ERROR");
 
         transferFee(amountFees, _buyToken);
-        emit NftUpdated(_nftId);
+        emit NftUpdated(_nftId, UpdateOperation.RemoveToken);
     }
 
     /*
@@ -426,7 +428,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         _transferToWallet(_nftId, holding);
 
         nestedRecords.deleteAsset(_nftId, _tokenIndex);
-        emit NftUpdated(_nftId);
+        emit NftUpdated(_nftId, UpdateOperation.RemoveToken);
     }
 
     /*
