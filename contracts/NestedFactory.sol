@@ -370,7 +370,16 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         uint256 amountBought = _buyToken.balanceOf(address(this)) - buyTokenInitialBalance;
         uint256 amountFees = amountBought / 100;
         amountBought = amountBought - amountFees;
-        require(_buyToken.transfer(msg.sender, amountBought), "TOKEN_TRANSFER_ERROR");
+
+        // if buy token is WETH, unwrap it instead of transferring it to the sender
+        if (address(_buyToken) == address(weth)) {
+            IWETH(weth).withdraw(amountBought);
+            (bool success, ) = msg.sender.call{ value: amountBought }("");
+            require(success, "ETH_TRANSFER_ERROR");
+        } else {
+            require(_buyToken.transfer(msg.sender, amountBought), "TOKEN_TRANSFER_ERROR");
+        }
+
         transferFee(amountFees, _buyToken);
     }
 

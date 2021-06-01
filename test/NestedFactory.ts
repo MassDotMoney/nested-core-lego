@@ -774,6 +774,36 @@ describe("NestedFactory", () => {
             expect(currentKNC).to.equal(initialKNC.sub(appendDecimals(3)))
             expect(currentWETH).to.equal(0)
         })
+
+        it("sell NFT assets including automatically unwrapped WETH", async () => {
+            const abi = ["function transferFromFactory(address _token, uint256 _amount)"]
+            const iface = new Interface(abi)
+
+            const wethBuyAmount = appendDecimals(1)
+
+            await factory.addTokens(assets[0], mockWETH.address, appendDecimals(1), dummyRouter.address, [
+                {
+                    token: mockWETH.address,
+                    callData: iface.encodeFunctionData("transferFromFactory", [mockWETH.address, wethBuyAmount]),
+                },
+            ])
+            const initialEthBalance = await alice.getBalance()
+
+            const tx = await factory.sellTokensToWallet(
+                assets[0],
+                mockWETH.address,
+                tokensToSell,
+                [appendDecimals(2), appendDecimals(3), wethBuyAmount],
+                dummyRouter.address,
+                sellTokenOrders,
+            )
+            const txSpent = await getETHSpentOnGas(tx)
+
+            // sale amount should be 2ETH + 3ETH + 1ETH - 1% Fee
+            expect(await alice.getBalance()).to.equal(
+                initialEthBalance.add(appendDecimals(6).sub(appendDecimals(6).div(100))).sub(txSpent),
+            )
+        })
     })
 
     describe("#destroy", () => {
