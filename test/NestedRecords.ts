@@ -1,5 +1,6 @@
 import { Contract } from "@ethersproject/contracts"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
+import { appendDecimals } from "./helpers"
 import { ethers } from "hardhat"
 import { expect } from "chai"
 
@@ -50,5 +51,21 @@ describe("NestedRecords", () => {
         await expect(nestedRecords.store(0, bob.address, 20, alice.address)).to.be.revertedWith(
             "NestedRecords: TOO_MANY_ORDERS",
         )
+    })
+
+    it("updates a record", async () => {
+        const weth = "0xc778417E063141139Fce010982780140Aa0cD5Ab"
+        const tx = await nestedRecords.store(0, weth, appendDecimals(10), bob.address)
+        await tx.wait()
+        const tx0 = await nestedRecords.update(0, 0, weth, appendDecimals(5))
+        await tx0.wait()
+        const holding = await nestedRecords.getAssetHolding(0, weth)
+        expect(holding.amount).to.equal(appendDecimals(5))
+        const tx1 = await nestedRecords.update(0, 0, weth, appendDecimals(5))
+        await tx1.wait()
+        const tokens = await nestedRecords.getAssetTokens(0)
+        expect(tokens.length).to.equal(0)
+        const emptyHolding = await nestedRecords.getAssetHolding(0, weth)
+        expect(emptyHolding.token).to.equal(ethers.constants.AddressZero)
     })
 })

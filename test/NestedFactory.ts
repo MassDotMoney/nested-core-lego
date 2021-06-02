@@ -771,6 +771,47 @@ describe("NestedFactory", () => {
             expect(currentWETH).to.equal(0)
         })
 
+        it("sell NFT assets with currency different than WETH", async () => {
+            const abi = ["function dummyswapToken(address _inputToken, address _outputToken, uint256 _amount)"]
+            const iface = new Interface(abi)
+
+            const _sellTokenOrders = [
+                {
+                    token: mockKNC.address,
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        tokensToSell[0],
+                        mockKNC.address,
+                        appendDecimals(2),
+                    ]),
+                },
+                {
+                    token: mockKNC.address,
+                    callData: [] as [],
+                },
+                {
+                    token: mockKNC.address,
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        tokensToSell[2],
+                        mockKNC.address,
+                        appendDecimals(1),
+                    ]),
+                },
+            ]
+
+            await factory.sellTokensToWallet(
+                assets[0],
+                mockKNC.address,
+                tokensToSell,
+                [appendDecimals(4), appendDecimals(6), appendDecimals(1)],
+                dummyRouter.address,
+                _sellTokenOrders,
+            )
+            const holdings = await factory.tokenHoldings(assets[0])
+            expect(holdings[0].amount).to.equal(0)
+            expect(holdings[1].amount).to.equal(0)
+            expect(holdings[2].amount).to.equal(0)
+        })
+
         it("sell NFT assets including automatically unwrapped WETH", async () => {
             const abi = ["function transferFromFactory(address _token, uint256 _amount)"]
             const iface = new Interface(abi)
