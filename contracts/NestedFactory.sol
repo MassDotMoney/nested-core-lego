@@ -340,7 +340,6 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     /**
     Liquidiate one or more holdings and transfer the sale amount to the User. Fee is collected without paying roylaties.
     @param _nftId [uint] the id of the NFT to update
-    @param _sellTokens [<IERC20>] tokens used to make swaps
     @param _sellTokensAmount [<uint>] amount of sell tokens to exchange
     @param _swapTarget [address] the address of the contract that will swap tokens
     @param _tokenOrders [<TokenOrder>] orders for token swaps
@@ -348,7 +347,6 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     function sellTokensToWallet(
         uint256 _nftId,
         IERC20 _buyToken,
-        IERC20[] memory _sellTokens,
         uint256[] memory _sellTokensAmount,
         address payable _swapTarget,
         NestedStructs.TokenOrder[] calldata _tokenOrders
@@ -358,20 +356,21 @@ contract NestedFactory is ReentrancyGuard, Ownable {
 
         uint256 buyTokenInitialBalance = _buyToken.balanceOf(address(this));
 
-        for (uint256 i = 0; i < _sellTokens.length; i++) {
+        for (uint256 i = 0; i < _tokenOrders.length; i++) {
             // check if sell token exist in nft and amount is enough
-            NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_sellTokens[i]));
+            NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, _tokenOrders[i].token);
             require(holding.amount >= _sellTokensAmount[i], "INSUFFICIENT_AMOUNT");
 
             // we transfer from reserve to factory
             reserve.withdraw(IERC20(holding.token), _sellTokensAmount[i]);
 
-            if (_sellTokens[i] != _buyToken) {
-                bool success = ExchangeHelpers.fillQuote(_sellTokens[i], _swapTarget, _tokenOrders[i].callData);
+            if (_tokenOrders[i].token != address(_buyToken)) {
+                bool success =
+                    ExchangeHelpers.fillQuote(IERC20(_tokenOrders[i].token), _swapTarget, _tokenOrders[i].callData);
                 require(success, "SWAP_CALL_FAILED");
             }
 
-            nestedRecords.updateHoldingAmount(_nftId, address(_sellTokens[i]), holding.amount - _sellTokensAmount[i]);
+            nestedRecords.updateHoldingAmount(_nftId, _tokenOrders[i].token, holding.amount - _sellTokensAmount[i]);
         }
 
         uint256 amountBought = _buyToken.balanceOf(address(this)) - buyTokenInitialBalance;

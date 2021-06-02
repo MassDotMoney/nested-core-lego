@@ -660,7 +660,7 @@ describe("NestedFactory", () => {
 
             sellTokenOrders = [
                 {
-                    token: mockWETH.address,
+                    token: mockUNI.address,
                     callData: iface.encodeFunctionData("dummyswapToken", [
                         tokensToSell[0],
                         mockWETH.address,
@@ -668,7 +668,7 @@ describe("NestedFactory", () => {
                     ]),
                 },
                 {
-                    token: mockWETH.address,
+                    token: mockKNC.address,
                     callData: iface.encodeFunctionData("dummyswapToken", [
                         tokensToSell[1],
                         mockWETH.address,
@@ -714,7 +714,6 @@ describe("NestedFactory", () => {
                 factory.sellTokensToWallet(
                     ethers.utils.parseEther("999").toString(),
                     mockWETH.address,
-                    tokensToSell,
                     [appendDecimals(4), appendDecimals(2), appendDecimals(1)],
                     dummyRouter.address,
                     sellTokenOrders,
@@ -729,7 +728,6 @@ describe("NestedFactory", () => {
                     .sellTokensToWallet(
                         assets[0],
                         mockWETH.address,
-                        tokensToSell,
                         [appendDecimals(4), appendDecimals(2), appendDecimals(1)],
                         dummyRouter.address,
                         sellTokenOrders,
@@ -742,7 +740,6 @@ describe("NestedFactory", () => {
                 factory.sellTokensToWallet(
                     assets[0],
                     mockWETH.address,
-                    tokensToSell,
                     [appendDecimals(50), appendDecimals(50), appendDecimals(1)],
                     dummyRouter.address,
                     sellTokenOrders,
@@ -759,7 +756,6 @@ describe("NestedFactory", () => {
             await factory.sellTokensToWallet(
                 assets[0],
                 mockWETH.address,
-                tokensToSell,
                 [appendDecimals(2), appendDecimals(3), appendDecimals(1)],
                 dummyRouter.address,
                 sellTokenOrders,
@@ -792,7 +788,6 @@ describe("NestedFactory", () => {
             const tx = await factory.sellTokensToWallet(
                 assets[0],
                 mockWETH.address,
-                tokensToSell,
                 [appendDecimals(2), appendDecimals(3), wethBuyAmount],
                 dummyRouter.address,
                 sellTokenOrders,
