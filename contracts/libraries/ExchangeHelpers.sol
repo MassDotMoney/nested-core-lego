@@ -2,8 +2,7 @@
 pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 /**
  * Helpers for swapping tokens
@@ -37,5 +36,16 @@ library ExchangeHelpers {
         if (_token.allowance(address(this), _spender) != type(uint256).max) {
             _token.approve(_spender, type(uint256).max);
         }
+    }
+
+    function _getRevertMsg(bytes memory _returnData) internal pure returns (string memory) {
+        // If the _res length is less than 68, then the transaction failed silently (without a revert message)
+        if (_returnData.length < 68) return "Transaction reverted silently";
+
+        assembly {
+            // Slice the sighash.
+            _returnData := add(_returnData, 0x04)
+        }
+        return abi.decode(_returnData, (string)); // All that remains is the revert string
     }
 }

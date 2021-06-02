@@ -26,8 +26,6 @@ describe("NestedBuybacker", () => {
         mockWETH = await wethFactory.deploy()
 
         const feeSplitterFactory = await ethers.getContractFactory("FeeSplitter")
-        const smartChefFactory = await ethers.getContractFactory("MockSmartChef")
-        const mockSmartChefNonVIP = await smartChefFactory.deploy(0)
         feeSplitter = await feeSplitterFactory.deploy(
             [bob.address],
             [30],
@@ -35,7 +33,6 @@ describe("NestedBuybacker", () => {
             mockWETH.address,
             500,
             appendDecimals(500),
-            mockSmartChefNonVIP.address,
         )
 
         const NestedBuybackerFactory = await ethers.getContractFactory("NestedBuybacker")

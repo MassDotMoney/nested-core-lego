@@ -18,6 +18,8 @@ nb: NST token and staking pools contract can be found here: https://github.com/N
 3rd parties:
 - Nested Finance brings decentralized liquidity to the protocol through 0x. It's a protocol that creates off-chain orders, and settles on chain. This way, the NestedFactory expects to receive calldata to forwarded to 0x contracts. The route used to get such information follows this pattern: `https://api.0x.org/swap/v1/quote?buyToken=SNX&sellToken=LINK&buyAmount=7160000000000000000000`
 
+**Have a look at the `/demo/` folder. Scripts describe all use cases and usage of the smart contracts.**
+
 Use case: creation of a NestedNFT
 ![image](https://user-images.githubusercontent.com/32484870/117845076-857c3580-b280-11eb-9bc7-8422b856ed92.png)
 
@@ -43,6 +45,9 @@ Update process:
 Start a local blockchain
 `yarn run`
 
+Start a local fork of ropsten (works with mainnet too)
+`npx hardhat node --network ropsten`
+
 Start a hardhat console
 `yarn console`
 
@@ -52,8 +57,11 @@ Compile
 Run tests
 `yarn test`
 
-Run linter
-`yarn lint`
+Run coverage
+`yarn test:coverage`
+
+Run gas profiler
+`yarn test:gas`
 
 ## License
 UNLICENSED

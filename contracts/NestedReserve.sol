@@ -56,4 +56,13 @@ contract NestedReserve {
     function withdraw(IERC20 _token, uint256 _amount) external onlyFactory valid(address(_token)) {
         _token.safeTransfer(factory, _amount);
     }
+
+    /**
+     * Transfer funds from the factory directly
+     * @param _token [IERC20] the ERC20 to transfer
+     * @param _amount [uint256] the amount to transfer
+     */
+    function transferFromFactory(IERC20 _token, uint256 _amount) external onlyFactory {
+        _token.safeTransferFrom(factory, address(this), _amount);
+    }
 }

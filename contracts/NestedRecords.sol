@@ -186,4 +186,32 @@ contract NestedRecords is Ownable {
         }
         createRecord(_nftId, _token, _amount, _reserve);
     }
+
+    /*
+    update NFT data into our mappings
+    @param _tokenId the id of the NFT
+    @param _token the address of the token
+    @param _amountSold the amount of tokens sold
+    */
+    function update(
+        uint256 _nftId,
+        uint256 _tokenIndex,
+        address _token,
+        uint256 _amountSold
+    ) external onlyFactory {
+        NestedStructs.Holding memory holding = records[_nftId].holdings[_token];
+        require(holding.isActive, "ALREADY_SOLD");
+        uint256 remainingAmount = holding.amount - _amountSold;
+        //require(remainingAmount >= 0, "INSUFFICIENT_FUND");
+
+        // update amount or delete if nothing remaining
+        if (remainingAmount > 0) {
+            records[_nftId].holdings[_token].amount = holding.amount - _amountSold;
+        } else {
+            delete records[_nftId].holdings[_token];
+            address[] storage tokens = records[_nftId].tokens;
+            tokens[_tokenIndex] = tokens[tokens.length - 1];
+            tokens.pop();
+        }
+    }
 }

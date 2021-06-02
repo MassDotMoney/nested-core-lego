@@ -7,6 +7,8 @@ import "hardhat-gas-reporter"
 import "@nomiclabs/hardhat-solhint"
 import "hardhat-contract-sizer"
 
+import { HardhatUserConfig } from "hardhat/config"
+
 const accounts = {
     mnemonic: process.env.MNEMONIC,
     initialIndex: 0,
@@ -18,7 +20,7 @@ const accounts = {
  * Go to https://hardhat.org/config/ to learn more
  * @type import('hardhat/config').HardhatUserConfig
  */
-export default {
+const config: HardhatUserConfig = {
     defaultNetwork: "hardhat",
     networks: {
         hardhat: {
@@ -64,3 +66,5 @@ export default {
         excludeContracts: ["contracts/mocks/", "contracts/libraries/", "contracts/interfaces/"],
     },
 }
+
+export default config
