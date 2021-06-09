@@ -764,11 +764,10 @@ describe("NestedFactory", () => {
             const nextTokenHoldings = await factory.tokenHoldings(assets[0])
             const currentUNI = nextTokenHoldings[0].amount
             const currentKNC = nextTokenHoldings[1].amount
-            const currentWETH = nextTokenHoldings[2].amount
 
             expect(currentUNI).to.equal(initialUNI.sub(appendDecimals(2)))
             expect(currentKNC).to.equal(initialKNC.sub(appendDecimals(3)))
-            expect(currentWETH).to.equal(0)
+            expect(nextTokenHoldings[2]).to.be.undefined
         })
 
         it("sell NFT assets with currency different than WETH", async () => {
@@ -777,7 +776,7 @@ describe("NestedFactory", () => {
 
             const _sellTokenOrders = [
                 {
-                    token: mockKNC.address,
+                    token: mockUNI.address,
                     callData: iface.encodeFunctionData("dummyswapToken", [
                         tokensToSell[0],
                         mockKNC.address,
@@ -789,7 +788,7 @@ describe("NestedFactory", () => {
                     callData: [] as [],
                 },
                 {
-                    token: mockKNC.address,
+                    token: mockWETH.address,
                     callData: iface.encodeFunctionData("dummyswapToken", [
                         tokensToSell[2],
                         mockKNC.address,
@@ -801,15 +800,12 @@ describe("NestedFactory", () => {
             await factory.sellTokensToWallet(
                 assets[0],
                 mockKNC.address,
-                tokensToSell,
                 [appendDecimals(4), appendDecimals(6), appendDecimals(1)],
                 dummyRouter.address,
                 _sellTokenOrders,
             )
             const holdings = await factory.tokenHoldings(assets[0])
-            expect(holdings[0].amount).to.equal(0)
-            expect(holdings[1].amount).to.equal(0)
-            expect(holdings[2].amount).to.equal(0)
+            expect(holdings).to.be.empty
         })
 
         it("sell NFT assets including automatically unwrapped WETH", async () => {

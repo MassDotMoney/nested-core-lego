@@ -5,6 +5,7 @@ import { NetworkName } from "./demo-types"
 import addresses from "./addresses.json"
 import axios from "axios"
 import qs from "qs"
+import { waitAndShowEtherscanLink } from "./helpers"
 
 async function main() {
     const env = network.name as NetworkName
@@ -33,7 +34,6 @@ async function main() {
     const tx = await nestedFactory.sellTokensToWallet(
         nftId,
         wethContract.address,
-        [pickedHolding.token],
         [pickedHolding.amount],
         response.data.to,
         [
@@ -43,7 +43,7 @@ async function main() {
             },
         ],
     )
-    console.log("Transaction sent ", tx.hash)
+    waitAndShowEtherscanLink(tx)
 }
 
 main()

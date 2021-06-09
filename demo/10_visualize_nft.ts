@@ -1,15 +1,8 @@
-import { ethers, network } from "hardhat"
-
 import { NetworkName } from "./demo-types"
-import addresses from "./addresses.json"
 import { displayHoldings } from "../test/helpers"
+import { getNestedFactory } from "./helpers"
+import { network } from "hardhat"
 import { pickNFT } from "./cli-interaction"
-
-const getNestedFactory = async () => {
-    const env = network.name as NetworkName
-    const NestedFactory = await ethers.getContractFactory("NestedFactory")
-    return NestedFactory.attach(addresses[env].factory)
-}
 
 async function main() {
     const env = network.name as NetworkName

@@ -4,13 +4,8 @@ import inquirer, { DistinctQuestion } from "inquirer"
 import { BigNumber } from "@ethersproject/bignumber"
 import { NetworkName } from "./demo-types"
 import addresses from "./addresses.json"
+import { getNestedFactory } from "./helpers"
 import { getTokenName } from "../test/helpers"
-
-const getNestedFactory = async () => {
-    const env = network.name as NetworkName
-    const NestedFactory = await ethers.getContractFactory("NestedFactory")
-    return NestedFactory.attach(addresses[env].factory)
-}
 
 export const pickNFT = async (message: string = "Pick the NFT you want to update") => {
     const [user] = await ethers.getSigners()
@@ -62,6 +57,8 @@ export const readTokenAddress = async (message: string) => {
     const response = await inquirer.prompt([tokenPickQuestion])
     return response.token
 }
+
+export const readAddress = readTokenAddress.bind(null, "target address")
 
 export const readAmountETH = async () => {
     const amountQuestion: DistinctQuestion = {

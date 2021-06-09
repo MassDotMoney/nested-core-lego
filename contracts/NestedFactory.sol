@@ -332,7 +332,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         uint256 amountSpent = balanceBeforePurchase - _sellToken.balanceOf(address(this));
         require(amountSpent <= _sellTokenAmount - fees, "OVERSPENT_ERROR");
 
-        nestedRecords.updateHoldingAmount(_nftId, address(_sellToken), holding.amount - _sellTokenAmount);
+        _updateHolding(_nftId, address(_sellToken), holding.amount - _sellTokenAmount);
         transferFee(_sellTokenAmount - amountSpent, _sellToken);
         emit NftUpdated(_nftId, UpdateOperation.SwapToken);
     }
@@ -370,7 +370,8 @@ contract NestedFactory is ReentrancyGuard, Ownable {
                 require(success, "SWAP_CALL_FAILED");
             }
 
-            nestedRecords.updateHoldingAmount(_nftId, _tokenOrders[i].token, holding.amount - _sellTokensAmount[i]);
+            uint256 nextAmount = holding.amount - _sellTokensAmount[i];
+            _updateHolding(_nftId, _tokenOrders[i].token, nextAmount);
         }
 
         uint256 amountBought = _buyToken.balanceOf(address(this)) - buyTokenInitialBalance;
@@ -556,5 +557,25 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         IWETH(weth).withdraw(_amount);
         (bool success, ) = msg.sender.call{ value: _amount }("");
         require(success, "ETH_TRANSFER_ERROR");
+    }
+
+    /**
+     * @dev update the amount for a holding in NestedRecords, and deletes it if amount is 0
+     * @param _nftId [uint256] NFT ID to update
+     * @param _token [address] holding's token address
+     * @param _amount [uint256] new holding amount
+     */
+    function _updateHolding(
+        uint256 _nftId,
+        address _token,
+        uint256 _amount
+    ) internal {
+        nestedRecords.updateHoldingAmount(_nftId, _token, _amount);
+        if (_amount == 0) {
+            uint256 tokenIndex = 0;
+            address[] memory tokens = nestedRecords.getAssetTokens(_nftId);
+            for (; tokenIndex < tokens.length; tokenIndex++) if (tokens[tokenIndex] == _token) break;
+            nestedRecords.deleteAsset(_nftId, tokenIndex);
+        }
     }
 }
