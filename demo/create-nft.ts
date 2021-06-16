@@ -87,11 +87,12 @@ const create = async (useWeth: boolean, user?: SignerWithAddress, replicateNFT: 
         },
     ]
     let responses = (await Promise.all(
-        orders.map(async order =>
-            axios
-                .get(`https://${env === "localhost" ? "ropsten" : env}.api.0x.org/swap/v1/quote?${qs.stringify(order)}`)
-                .catch(err => console.log(err)),
-        ),
+        orders.map(async order => {
+            const request = `https://${env === "localhost" ? "ropsten." : ""}api.0x.org/swap/v1/quote?${qs.stringify(
+                order,
+            )}`
+            return axios.get(request).catch(() => console.log(`Call to ${request} failed.`))
+        }),
     )) as AxiosResponse<any>[]
 
     if (responses.length === 0) {

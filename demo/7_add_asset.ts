@@ -56,6 +56,7 @@ async function main() {
         })),
         {
             value: totalSellAmount.add(totalSellAmount.div(100)),
+            gasLimit: 3000000,
         },
     )
 

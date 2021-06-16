@@ -43,7 +43,7 @@
     },
     "ropsten": {
         "uniswapRouter": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
-        "factory": "0x2bbAF022A7078168DB0ce99aC97F448680Da16e7",
+        "factory": "0xd181FfFa9CE47A2e2E35277FEA75aFA4126f1F7d",
         "tokens": {
             "WETH": "0xc778417E063141139Fce010982780140Aa0cD5Ab",
             "DAI": "0x67F9c92051eF31F91374B46730Bf04E903B2c1aE",

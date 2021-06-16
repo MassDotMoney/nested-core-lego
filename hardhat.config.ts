@@ -11,7 +11,7 @@ import { HardhatUserConfig } from "hardhat/config"
 
 const accounts = {
     mnemonic: process.env.MNEMONIC,
-    initialIndex: 0,
+    initialIndex: parseInt(process.env.ACCOUNT_INDEX ?? "0"),
     count: 20,
     accountsBalance: "990000000000000000000",
 }
@@ -40,6 +40,7 @@ const config: HardhatUserConfig = {
         ropsten: {
             url: `https://eth-ropsten.alchemyapi.io/v2/${process.env.ALCHEMY_ROPSTEN_API_KEY}`,
             accounts: accounts,
+	    gasPrice: 1100000000
         },
         kovan: {
             url: `https://eth-kovan.alchemyapi.io/v2/${process.env.ALCHEMY_KOVAN_API_KEY}`,
