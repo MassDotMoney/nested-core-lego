@@ -147,7 +147,8 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         uint256 _amount
     ) public {
         uint256 tradeTotalWeights = totalWeights - royaltiesWeight;
-        _sendFees(_nftOwner, _token, _amount, tradeTotalWeights);
+        uint256 amountWithDiscount = _amount - _calculateDiscount((_nftOwner), _amount);
+        _sendFees(_token, amountWithDiscount, tradeTotalWeights);
     }
 
     /**
@@ -164,18 +165,39 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         uint256 _amount
     ) public {
         require(_royaltiesTarget != address(0), "FeeSplitter: INVALID_ROYALTIES_TARGET_ADDRESS");
-        _addShares(_royaltiesTarget, _computeShareCount(_amount, royaltiesWeight, totalWeights), address(_token));
-        _sendFees(_nftOwner, _token, _amount, totalWeights);
+
+        uint256 amountWithDiscount = _amount - _calculateDiscount(_nftOwner, _amount);
+        _sendFees(_token, amountWithDiscount, totalWeights);
+        _addShares(
+            _royaltiesTarget,
+            _computeShareCount(amountWithDiscount, royaltiesWeight, totalWeights),
+            address(_token)
+        );
     }
 
+    /**
+     * @dev calculates the discount for a VIP user
+     * @param _user [address] user to check the VIP status of
+     * @param _amount [address] amount to calculate the discount on
+     * @return [uint256] the discount amount
+     */
+    function _calculateDiscount(address _user, uint256 _amount) private view returns (uint256) {
+        // give a discount to VIP users
+        if (_isVIP(_user)) return (_amount * vipDiscount) / 1000;
+        return 0;
+    }
+
+    /**
+     * @dev transfers a fee to this contract, private function used by similar public ones
+     * @param _token [IERC20] currency for the fee
+     * @param _amount [uint256] amount of token as fee
+     * @param _totalWeights [uint256] total weights to determine the share count to allocate
+     */
     function _sendFees(
-        address _nftOwner,
         IERC20 _token,
         uint256 _amount,
         uint256 _totalWeights
     ) private {
-        // give a discount to VIP users
-        if (_isVIP(_nftOwner)) _amount -= (_amount * vipDiscount) / 1000;
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
 
         for (uint256 i = 0; i < shareholders.length; i++) {
