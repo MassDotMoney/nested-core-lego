@@ -2,6 +2,7 @@
     "localhost": {
         "uniswapRouter": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
         "factory": "0xa04E2CB8B74a602eED85330B9b51E7ECc27809e2",
+        "uniswapFactory": "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f",
         "tokens": {
             "WETH": "0xc778417E063141139Fce010982780140Aa0cD5Ab",
             "DAI": "0x67F9c92051eF31F91374B46730Bf04E903B2c1aE",
@@ -23,6 +24,7 @@
     "kovan": {
         "factory": "0xDD6c0ADAeb7A6B3C0cb1bf82D94ecc9BB9a81B2C",
         "uniswapRouter": "",
+        "uniswapFactory": "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f",
         "tokens": {
             "MKR": "0xaaf64bfcc32d0f15873a02163e7e500671a4ffcd",
             "DAI": "0x4f96fe3b7a6cf9725f59d353f723c1bdb64ca6aa",
@@ -43,6 +45,7 @@
     },
     "ropsten": {
         "uniswapRouter": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
+        "uniswapFactory": "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f",
         "factory": "0xd181FfFa9CE47A2e2E35277FEA75aFA4126f1F7d",
         "tokens": {
             "WETH": "0xc778417E063141139Fce010982780140Aa0cD5Ab",
@@ -65,6 +68,7 @@
     "mainnet": {
         "factory": "0x27326BCA78Ad0035b3fe4e53c0f9e2de29d85479",
         "uniswapRouter": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
+        "uniswapFactory": "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f",
         "tokens": {
             "RPL": "0xb4efd85c19999d84251304bda99e90b92300bd93",
             "MKR": "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2",
