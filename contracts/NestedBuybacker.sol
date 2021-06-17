@@ -15,6 +15,10 @@ import "contracts/libraries/ExchangeHelpers.sol";
  */
 contract NestedBuybacker is Ownable {
     using SafeERC20 for IERC20;
+    event ReserveChanged(address newReserve);
+    event FeeSplitterChanged(FeeSplitter newFeeSplitter);
+    event BurnPartUpdated(uint256 newBurnPart);
+    event BuybackTriggered(IERC20 forToken);
 
     INestedToken public immutable NST;
     address public nstReserve;
@@ -47,6 +51,7 @@ contract NestedBuybacker is Ownable {
      */
     function setNestedReserve(address _nstReserve) external onlyOwner {
         nstReserve = _nstReserve;
+        emit ReserveChanged(nstReserve);
     }
 
     /**
@@ -55,6 +60,7 @@ contract NestedBuybacker is Ownable {
      */
     function setFeeSplitter(FeeSplitter _feeSplitter) external onlyOwner {
         feeSplitter = _feeSplitter;
+        emit FeeSplitterChanged(feeSplitter);
     }
 
     /**
@@ -63,6 +69,7 @@ contract NestedBuybacker is Ownable {
      */
     function setBurnPart(uint256 _burnPercentage) external onlyOwner {
         burnPercentage = _burnPercentage;
+        emit BurnPartUpdated(burnPercentage);
     }
 
     /**
@@ -82,6 +89,7 @@ contract NestedBuybacker is Ownable {
         _sellToken.approve(_swapTarget, balance);
         ExchangeHelpers.fillQuote(_sellToken, _swapTarget, _swapCallData);
         trigger();
+        emit BuybackTriggered(_sellToken);
     }
 
     /**
