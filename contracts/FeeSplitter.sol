@@ -20,8 +20,6 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
 
     event PaymentReleased(address to, address token, uint256 amount);
     event PaymentReceived(address from, address token, uint256 amount);
-    event SmartChefChanged(address nextSmartChef);
-    event VipDiscountChanged(uint256 vipDiscount, uint256 vipMinAmount);
 
     struct Shareholder {
         address account;
@@ -45,56 +43,25 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
 
     address public immutable weth;
 
-    uint256 public vipDiscount;
-    uint256 public vipMinAmount;
-    MinimalSmartChef public smartChef;
-
     /**
      * @param _accounts [address[]] inital shareholders addresses that can receive income
      * @param _weights [uint256[]] initial weights for these shareholders. Weight determines share allocation
      * @param _royaltiesWeight [uint256] royalties part weights when applicable
-     * @param _vipDiscount [uint256] discount percentage for VIP users (times 1000)
-     * @param _vipMinAmount [uint256] minimum staked amount for users to unlock VIP tier
      */
     constructor(
         address[] memory _accounts,
         uint256[] memory _weights,
         uint256 _royaltiesWeight,
-        address _weth,
-        uint256 _vipDiscount,
-        uint256 _vipMinAmount
+        address _weth
     ) {
         setShareholders(_accounts, _weights);
         setRoyaltiesWeight(_royaltiesWeight);
         weth = _weth;
-        vipDiscount = _vipDiscount;
-        vipMinAmount = _vipMinAmount;
     }
 
     // receive ether after a WETH withdraw call
     receive() external payable {
         require(msg.sender == weth, "FeeSplitter: ETH_SENDER_NOT_WETH");
-    }
-
-    /**
-     * @dev set the SmartChef contract address
-     * @param _nextSmartChef [address] new SmartChef address
-     */
-    function setSmartChef(address _nextSmartChef) external onlyOwner {
-        require(_nextSmartChef != address(0), "FeeSplitter: INVALID_SMARTCHEF_ADDRESS");
-        smartChef = MinimalSmartChef(_nextSmartChef);
-        emit SmartChefChanged(_nextSmartChef);
-    }
-
-    /**
-     * @dev set the VIP discount and min staked amount to be a VIP
-     * @param _vipDiscount [uint256] the fee discount to apply to a VIP user
-     * @param _vipMinAmount [uint256] min amount that needs to be staked to be a VIP
-     */
-    function setVipDiscount(uint256 _vipDiscount, uint256 _vipMinAmount) external onlyOwner {
-        require(_vipDiscount < 1000, "FeeSplitter: DISCOUNT_TOO_HIGH");
-        vipDiscount = _vipDiscount;
-        vipMinAmount = _vipMinAmount;
     }
 
     /**
@@ -139,16 +106,10 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
      * @dev Sends a fee to this contract for splitting, as an ERC20 token. No royalties are expected.
      * @param _amount [uint256] amount of token as fee to be claimed by this contract
      * @param _token [IERC20] currency for the fee as an ERC20 token
-     * @param _nftOwner [address] user owning the NFT and paying for the fees
      */
-    function sendFees(
-        address _nftOwner,
-        IERC20 _token,
-        uint256 _amount
-    ) public {
+    function sendFees(IERC20 _token, uint256 _amount) public {
         uint256 weights = totalWeights - royaltiesWeight;
-        uint256 amountWithDiscount = _amount - _calculateDiscount((_nftOwner), _amount);
-        _sendFees(_token, amountWithDiscount, weights);
+        _sendFees(_token, _amount, weights);
     }
 
     /**
@@ -156,35 +117,16 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
      * @param _amount [uint256] amount of token as fee to be claimed by this contract
      * @param _royaltiesTarget [address] the account that can claim royalties
      * @param _token [IERC20] currency for the fee as an ERC20 token
-     * @param _nftOwner [address] user owning the NFT and paying for the fees
      */
     function sendFeesWithRoyalties(
-        address _nftOwner,
         address _royaltiesTarget,
         IERC20 _token,
         uint256 _amount
     ) public {
         require(_royaltiesTarget != address(0), "FeeSplitter: INVALID_ROYALTIES_TARGET_ADDRESS");
 
-        uint256 amountWithDiscount = _amount - _calculateDiscount(_nftOwner, _amount);
-        _sendFees(_token, amountWithDiscount, totalWeights);
-        _addShares(
-            _royaltiesTarget,
-            _computeShareCount(amountWithDiscount, royaltiesWeight, totalWeights),
-            address(_token)
-        );
-    }
-
-    /**
-     * @dev calculates the discount for a VIP user
-     * @param _user [address] user to check the VIP status of
-     * @param _amount [address] amount to calculate the discount on
-     * @return [uint256] the discount amount
-     */
-    function _calculateDiscount(address _user, uint256 _amount) private view returns (uint256) {
-        // give a discount to VIP users
-        if (_isVIP(_user)) return (_amount * vipDiscount) / 1000;
-        return 0;
+        _sendFees(_token, _amount, totalWeights);
+        _addShares(_royaltiesTarget, _computeShareCount(_amount, royaltiesWeight, totalWeights), address(_token));
     }
 
     /**
@@ -208,17 +150,6 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
             );
         }
         emit PaymentReceived(msg.sender, address(_token), _amount);
-    }
-
-    /**
-     * @dev Checks if a user is a VIP. User needs to have at least vipMinAmount of NST staked
-     * @param _account [address] user address
-     * @return a boolean indicating if user is VIP
-     */
-    function _isVIP(address _account) internal view returns (bool) {
-        if (address(smartChef) == address(0)) return false;
-        uint256 stakedNst = smartChef.userInfo(_account).amount;
-        return stakedNst >= vipMinAmount;
     }
 
     function _computeShareCount(

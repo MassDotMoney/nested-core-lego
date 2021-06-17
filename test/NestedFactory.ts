@@ -48,14 +48,7 @@ describe("NestedFactory", () => {
         mockWETH = await MockWETHFactory.deploy()
 
         const feeSplitterFactory = await ethers.getContractFactory("FeeSplitter")
-        feeTo = await feeSplitterFactory.deploy(
-            [wallet3.address, wallet4.address],
-            [1000, 1700],
-            300,
-            mockWETH.address,
-            500,
-            1,
-        )
+        feeTo = await feeSplitterFactory.deploy([wallet3.address, wallet4.address], [1000, 1700], 300, mockWETH.address)
 
         asset = await nestedAsset.deploy()
         await asset.deployed()
@@ -69,6 +62,8 @@ describe("NestedFactory", () => {
             feeToSetter.address,
             feeTo.address,
             mockWETH.address,
+            500,
+            appendDecimals(500),
         )
         await factory.deployed()
 
@@ -278,6 +273,46 @@ describe("NestedFactory", () => {
                 const holdings = await factory.tokenHoldings(nftId)
                 expect(holdings[2].token).to.equal(mockWETH.address)
                 expect(holdings[2].amount).to.equal(appendDecimals(1))
+            })
+
+            describe("VIP tiers", () => {
+                it("should revert when setting invalid VIP discount", async () => {
+                    await expect(factory.setVipDiscount(1000, 0)).to.be.revertedWith("FeeSplitter: DISCOUNT_TOO_HIGH")
+                    await expect(factory.setVipDiscount(1001, 0)).to.be.revertedWith("FeeSplitter: DISCOUNT_TOO_HIGH")
+                })
+
+                it("sets the discount and min vip amount", async () => {
+                    await factory.setVipDiscount(250, 10)
+                    expect(await factory.vipDiscount()).to.equal(250)
+                    expect(await factory.vipMinAmount()).to.equal(10)
+                })
+
+                it("should revert when setting an invalid smart chef contract", async () => {
+                    await expect(factory.setSmartChef(ethers.constants.AddressZero)).to.be.revertedWith(
+                        "FeeSplitter: INVALID_SMARTCHEF_ADDRESS",
+                    )
+                })
+
+                it("should set the SmartChef address", async () => {
+                    await factory.setSmartChef(alice.address)
+                    expect(await factory.smartChef()).to.equal(alice.address)
+                })
+
+                it("applies a discount to a VIP user", async () => {
+                    const mockSmartChefFactory = await ethers.getContractFactory("MockSmartChef")
+                    const mockSmartChefVIP = await mockSmartChefFactory.deploy(appendDecimals(500))
+
+                    await mockWETH.deposit({ value: totalSellAmount.add(totalSellAmount.div(100)) })
+                    await mockWETH.approve(factory.address, totalSellAmount.add(totalSellAmount.div(100)))
+
+                    await factory.setSmartChef(mockSmartChefVIP.address)
+                    const balanceBefore = await mockWETH.balanceOf(alice.address)
+                    await createNFTFromERC20(buyTokenOrders, totalSellAmount)
+                    const balanceAfter = await mockWETH.balanceOf(alice.address)
+
+                    // 50% discount applied. Fee 0.5% instead of 1%
+                    expect(balanceBefore.sub(balanceAfter)).to.equal(totalSellAmount.add(totalSellAmount.div(200)))
+                })
             })
         })
 

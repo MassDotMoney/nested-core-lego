@@ -25,14 +25,19 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     event FailsafeWithdraw(uint256 indexed nftId, address indexed token);
     event ReserveRegistered(address indexed reserve);
     event AssetsMigrated(uint256 indexed nftId, address to);
+    event VipDiscountChanged(uint256 vipDiscount, uint256 vipMinAmount);
+    event SmartChefChanged(address nextSmartChef);
 
     enum UpdateOperation { AddToken, RemoveToken, SwapToken }
     event NftUpdated(uint256 indexed nftId, UpdateOperation updateOperation);
 
     IWETH public immutable weth;
-    FeeSplitter public feeTo;
     address public feeToSetter;
+    uint256 public vipDiscount;
+    uint256 public vipMinAmount;
+    MinimalSmartChef public smartChef;
 
+    FeeSplitter public feeTo;
     NestedReserve public reserve;
     NestedAsset public immutable nestedAsset;
     NestedRecords public immutable nestedRecords;
@@ -62,19 +67,25 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     @param _feeToSetter [address] The address which will be allowed to choose where the fees go
     @param _feeTo [FeeSplitter] the address or contract that receives fees
     @param _weth [IWETH] The wrapped ether contract
+    @param _vipDiscount [uint256] discount percentage for VIP users (times 1000)
+    @param _vipMinAmount [uint256] minimum staked amount for users to unlock VIP tier
     */
     constructor(
         NestedAsset _asset,
         NestedRecords _records,
         address _feeToSetter,
         FeeSplitter _feeTo,
-        IWETH _weth
+        IWETH _weth,
+        uint256 _vipDiscount,
+        uint256 _vipMinAmount
     ) {
         feeToSetter = _feeToSetter;
         feeTo = _feeTo;
         weth = _weth;
         nestedAsset = _asset;
         nestedRecords = _records;
+        vipDiscount = _vipDiscount;
+        vipMinAmount = _vipMinAmount;
     }
 
     /*
@@ -148,6 +159,27 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     function setReserve(NestedReserve _reserve) external onlyOwner addressExists(address(_reserve)) {
         require(address(reserve) == address(0), "NestedFactory: FACTORY_IMMUTABLE");
         reserve = _reserve;
+    }
+
+    /**
+     * @dev set the VIP discount and min staked amount to be a VIP
+     * @param _vipDiscount [uint256] the fee discount to apply to a VIP user
+     * @param _vipMinAmount [uint256] min amount that needs to be staked to be a VIP
+     */
+    function setVipDiscount(uint256 _vipDiscount, uint256 _vipMinAmount) external onlyOwner {
+        require(_vipDiscount < 1000, "FeeSplitter: DISCOUNT_TOO_HIGH");
+        vipDiscount = _vipDiscount;
+        vipMinAmount = _vipMinAmount;
+    }
+
+    /**
+     * @dev set the SmartChef contract address
+     * @param _nextSmartChef [address] new SmartChef address
+     */
+    function setSmartChef(address _nextSmartChef) external onlyOwner {
+        require(_nextSmartChef != address(0), "FeeSplitter: INVALID_SMARTCHEF_ADDRESS");
+        smartChef = MinimalSmartChef(_nextSmartChef);
+        emit SmartChefChanged(_nextSmartChef);
     }
 
     /*
@@ -244,7 +276,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         if (address(_sellToken) == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
             _sellToken = IERC20(address(weth));
         }
-        transferFeeWithRoyalty(fees, _sellToken, nftId, msg.sender);
+        transferFeeWithRoyalty(fees, _sellToken, nftId);
         emit NftCreated(nftId, _originalTokenId);
     }
 
@@ -281,7 +313,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     ) internal returns (uint256) {
         require(_tokenOrders.length > 0, "BUY_ARG_MISSING");
 
-        uint256 fees = _sellTokenAmount / 100;
+        uint256 fees = _calculateFees(msg.sender, _sellTokenAmount);
         uint256 sellAmountWithFees = _sellTokenAmount + fees;
 
         // pays with ETH
@@ -375,7 +407,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         }
 
         uint256 amountBought = _buyToken.balanceOf(address(this)) - buyTokenInitialBalance;
-        uint256 amountFees = amountBought / 100;
+        uint256 amountFees = _calculateFees(msg.sender, amountBought);
         amountBought = amountBought - amountFees;
 
         // if buy token is WETH, unwrap it instead of transferring it to the sender
@@ -472,10 +504,10 @@ contract NestedFactory is ReentrancyGuard, Ownable {
 
         // send swapped ERC20 to user minus fees
         uint256 amountBought = _buyToken.balanceOf(address(this)) - buyTokenInitialBalance;
-        uint256 amountFees = amountBought / 100;
+        uint256 amountFees = _calculateFees(msg.sender, amountBought);
         amountBought = amountBought - amountFees;
 
-        transferFeeWithRoyalty(amountFees, _buyToken, _nftId, msg.sender);
+        transferFeeWithRoyalty(amountFees, _buyToken, _nftId);
 
         nestedRecords.removeNFT(_nftId);
         nestedAsset.burn(msg.sender, _nftId);
@@ -524,18 +556,16 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     @param _amount [uint256] to send
     @param _token [IERC20] token to send
     @param _nftId [uint256] user portfolio ID used to find a potential royalties recipient
-    @param _nftOwner [address] user owning the NFT
     */
     function transferFeeWithRoyalty(
         uint256 _amount,
         IERC20 _token,
-        uint256 _nftId,
-        address _nftOwner
+        uint256 _nftId
     ) internal {
         address originalOwner = nestedAsset.originalOwner(_nftId);
         ExchangeHelpers.setMaxAllowance(_token, address(feeTo));
-        if (originalOwner != address(0)) feeTo.sendFeesWithRoyalties(_nftOwner, originalOwner, _token, _amount);
-        else feeTo.sendFees(_nftOwner, _token, _amount);
+        if (originalOwner != address(0)) feeTo.sendFeesWithRoyalties(originalOwner, _token, _amount);
+        else feeTo.sendFees(_token, _amount);
     }
 
     /**
@@ -545,7 +575,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     */
     function transferFee(uint256 _amount, IERC20 _token) internal {
         ExchangeHelpers.setMaxAllowance(_token, address(feeTo));
-        feeTo.sendFees(msg.sender, _token, _amount);
+        feeTo.sendFees(_token, _amount);
     }
 
     /**
@@ -579,5 +609,34 @@ contract NestedFactory is ReentrancyGuard, Ownable {
             }
             nestedRecords.deleteAsset(_nftId, tokenIndex);
         }
+    }
+
+    /**
+     * @dev Checks if a user is a VIP. User needs to have at least vipMinAmount of NST staked
+     * @param _account [address] user address
+     * @return a boolean indicating if user is VIP
+     */
+    function _isVIP(address _account) internal view returns (bool) {
+        if (address(smartChef) == address(0)) return false;
+        uint256 stakedNst = smartChef.userInfo(_account).amount;
+        return stakedNst >= vipMinAmount;
+    }
+
+    /**
+     * @dev calculates the discount for a VIP user
+     * @param _user [address] user to check the VIP status of
+     * @param _amount [address] amount to calculate the discount on
+     * @return [uint256] the discount amount
+     */
+    function _calculateDiscount(address _user, uint256 _amount) private view returns (uint256) {
+        // give a discount to VIP users
+        if (_isVIP(_user)) return (_amount * vipDiscount) / 1000;
+        return 0;
+    }
+
+    function _calculateFees(address _user, uint256 _amount) private view returns (uint256) {
+        uint256 baseFee = _amount / 100;
+        uint256 feeWithDiscount = baseFee - _calculateDiscount(_user, baseFee);
+        return feeWithDiscount;
     }
 }

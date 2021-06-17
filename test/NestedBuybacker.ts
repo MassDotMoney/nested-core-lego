@@ -1,9 +1,9 @@
-import { Interface } from "@ethersproject/abi"
 import { Contract } from "@ethersproject/contracts"
+import { Interface } from "@ethersproject/abi"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { expect } from "chai"
-import { ethers } from "hardhat"
 import { appendDecimals } from "./helpers"
+import { ethers } from "hardhat"
+import { expect } from "chai"
 
 describe("NestedBuybacker", () => {
     let alice: SignerWithAddress, bob: SignerWithAddress, communityReserve: SignerWithAddress
@@ -26,14 +26,7 @@ describe("NestedBuybacker", () => {
         mockWETH = await wethFactory.deploy()
 
         const feeSplitterFactory = await ethers.getContractFactory("FeeSplitter")
-        feeSplitter = await feeSplitterFactory.deploy(
-            [bob.address],
-            [30],
-            20,
-            mockWETH.address,
-            500,
-            appendDecimals(500),
-        )
+        feeSplitter = await feeSplitterFactory.deploy([bob.address], [30], 20, mockWETH.address)
 
         const NestedBuybackerFactory = await ethers.getContractFactory("NestedBuybacker")
         buyBacker = await NestedBuybackerFactory.deploy(
@@ -91,7 +84,7 @@ describe("NestedBuybacker", () => {
         // send 16WETH to the fee splitter so that buybacker gets 10WETH (62.5%)
         await mockWETH.deposit({ value: appendDecimals(16) })
         await mockWETH.approve(feeSplitter.address, appendDecimals(16))
-        await feeSplitter.sendFees(alice.address, mockWETH.address, appendDecimals(16))
+        await feeSplitter.sendFees(mockWETH.address, appendDecimals(16))
         // also try sending token directly to buybacker (instead of using FeeSplitter)
         await mockUSDT.transfer(buyBacker.address, ethers.utils.parseEther("200"))
 
