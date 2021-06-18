@@ -53,7 +53,7 @@ contract NestedBuybacker is Ownable {
      * @dev update the fee splitter address
      * @param _feeSplitter [address] fee splitter contract address
      */
-    function setFeeSplitter(FeeSplitter _feeSplitter) public onlyOwner {
+    function setFeeSplitter(FeeSplitter _feeSplitter) external onlyOwner {
         feeSplitter = _feeSplitter;
     }
 
@@ -99,7 +99,7 @@ contract NestedBuybacker is Ownable {
      * @dev claim awarded fees from the FeeSplitter contract
      * @param _token [IERC20] token address for the fees
      */
-    function claimFees(IERC20 _token) public {
+    function claimFees(IERC20 _token) external {
         feeSplitter.releaseToken(_token);
     }
 
