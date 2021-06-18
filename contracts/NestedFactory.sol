@@ -529,7 +529,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         NestedStructs.TokenOrder[] calldata _tokenOrders
     ) external onlyTokenOwner(_nftId) {
         uint256 amountBought = _destroyForERC20(_nftId, _buyToken, _swapTarget, _tokenOrders);
-        require(_buyToken.transfer(msg.sender, amountBought), "TOKEN_TRANSFER_ERROR");
+        _buyToken.safeTransfer(msg.sender, amountBought);
     }
 
     /*
