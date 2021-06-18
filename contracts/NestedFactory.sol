@@ -393,10 +393,6 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     @param _holding [Holding] holding to withdraw
     */
     function _transferToWallet(uint256 _nftId, NestedStructs.Holding memory _holding) internal onlyTokenOwner(_nftId) {
-        uint256 assetTokensLength = nestedRecords.getAssetTokensLength(_nftId);
-
-        require(assetTokensLength > 1, "ERR_EMPTY_NFT");
-
         IERC20 token = IERC20(_holding.token);
         uint256 feeAmount = _holding.amount / 100;
 
@@ -422,6 +418,9 @@ contract NestedFactory is ReentrancyGuard, Ownable {
                 nestedRecords.getAssetTokens(_nftId)[_tokenIndex] == address(_token),
             "INVALID_TOKEN_INDEX"
         );
+        uint256 assetTokensLength = nestedRecords.getAssetTokensLength(_nftId);
+        // use destroy instead if NFT has a single holding
+        require(assetTokensLength > 1, "ERR_EMPTY_NFT");
 
         NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_token));
         reserve.withdraw(IERC20(holding.token), holding.amount);

@@ -99,7 +99,7 @@ contract NestedBuybacker is Ownable {
      * @dev claim awarded fees from the FeeSplitter contract
      * @param _token [IERC20] token address for the fees
      */
-    function claimFees(IERC20 _token) external {
+    function claimFees(IERC20 _token) public {
         feeSplitter.releaseToken(_token);
     }
 
