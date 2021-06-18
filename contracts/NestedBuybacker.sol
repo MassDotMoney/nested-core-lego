@@ -38,11 +38,10 @@ contract NestedBuybacker is Ownable {
         address payable _feeSplitter,
         uint256 _burnPercentage
     ) {
-        require(_burnPercentage <= 1000, "NestedBuybacker: BURN_PART_TOO_HIGH");
         NST = INestedToken(_NST);
         feeSplitter = FeeSplitter(_feeSplitter);
         nstReserve = _nstReserve;
-        burnPercentage = _burnPercentage;
+        setBurnPart(_burnPercentage);
     }
 
     /**
@@ -67,7 +66,8 @@ contract NestedBuybacker is Ownable {
      * @dev update parts deciding what amount is sent to reserve or burned
      * @param _burnPercentage [uint] burn part
      */
-    function setBurnPart(uint256 _burnPercentage) external onlyOwner {
+    function setBurnPart(uint256 _burnPercentage) public onlyOwner {
+        require(_burnPercentage <= 1000, "NestedBuybacker: BURN_PART_TOO_HIGH");
         burnPercentage = _burnPercentage;
         emit BurnPartUpdated(burnPercentage);
     }
