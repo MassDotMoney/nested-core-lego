@@ -145,7 +145,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     Sets the reserve where the funds are stored
     @param _reserve the address of the new factory
     */
-    function setReserve(NestedReserve _reserve) external addressExists(address(_reserve)) {
+    function setReserve(NestedReserve _reserve) external onlyOwner addressExists(address(_reserve)) {
         require(address(reserve) == address(0), "NestedFactory: FACTORY_IMMUTABLE");
         reserve = _reserve;
     }
