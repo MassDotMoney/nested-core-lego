@@ -574,7 +574,10 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         if (_amount == 0) {
             uint256 tokenIndex = 0;
             address[] memory tokens = nestedRecords.getAssetTokens(_nftId);
-            for (; tokenIndex < tokens.length; tokenIndex++) if (tokens[tokenIndex] == _token) break;
+            while (tokenIndex < tokens.length) {
+                if (tokens[tokenIndex] == _token) break;
+                tokenIndex++;
+            }
             nestedRecords.deleteAsset(_nftId, tokenIndex);
         }
     }
