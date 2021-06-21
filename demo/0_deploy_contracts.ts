@@ -28,8 +28,6 @@ async function main() {
         [nestedTreasuryPart, nestedBuyBackerPart],
         royaltiesPartPart,
         weth,
-        0,
-        0,
     )
     await feeSplitter.deployed()
     const asset = await NestedAsset.deploy()
@@ -37,7 +35,7 @@ async function main() {
     const records = await NestedRecords.deploy()
     await records.deployed()
 
-    const factory = await NestedFactory.deploy(asset.address, records.address, dev, feeSplitter.address, weth)
+    const factory = await NestedFactory.deploy(asset.address, records.address, dev, feeSplitter.address, weth, 0, 0)
     await factory.deployed()
     const tx0 = await asset.setFactory(factory.address)
     await tx0.wait()
