@@ -146,9 +146,9 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         IERC20 _token,
         uint256 _amount
     ) public {
-        uint256 tradeTotalWeights = totalWeights - royaltiesWeight;
+        uint256 weights = totalWeights - royaltiesWeight;
         uint256 amountWithDiscount = _amount - _calculateDiscount((_nftOwner), _amount);
-        _sendFees(_token, amountWithDiscount, tradeTotalWeights);
+        _sendFees(_token, amountWithDiscount, weights);
     }
 
     /**
