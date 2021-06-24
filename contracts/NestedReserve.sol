@@ -2,19 +2,21 @@
 pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title Stores underlying assets of NestedNFTs.
  * Only the factory can withdraw assets.
  * The factory itself can only trigger a transfer after verification that the user holds funds present in this contract
  */
-contract NestedReserve {
+contract NestedReserve is Ownable {
     using SafeERC20 for IERC20;
 
-    address public immutable factory;
+    event FactoryChanged(address newFactory);
+    address public factory;
 
     constructor(address _factory) {
-        factory = _factory;
+       setFactory(_factory);
     }
 
     /*
@@ -64,5 +66,14 @@ contract NestedReserve {
      */
     function transferFromFactory(IERC20 _token, uint256 _amount) external onlyFactory {
         _token.safeTransferFrom(factory, address(this), _amount);
+    }
+
+    /**
+     * Sets the new factory
+     * @param _newFactory [address] the new factory address
+     */
+    function setFactory(address _newFactory) public onlyOwner {
+        factory = _newFactory;
+        emit FactoryChanged(_newFactory);
     }
 }

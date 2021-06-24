@@ -8,7 +8,7 @@ import { appendDecimals } from "./helpers"
 describe("NestedReserve", () => {
     let nestedReserve: ContractFactory, reserve: Contract
     let mockERC20: ContractFactory, mockUNI: Contract
-    let factory: SignerWithAddress, alice: SignerWithAddress
+    let factory: SignerWithAddress, alice: SignerWithAddress, bob: SignerWithAddress
 
     const amountToTransfer = appendDecimals(10)
     before(async () => {
@@ -18,6 +18,7 @@ describe("NestedReserve", () => {
         const signers = await ethers.getSigners()
         factory = signers[0] as any
         alice = signers[1] as any
+        bob = signers[2] as any
     })
 
     beforeEach(async () => {
@@ -31,6 +32,16 @@ describe("NestedReserve", () => {
     describe("#initialization", () => {
         it("sets the state variable", async () => {
             expect(await reserve.factory()).to.eq(factory.address)
+        })
+
+        it("sets a new factory", async () => {
+            const tx = await reserve.setFactory(bob.address);
+            await tx.wait();
+            expect(await reserve.factory()).to.eq(bob.address)
+        })
+
+        it("should revert if unauthorized account sets the factory", async () => {
+            await expect(reserve.connect(bob).setFactory(bob.address)).to.be.revertedWith("Ownable: caller is not the owner");
         })
     })
 

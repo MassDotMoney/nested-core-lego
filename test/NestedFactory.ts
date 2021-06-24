@@ -1032,14 +1032,6 @@ describe("NestedFactory", () => {
             expect((await factory.tokensOf(dummyRouter.address)).length).to.equal(0);
         });
 
-        it("should revert when destroying a migrated nft", async () => {
-            await factory.registerReserve(bob.address);
-            await factory.migrateAssets(assets[0], bob.address);
-            await expect(
-                factory.destroyForERC20(assets[0], mockWETH.address, dummyRouter.address, sellTokenOrders),
-            ).to.be.revertedWith("ASSETS_IN_DIFFERENT_RESERVE");
-        });
-
         describe("#destroyForERC20", () => {
             it("reverts if sell args missing", async () => {
                 await expect(
@@ -1126,78 +1118,13 @@ describe("NestedFactory", () => {
         });
 
         it("revers if the reserve is already set", async () => {
-            await expect(factory.connect(alice).setReserve(newReserve.address)).to.be.revertedWith("FACTORY_IMMUTABLE");
+            await expect(factory.connect(alice).setReserve(newReserve.address)).to.be.revertedWith("RESERVE_IMMUTABLE");
         });
 
         it("reverts if the address is invalid", async () => {
             await expect(factory.setReserve("0x0000000000000000000000000000000000000000")).to.be.revertedWith(
                 "INVALID_ADDRESS",
             );
-        });
-    });
-
-    describe("#migrateAssets", () => {
-        let assets: string[] = [];
-
-        beforeEach(async () => {
-            const totalSellAmount = appendDecimals(10);
-            const expectedFee = totalSellAmount.div(100);
-            const mockERC20Factory = await ethers.getContractFactory("MockERC20");
-            mockUNI = await mockERC20Factory.deploy("Mocked UNI", "INU", appendDecimals(3000000));
-            mockKNC = await mockERC20Factory.deploy("Mcoked KNC", "CNK", appendDecimals(3000000));
-
-            mockUNI.transfer(dummyRouter.address, appendDecimals(1000));
-            mockKNC.transfer(dummyRouter.address, appendDecimals(1000));
-
-            const tokensToBuy = [mockUNI.address, mockKNC.address];
-
-            const abi = ["function dummyswapToken(address _inputToken, address _outputToken, uint256 _amount)"];
-            const iface = new Interface(abi);
-
-            const buyTokenOrders = [
-                {
-                    token: tokensToBuy[0],
-                    callData: iface.encodeFunctionData("dummyswapToken", [
-                        mockWETH.address,
-                        tokensToBuy[0],
-                        appendDecimals(4),
-                    ]),
-                },
-                {
-                    token: tokensToBuy[1],
-                    callData: iface.encodeFunctionData("dummyswapToken", [
-                        mockWETH.address,
-                        tokensToBuy[1],
-                        appendDecimals(6),
-                    ]),
-                },
-            ];
-
-            await mockWETH.deposit({ value: appendDecimals(10.1) });
-            await createNFTFromETH(buyTokenOrders, totalSellAmount, totalSellAmount.add(expectedFee));
-            assets = await factory.tokensOf(alice.address);
-        });
-        it("registers a new reserve", async () => {
-            await factory.registerReserve(bob.address);
-            expect(await factory.supportedReserves(bob.address)).to.be.true;
-        });
-
-        it("should revert because reserve is not known", async () => {
-            await expect(factory.migrateAssets(assets[0], bob.address)).to.be.revertedWith("NOT_A_RESERVE");
-        });
-
-        it("migrates assets to new reserve", async () => {
-            await factory.registerReserve(bob.address);
-            await factory.migrateAssets(assets[0], bob.address);
-            expect(await records.getAssetReserve(assets[0])).to.equal(bob.address);
-            expect(await mockUNI.balanceOf(bob.address)).to.equal(appendDecimals(4));
-            expect(await mockKNC.balanceOf(bob.address)).to.equal(appendDecimals(6));
-        });
-
-        it("should revert because assets are not in the right reserve", async () => {
-            await factory.registerReserve(bob.address);
-            await factory.migrateAssets(assets[0], bob.address);
-            await expect(factory.migrateAssets(assets[0], bob.address)).to.be.revertedWith("ASSETS_NOT_IN_RESERVE");
         });
     });
 

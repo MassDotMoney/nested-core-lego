@@ -24,7 +24,6 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     event NftCreated(uint256 indexed nftId, uint256 originalNftId);
     event FailsafeWithdraw(uint256 indexed nftId, address indexed token);
     event ReserveRegistered(address indexed reserve);
-    event AssetsMigrated(uint256 indexed nftId, address to);
     event VipDiscountChanged(uint256 vipDiscount, uint256 vipMinAmount);
     event SmartChefChanged(address nextSmartChef);
 
@@ -103,29 +102,6 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     receive() external payable {}
 
     /**
-    Moves all the assets for an NFT to a new reserve
-    @param _nftId [uint256] the ID for the NFT to migrate
-    @param _nextReserve [address] the new reserve address
-    */
-    function migrateAssets(uint256 _nftId, address _nextReserve)
-        external
-        onlyTokenOwner(_nftId)
-        addressExists(_nextReserve)
-        isNestedReserve(_nextReserve)
-    {
-        address[] memory tokens = nestedRecords.getAssetTokens(_nftId);
-        address currentReserve = nestedRecords.getAssetReserve(_nftId);
-        require(currentReserve == address(reserve), "ASSETS_NOT_IN_RESERVE");
-
-        for (uint256 i = 0; i < tokens.length; i++) {
-            NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
-            reserve.transfer(_nextReserve, IERC20(holding.token), holding.amount);
-        }
-        nestedRecords.setReserve(_nftId, _nextReserve);
-        emit AssetsMigrated(_nftId, _nextReserve);
-    }
-
-    /**
     @dev Adds a reserve to the supported reserves mapping
     @param _reserve [address] the address for the reserve to register
     */
@@ -154,10 +130,10 @@ contract NestedFactory is ReentrancyGuard, Ownable {
 
     /*
     Sets the reserve where the funds are stored
-    @param _reserve the address of the new factory
+    @param _reserve the address of the new reserve
     */
     function setReserve(NestedReserve _reserve) external onlyOwner addressExists(address(_reserve)) {
-        require(address(reserve) == address(0), "FACTORY_IMMUTABLE");
+        require(address(reserve) == address(0), "RESERVE_IMMUTABLE");
         reserve = _reserve;
     }
 
