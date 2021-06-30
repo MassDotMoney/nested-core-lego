@@ -436,7 +436,7 @@ describe("NestedFactory", () => {
                     dummyRouter.address,
                     addTokenOrders,
                 ),
-            ).to.be.revertedWith("revert ERC721: owner query for nonexistent token")
+            ).to.be.revertedWith("ERC721: owner query for nonexistent token")
         })
 
         it("reverts if insufficient amount", async () => {
@@ -448,7 +448,7 @@ describe("NestedFactory", () => {
                     dummyRouter.address,
                     addTokenOrders,
                 ),
-            ).to.be.revertedWith("revert OVERSPENT_ERROR")
+            ).to.be.revertedWith("OVERSPENT_ERROR")
         })
 
         it("reverts if not owner", async () => {
@@ -613,7 +613,7 @@ describe("NestedFactory", () => {
                     dummyRouter.address,
                     swapTokenOrders,
                 ),
-            ).to.be.revertedWith("revert ERC721: owner query for nonexistent token")
+            ).to.be.revertedWith("ERC721: owner query for nonexistent token")
         })
 
         it("reverts if not owner", async () => {
@@ -753,7 +753,7 @@ describe("NestedFactory", () => {
                     dummyRouter.address,
                     sellTokenOrders,
                 ),
-            ).to.be.revertedWith("revert ERC721: owner query for nonexistent token")
+            ).to.be.revertedWith("ERC721: owner query for nonexistent token")
         })
 
         it("reverts if not owner", async () => {

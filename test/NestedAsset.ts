@@ -97,7 +97,7 @@ describe("NestedAsset", () => {
 
         it("should revert when burning non existing token", async () => {
             await expect(asset.burn(alice.address, 1)).to.be.revertedWith(
-                "revert ERC721: owner query for nonexistent token",
+                "ERC721: owner query for nonexistent token",
             )
         })
 
@@ -110,7 +110,7 @@ describe("NestedAsset", () => {
             await asset.mint(bob.address, metadataUri, 0)
 
             // Alice asked to burn Bob's token
-            await expect(asset.burn(alice.address, 1)).to.be.revertedWith("revert NestedAsset: FORBIDDEN")
+            await expect(asset.burn(alice.address, 1)).to.be.revertedWith("NestedAsset: FORBIDDEN")
         })
     })
 
