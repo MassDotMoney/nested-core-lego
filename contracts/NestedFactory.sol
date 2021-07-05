@@ -49,7 +49,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     @param _address [address]
     */
     modifier addressExists(address _address) {
-        require(_address != address(0), "NestedFactory: INVALID_ADDRESS");
+        require(_address != address(0), "INVALID_ADDRESS");
         _;
     }
 
@@ -58,7 +58,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     @param _reserve [address]
     */
     modifier isNestedReserve(address _reserve) {
-        require(supportedReserves[_reserve], "NestedFactory: NOT_A_RESERVE");
+        require(supportedReserves[_reserve], "NOT_A_RESERVE");
         _;
     }
 
@@ -93,7 +93,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     @param _nftId uint256 the NFT Id
     */
     modifier onlyTokenOwner(uint256 _nftId) {
-        require(nestedAsset.ownerOf(_nftId) == msg.sender, "NestedFactory: NOT_TOKEN_OWNER");
+        require(nestedAsset.ownerOf(_nftId) == msg.sender, "NOT_TOKEN_OWNER");
         _;
     }
 
@@ -115,7 +115,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     {
         address[] memory tokens = nestedRecords.getAssetTokens(_nftId);
         address currentReserve = nestedRecords.getAssetReserve(_nftId);
-        require(currentReserve == address(reserve), "NestedFactory: ASSETS_NOT_IN_RESERVE");
+        require(currentReserve == address(reserve), "ASSETS_NOT_IN_RESERVE");
 
         for (uint256 i = 0; i < tokens.length; i++) {
             NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
@@ -139,7 +139,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
    @param feeTo The address of the receiver
    */
     function setFeeTo(FeeSplitter _feeTo) external addressExists(address(_feeTo)) {
-        require(msg.sender == feeToSetter, "NestedFactory: FORBIDDEN");
+        require(msg.sender == feeToSetter, "FORBIDDEN");
         feeTo = _feeTo;
     }
 
@@ -148,7 +148,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     @param _feeToSetter The address that decides where the fees go
     */
     function setFeeToSetter(address payable _feeToSetter) external addressExists(_feeToSetter) {
-        require(msg.sender == feeToSetter, "NestedFactory: FORBIDDEN");
+        require(msg.sender == feeToSetter, "FORBIDDEN");
         feeToSetter = _feeToSetter;
     }
 
@@ -157,7 +157,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     @param _reserve the address of the new factory
     */
     function setReserve(NestedReserve _reserve) external onlyOwner addressExists(address(_reserve)) {
-        require(address(reserve) == address(0), "NestedFactory: FACTORY_IMMUTABLE");
+        require(address(reserve) == address(0), "FACTORY_IMMUTABLE");
         reserve = _reserve;
     }
 
@@ -241,11 +241,15 @@ contract NestedFactory is ReentrancyGuard, Ownable {
             if (_tokenOrders[i].token == address(_sellToken)) {
                 ExchangeHelpers.setMaxAllowance(_sellToken, address(reserve));
                 (bool success, ) = address(reserve).call(_tokenOrders[i].callData);
-                require(success, "NestedFactory: RESERVE_CALL_FAILED");
+                require(success, "RESERVE_CALL_FAILED");
+
                 amountBought = balanceBeforePurchase - IERC20(_tokenOrders[i].token).balanceOf(address(this));
+                require(amountBought > 0, "NOTHING_BOUGHT");
             } else {
+                require(_swapTargetValid(_swapTarget), "INVALID_SWAP_TARGET");
+
                 bool success = ExchangeHelpers.fillQuote(_sellToken, _swapTarget, _tokenOrders[i].callData);
-                require(success, "NestedFactory: SWAP_CALL_FAILED");
+                require(success, "SWAP_CALL_FAILED");
                 amountBought = IERC20(_tokenOrders[i].token).balanceOf(address(this)) - balanceBeforePurchase;
                 IERC20(_tokenOrders[i].token).safeTransfer(address(reserve), amountBought);
             }
@@ -397,8 +401,9 @@ contract NestedFactory is ReentrancyGuard, Ownable {
             reserve.withdraw(IERC20(holding.token), _sellTokensAmount[i]);
 
             if (_tokenOrders[i].token != address(_buyToken)) {
-                bool success =
-                    ExchangeHelpers.fillQuote(IERC20(_tokenOrders[i].token), _swapTarget, _tokenOrders[i].callData);
+                require(_swapTargetValid(_swapTarget), "INVALID_SWAP_TARGET");
+                IERC20 sellToken = IERC20(_tokenOrders[i].token);
+                bool success = ExchangeHelpers.fillQuote(sellToken, _swapTarget, _tokenOrders[i].callData);
                 require(success, "SWAP_CALL_FAILED");
             }
 
@@ -479,10 +484,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         uint256 tokenLength = tokens.length;
 
         require(tokenLength == _tokenOrders.length, "MISSING_SELL_ARGS");
-        require(
-            nestedRecords.getAssetReserve(_nftId) == address(reserve),
-            "NestedFactory: ASSETS_IN_DIFFERENT_RESERVE"
-        );
+        require(nestedRecords.getAssetReserve(_nftId) == address(reserve), "ASSETS_IN_DIFFERENT_RESERVE");
 
         uint256 buyTokenInitialBalance = _buyToken.balanceOf(address(this));
 
@@ -492,12 +494,15 @@ contract NestedFactory is ReentrancyGuard, Ownable {
             reserve.withdraw(IERC20(holding.token), holding.amount);
 
             bool success = false;
-            if (holding.token != address(_buyToken))
+            if (holding.token != address(_buyToken)) {
+                require(_swapTargetValid(_swapTarget), "INVALID_SWAP_TARGET");
+
                 success = ExchangeHelpers.fillQuote(
                     IERC20(_tokenOrders[i].token),
                     _swapTarget,
                     _tokenOrders[i].callData
                 );
+            }
             if (!success) _transferToWallet(_nftId, holding);
             nestedRecords.freeHolding(_nftId, tokens[i]);
         }
@@ -638,5 +643,19 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         uint256 baseFee = _amount / 100;
         uint256 feeWithDiscount = baseFee - _calculateDiscount(_user, baseFee);
         return feeWithDiscount;
+    }
+
+    /**
+     * Checks if the swap target is one of the contracts nested factory has privilege on
+     * @param _swapTarget address for the contract that will be called
+     * @return [bool] is the swap target valid
+     */
+    function _swapTargetValid(address _swapTarget) private view returns (bool) {
+        return
+            _swapTarget != address(feeTo) &&
+            _swapTarget != address(nestedAsset) &&
+            _swapTarget != address(nestedRecords) &&
+            _swapTarget != address(reserve) &&
+            !supportedReserves[_swapTarget];
     }
 }

@@ -91,15 +91,13 @@ describe("NestedFactory", () => {
         })
 
         it("reverts if unauthorized", async () => {
-            await expect(factory.connect(alice).setFeeToSetter(bob.address)).to.be.revertedWith(
-                "NestedFactory: FORBIDDEN",
-            )
+            await expect(factory.connect(alice).setFeeToSetter(bob.address)).to.be.revertedWith("FORBIDDEN")
         })
 
         it("reverts if the address is invalid", async () => {
             await expect(
                 factory.connect(feeToSetter).setFeeToSetter("0x0000000000000000000000000000000000000000"),
-            ).to.be.revertedWith("NestedFactory: INVALID_ADDRESS")
+            ).to.be.revertedWith("INVALID_ADDRESS")
         })
     })
 
@@ -110,13 +108,13 @@ describe("NestedFactory", () => {
         })
 
         it("reverts if unauthorized", async () => {
-            await expect(factory.connect(alice).setFeeTo(bob.address)).to.be.revertedWith("NestedFactory: FORBIDDEN")
+            await expect(factory.connect(alice).setFeeTo(bob.address)).to.be.revertedWith("FORBIDDEN")
         })
 
         it("reverts if the address is invalid", async () => {
             await expect(
                 factory.connect(feeToSetter).setFeeTo("0x0000000000000000000000000000000000000000"),
-            ).to.be.revertedWith("NestedFactory: INVALID_ADDRESS")
+            ).to.be.revertedWith("INVALID_ADDRESS")
         })
     })
 
@@ -186,9 +184,7 @@ describe("NestedFactory", () => {
                 const abi = ["function missing()"]
                 const iface = new Interface(abi)
                 buyTokenOrders[1].callData = iface.encodeFunctionData("missing")
-                await expect(createNFTFromERC20(buyTokenOrders, totalSellAmount)).to.be.revertedWith(
-                    "NestedFactory: SWAP_CALL_FAILED",
-                )
+                await expect(createNFTFromERC20(buyTokenOrders, totalSellAmount)).to.be.revertedWith("SWAP_CALL_FAILED")
             })
 
             it("creates the NFT", async () => {
@@ -456,7 +452,7 @@ describe("NestedFactory", () => {
                 factory
                     .connect(bob)
                     .addTokens(assets[0], mockWETH.address, totalSellAmount, dummyRouter.address, addTokenOrders),
-            ).to.be.revertedWith("NestedFactory: NOT_TOKEN_OWNER")
+            ).to.be.revertedWith("NOT_TOKEN_OWNER")
         })
 
         it("updates NFT", async () => {
@@ -627,7 +623,7 @@ describe("NestedFactory", () => {
                         dummyRouter.address,
                         swapTokenOrders,
                     ),
-            ).to.be.revertedWith("NestedFactory: NOT_TOKEN_OWNER")
+            ).to.be.revertedWith("NOT_TOKEN_OWNER")
         })
 
         it("reverts if insufficient amount", async () => {
@@ -767,7 +763,7 @@ describe("NestedFactory", () => {
                         dummyRouter.address,
                         sellTokenOrders,
                     ),
-            ).to.be.revertedWith("NestedFactory: NOT_TOKEN_OWNER")
+            ).to.be.revertedWith("NOT_TOKEN_OWNER")
         })
 
         it("reverts if insufficient amount", async () => {
@@ -966,7 +962,7 @@ describe("NestedFactory", () => {
             await factory.migrateAssets(assets[0], bob.address)
             await expect(
                 factory.destroyForERC20(assets[0], mockWETH.address, dummyRouter.address, sellTokenOrders),
-            ).to.be.revertedWith("NestedFactory: ASSETS_IN_DIFFERENT_RESERVE")
+            ).to.be.revertedWith("ASSETS_IN_DIFFERENT_RESERVE")
         })
 
         describe("#destroyForERC20", () => {
@@ -1055,14 +1051,12 @@ describe("NestedFactory", () => {
         })
 
         it("revers if the reserve is already set", async () => {
-            await expect(factory.connect(alice).setReserve(newReserve.address)).to.be.revertedWith(
-                "NestedFactory: FACTORY_IMMUTABLE",
-            )
+            await expect(factory.connect(alice).setReserve(newReserve.address)).to.be.revertedWith("FACTORY_IMMUTABLE")
         })
 
         it("reverts if the address is invalid", async () => {
             await expect(factory.setReserve("0x0000000000000000000000000000000000000000")).to.be.revertedWith(
-                "NestedFactory: INVALID_ADDRESS",
+                "INVALID_ADDRESS",
             )
         })
     })
@@ -1114,9 +1108,7 @@ describe("NestedFactory", () => {
         })
 
         it("should revert because reserve is not known", async () => {
-            await expect(factory.migrateAssets(assets[0], bob.address)).to.be.revertedWith(
-                "NestedFactory: NOT_A_RESERVE",
-            )
+            await expect(factory.migrateAssets(assets[0], bob.address)).to.be.revertedWith("NOT_A_RESERVE")
         })
 
         it("migrates assets to new reserve", async () => {
@@ -1130,9 +1122,7 @@ describe("NestedFactory", () => {
         it("should revert because assets are not in the right reserve", async () => {
             await factory.registerReserve(bob.address)
             await factory.migrateAssets(assets[0], bob.address)
-            await expect(factory.migrateAssets(assets[0], bob.address)).to.be.revertedWith(
-                "NestedFactory: ASSETS_NOT_IN_RESERVE",
-            )
+            await expect(factory.migrateAssets(assets[0], bob.address)).to.be.revertedWith("ASSETS_NOT_IN_RESERVE")
         })
     })
 
