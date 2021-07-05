@@ -425,7 +425,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         uint256 _nftId,
         uint256 _tokenIndex,
         IERC20 _token
-    ) external onlyTokenOwner(_nftId) {
+    ) external nonReentrant onlyTokenOwner(_nftId) {
         require(
             nestedRecords.getAssetTokensLength(_nftId) > _tokenIndex &&
                 nestedRecords.getAssetTokens(_nftId)[_tokenIndex] == address(_token),
