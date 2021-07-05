@@ -97,7 +97,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     }
 
     /*
-    Receive function 
+    Receive function
     */
     receive() external payable {}
 
@@ -393,7 +393,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
 
         // if buy token is WETH, unwrap it instead of transferring it to the sender
         if (address(_buyToken) == address(weth)) _unwrapWeth(amountBought);
-        else require(_buyToken.transfer(msg.sender, amountBought), "TOKEN_TRANSFER_ERROR");
+        else _buyToken.safeTransfer(msg.sender, amountBought);
 
         transferFee(amountFees, _buyToken);
         emit NftUpdated(_nftId, UpdateOperation.RemoveToken);
@@ -410,7 +410,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         uint256 feeAmount = _holding.amount / 100;
 
         transferFee(feeAmount, token);
-        token.transfer(msg.sender, _holding.amount - feeAmount);
+        token.safeTransfer(msg.sender, _holding.amount - feeAmount);
 
         emit FailsafeWithdraw(_nftId, address(token));
     }

@@ -33,8 +33,11 @@ library ExchangeHelpers {
      * @param _spender [address] spender to allow
      */
     function setMaxAllowance(IERC20 _token, address _spender) internal {
-        if (_token.allowance(address(this), _spender) != type(uint256).max) {
-            _token.approve(_spender, type(uint256).max);
+        uint256 _currentAllowance = _token.allowance(address(this), _spender);
+        if (_currentAllowance == 0) {
+            _token.safeApprove(_spender, type(uint256).max);
+        } else if (_currentAllowance != type(uint256).max) {
+            _token.safeIncreaseAllowance(_spender, type(uint256).max - _currentAllowance);
         }
     }
 
