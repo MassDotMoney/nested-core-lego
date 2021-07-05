@@ -423,6 +423,76 @@ describe("NestedFactory", () => {
             assets = await factory.tokensOf(alice.address)
         })
 
+        it("doesn't extract reserve funds with transfer", async () => {
+            // The reserve has 1000 INU
+            await mockUNI.transfer(reserve.address, appendDecimals(1000));
+
+            await mockDAI.approve(factory.address, 10000);
+            let inuBalanceBefore = await mockUNI.balanceOf(alice.address);
+
+            const abi = ["function transfer(address _recipient, address _token, uint256 _amount)"];
+            const iface = new Interface(abi);
+
+            let exploitAddTokens: TokenOrder[] = [
+                {
+                    token: mockDAI.address,
+                    callData: iface.encodeFunctionData("transfer", [
+                        alice.address,
+                        mockUNI.address,
+                        1000,
+                    ]),
+                },
+            ];
+
+            await expect(factory.addTokens(
+                assets[0],
+                mockDAI.address,
+                1,
+                dummyRouter.address,
+                exploitAddTokens,
+            )).to.be.revertedWith("NOTHING_BOUGHT")
+
+            let inuBalanceAfter = await mockUNI.balanceOf(alice.address);
+            let aliceExploit = inuBalanceAfter.sub(inuBalanceBefore);
+
+            expect(aliceExploit).to.be.equal(BigNumber.from(0));
+        })
+
+        it("doesn't disrupt the protocol using withdraw", async () => {
+            // The reserve has 1000 INU
+            await mockUNI.transfer(reserve.address, appendDecimals(1000));
+
+            await mockDAI.approve(factory.address, 10000);
+            let inuBalanceBefore = await mockUNI.balanceOf(factory.address);
+
+            const abi = ["function withdraw(address _token, uint256 _amount)"];
+            const iface = new Interface(abi);
+
+            let exploitAddTokens: TokenOrder[] = [
+                {
+                    token: mockDAI.address,
+                    callData: iface.encodeFunctionData("withdraw", [
+                        mockUNI.address,
+                        1000,
+                    ]),
+                },
+            ];
+
+            await expect(factory.addTokens(
+                assets[0],
+                mockDAI.address,
+                1,
+                dummyRouter.address,
+                exploitAddTokens,
+            )).to.be.revertedWith("NOTHING_BOUGHT");
+
+            let inuBalanceAfter = await mockUNI.balanceOf(factory.address);
+            let aliceExploit = inuBalanceAfter.sub(inuBalanceBefore);
+
+            // Alice moved INU in the factory... Funds are lost
+            expect(aliceExploit).to.be.equal(BigNumber.from(0));
+        })
+
         it("reverts if token id is invalid", async () => {
             await expect(
                 factory.addTokens(
