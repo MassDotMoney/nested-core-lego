@@ -316,13 +316,10 @@ describe("NestedFactory", () => {
                         .withArgs(250, 10);
                 })
 
-
-
                 it("should set the SmartChef address", async () => {
                     await factory.setSmartChef(alice.address);
                     expect(await factory.smartChef()).to.equal(alice.address);
                 });
-
 
                 it("applies a discount to a VIP user", async () => {
                     const mockSmartChefFactory = await ethers.getContractFactory("MockSmartChef");
