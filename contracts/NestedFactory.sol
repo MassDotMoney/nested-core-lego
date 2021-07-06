@@ -338,7 +338,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         // we transfer from reserve to factory
         NestedReserve(reserve).transfer(address(this), IERC20(holding.token), _sellTokenAmount);
 
-        uint256 fees = _sellTokenAmount / 100;
+        uint256 fees = _calculateFees(msg.sender, _sellTokenAmount);
         uint256 balanceBeforePurchase = _sellToken.balanceOf(address(this));
         exchangeAndStoreTokens(_nftId, _sellToken, _swapTarget, _tokenOrders);
         uint256 amountSpent = balanceBeforePurchase - _sellToken.balanceOf(address(this));
@@ -407,7 +407,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     */
     function _transferToWallet(uint256 _nftId, NestedStructs.Holding memory _holding) internal onlyTokenOwner(_nftId) {
         IERC20 token = IERC20(_holding.token);
-        uint256 feeAmount = _holding.amount / 100;
+        uint256 feeAmount = _calculateFees(msg.sender, _holding.amount);
 
         transferFee(feeAmount, token);
         token.safeTransfer(msg.sender, _holding.amount - feeAmount);
