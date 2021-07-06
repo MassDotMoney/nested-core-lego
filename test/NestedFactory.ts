@@ -197,6 +197,16 @@ describe("NestedFactory", () => {
                 );
             });
 
+            it("reverts if a swap target isn't allowed", async () => {
+                // corrupt swap call to make it fail
+                const abi = ["function removeNFT(uint256)"];
+                const iface = new Interface(abi);
+                buyTokenOrders[1].callData = iface.encodeFunctionData("removeNFT", [0]);
+                await expect(
+                    factory.create(0, metadataUri, mockWETH.address, totalSellAmount, records.address, buyTokenOrders),
+                ).to.be.revertedWith("INVALID_SWAP_TARGET");
+            });
+
             it("creates the NFT", async () => {
                 const initialWethBalance = await mockWETH.balanceOf(alice.address);
 
