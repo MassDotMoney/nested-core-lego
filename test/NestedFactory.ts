@@ -309,10 +309,20 @@ describe("NestedFactory", () => {
                     );
                 });
 
+                it("should emit VipDiscountChanged event", async () => {
+                    await expect(factory.setVipDiscount(250, 10))
+                        .to
+                        .emit(factory, "VipDiscountChanged")
+                        .withArgs(250, 10);
+                })
+
+
+
                 it("should set the SmartChef address", async () => {
                     await factory.setSmartChef(alice.address);
                     expect(await factory.smartChef()).to.equal(alice.address);
                 });
+
 
                 it("applies a discount to a VIP user", async () => {
                     const mockSmartChefFactory = await ethers.getContractFactory("MockSmartChef");

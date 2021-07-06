@@ -144,8 +144,8 @@ contract NestedFactory is ReentrancyGuard, Ownable {
      */
     function setVipDiscount(uint256 _vipDiscount, uint256 _vipMinAmount) external onlyOwner {
         require(_vipDiscount < 1000, "FeeSplitter: DISCOUNT_TOO_HIGH");
-        vipDiscount = _vipDiscount;
-        vipMinAmount = _vipMinAmount;
+        (vipDiscount, vipMinAmount) = (_vipDiscount, _vipMinAmount);
+        emit VipDiscountChanged(vipDiscount, vipMinAmount);
     }
 
     /**
