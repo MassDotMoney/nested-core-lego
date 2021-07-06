@@ -44,6 +44,9 @@ describe("NestedFactory", () => {
     });
 
     beforeEach(async () => {
+        // reset alice's balance
+        await network.provider.send("hardhat_setBalance", [alice.address, appendDecimals(1000).toHexString()]);
+
         const MockWETHFactory = await ethers.getContractFactory("WETH9");
         mockWETH = await MockWETHFactory.deploy();
 
