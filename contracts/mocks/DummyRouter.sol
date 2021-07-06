@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "../NestedFactory.sol";
 import "../libraries/NestedStructs.sol";
+import "../libraries/ExchangeHelpers.sol";
 import "hardhat/console.sol";
 
 contract DummyRouter is IERC721Receiver {
@@ -55,6 +56,14 @@ contract DummyRouter is IERC721Receiver {
             payable(address(this)),
             _tokenOrders
         );
+    }
+
+    function setMaxAllowance(IERC20 _token, address _spender) external {
+        ExchangeHelpers.setMaxAllowance(_token, _spender);
+    }
+
+    function setAllowance(IERC20 _token, address _spender, uint256 _amount) external {
+        _token.approve(_spender, _amount);
     }
 
     function onERC721Received(

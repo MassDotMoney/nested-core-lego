@@ -1,4 +1,5 @@
 import { ethers } from "hardhat"
+import { BigNumber } from "ethers"
 
 export const appendDecimals = (amount: number) => ethers.utils.parseEther(amount.toString())
 
@@ -14,3 +15,6 @@ export const displayHoldings = (holdings: any[]) => {
 
 export const getTokenName = (address: string, tokens: Record<string, string>) =>
     Object.entries(tokens).find(([_, value]) => value === address)?.[0] || "???"
+
+export const BIG_NUMBER_ZERO = BigNumber.from(0)
+export const UINT256_MAX = BigNumber.from(2).pow(256).sub(1)

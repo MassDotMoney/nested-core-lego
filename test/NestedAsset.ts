@@ -2,7 +2,6 @@ import { Contract, ContractFactory } from "@ethersproject/contracts"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
 import { ethers } from "hardhat"
-import { getETHSpentOnGas } from "./helpers"
 
 describe("NestedAsset", () => {
     let NestedAsset: ContractFactory, asset: Contract
