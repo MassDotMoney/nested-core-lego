@@ -6,6 +6,7 @@ import "hardhat-deploy-ethers"
 import "hardhat-gas-reporter"
 import "@nomiclabs/hardhat-solhint"
 import "hardhat-contract-sizer"
+import "hardhat-dependency-compiler"
 
 import { HardhatUserConfig } from "hardhat/config"
 
@@ -40,7 +41,7 @@ const config: HardhatUserConfig = {
         ropsten: {
             url: `https://eth-ropsten.alchemyapi.io/v2/${process.env.ALCHEMY_ROPSTEN_API_KEY}`,
             accounts: accounts,
-	    gasPrice: 1100000000
+            gasPrice: 1100000000,
         },
         kovan: {
             url: `https://eth-kovan.alchemyapi.io/v2/${process.env.ALCHEMY_KOVAN_API_KEY}`,
@@ -65,6 +66,9 @@ const config: HardhatUserConfig = {
         currency: "USD",
         enabled: process.env.REPORT_GAS === "true",
         excludeContracts: ["contracts/mocks/", "contracts/libraries/", "contracts/interfaces/"],
+    },
+    dependencyCompiler: {
+        paths: ["@openzeppelin/contracts/governance/TimelockController.sol"],
     },
 }
 

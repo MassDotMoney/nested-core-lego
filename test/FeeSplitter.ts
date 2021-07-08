@@ -6,11 +6,7 @@ import { ethers } from "hardhat"
 import { expect } from "chai"
 
 describe("Fee Splitter", () => {
-    let alice: SignerWithAddress,
-        bob: SignerWithAddress,
-        wallet3: SignerWithAddress,
-        feeToSetter: SignerWithAddress,
-        feeTo: SignerWithAddress
+    let alice: SignerWithAddress, bob: SignerWithAddress, wallet3: SignerWithAddress, feeTo: SignerWithAddress
     let ERC20Mocks: Contract[]
     let mockWETH: Contract
     let feeSplitter: Contract
@@ -21,7 +17,6 @@ describe("Fee Splitter", () => {
         alice = signers[0]
         bob = signers[1]
         wallet3 = signers[2]
-        feeToSetter = signers[2]
         feeTo = signers[2]
     })
 

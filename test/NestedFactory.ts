@@ -13,7 +13,6 @@ describe("NestedFactory", () => {
         bob: SignerWithAddress,
         wallet3: SignerWithAddress,
         wallet4: SignerWithAddress,
-        feeToSetter: SignerWithAddress,
         newReserve: SignerWithAddress;
     let mockWETH: Contract, mockUNI: Contract, mockKNC: Contract, mockDAI: Contract, feeTo: Contract;
     let nestedReserve: ContractFactory, reserve: Contract;
@@ -33,7 +32,6 @@ describe("NestedFactory", () => {
         // All transactions will be sent from Alice unless explicity specified
         alice = signers[0] as any;
         bob = signers[1] as any;
-        feeToSetter = signers[2] as any;
         wallet3 = signers[3] as any;
         wallet4 = signers[4] as any;
         feeTo = signers[5] as any;
@@ -67,7 +65,6 @@ describe("NestedFactory", () => {
         factory = await nestedFactory.deploy(
             asset.address,
             records.address,
-            feeToSetter.address,
             feeTo.address,
             mockWETH.address,
             500,
@@ -85,44 +82,28 @@ describe("NestedFactory", () => {
 
     describe("#initialization", () => {
         it("sets the state variables", async () => {
-            expect(await factory.feeToSetter()).to.eq(feeToSetter.address);
             expect(await factory.feeTo()).to.eq(feeTo.address);
             expect(await factory.nestedAsset()).to.eq(asset.address);
             expect(await factory.weth()).to.eq(mockWETH.address);
         });
     });
 
-    describe("#setFeeToSetter", () => {
-        it("set feeToSetter state variable", async () => {
-            await factory.connect(feeToSetter).setFeeToSetter(bob.address);
-            expect(await factory.feeToSetter()).to.equal(bob.address);
-        });
-
-        it("reverts if unauthorized", async () => {
-            await expect(factory.connect(alice).setFeeToSetter(bob.address)).to.be.revertedWith("FORBIDDEN");
-        });
-
-        it("reverts if the address is invalid", async () => {
-            await expect(
-                factory.connect(feeToSetter).setFeeToSetter("0x0000000000000000000000000000000000000000"),
-            ).to.be.revertedWith("INVALID_ADDRESS");
-        });
-    });
-
     describe("#setFeeTo", () => {
         it("sets feeTo state variable", async () => {
-            await factory.connect(feeToSetter).setFeeTo(bob.address);
+            await factory.setFeeTo(bob.address);
             expect(await factory.feeTo()).to.equal(bob.address);
         });
 
         it("reverts if unauthorized", async () => {
-            await expect(factory.connect(alice).setFeeTo(bob.address)).to.be.revertedWith("FORBIDDEN");
+            await expect(factory.connect(bob).setFeeTo(bob.address)).to.be.revertedWith(
+                "Ownable: caller is not the owner",
+            );
         });
 
         it("reverts if the address is invalid", async () => {
-            await expect(
-                factory.connect(feeToSetter).setFeeTo("0x0000000000000000000000000000000000000000"),
-            ).to.be.revertedWith("INVALID_ADDRESS");
+            await expect(factory.setFeeTo("0x0000000000000000000000000000000000000000")).to.be.revertedWith(
+                "INVALID_ADDRESS",
+            );
         });
     });
 

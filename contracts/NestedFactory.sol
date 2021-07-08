@@ -31,7 +31,6 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     event NftUpdated(uint256 indexed nftId, UpdateOperation updateOperation);
 
     IWETH public immutable weth;
-    address public feeToSetter;
     uint256 public vipDiscount;
     uint256 public vipMinAmount;
     MinimalSmartChef public smartChef;
@@ -63,7 +62,6 @@ contract NestedFactory is ReentrancyGuard, Ownable {
 
     /*
     @param _asset [NestedReserve]
-    @param _feeToSetter [address] The address which will be allowed to choose where the fees go
     @param _feeTo [FeeSplitter] the address or contract that receives fees
     @param _weth [IWETH] The wrapped ether contract
     @param _vipDiscount [uint256] discount percentage for VIP users (times 1000)
@@ -72,13 +70,11 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     constructor(
         NestedAsset _asset,
         NestedRecords _records,
-        address _feeToSetter,
         FeeSplitter _feeTo,
         IWETH _weth,
         uint256 _vipDiscount,
         uint256 _vipMinAmount
     ) {
-        feeToSetter = _feeToSetter;
         feeTo = _feeTo;
         weth = _weth;
         nestedAsset = _asset;
@@ -114,18 +110,8 @@ contract NestedFactory is ReentrancyGuard, Ownable {
    Sets the address receiving the fees
    @param feeTo The address of the receiver
    */
-    function setFeeTo(FeeSplitter _feeTo) external addressExists(address(_feeTo)) {
-        require(msg.sender == feeToSetter, "FORBIDDEN");
+    function setFeeTo(FeeSplitter _feeTo) external addressExists(address(_feeTo)) onlyOwner {
         feeTo = _feeTo;
-    }
-
-    /*
-    Sets the address that can redirect the fees to a new receiver
-    @param _feeToSetter The address that decides where the fees go
-    */
-    function setFeeToSetter(address payable _feeToSetter) external addressExists(_feeToSetter) {
-        require(msg.sender == feeToSetter, "FORBIDDEN");
-        feeToSetter = _feeToSetter;
     }
 
     /*

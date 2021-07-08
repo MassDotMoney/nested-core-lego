@@ -4,7 +4,7 @@ import { NetworkName } from "./demo-types"
 import addresses from "./addresses.json"
 import fs from "fs"
 
-async function main() {
+export async function main(timelockMinDelay: number, saveAddresses = false) {
     const env = network.name as NetworkName
     const accounts = await ethers.getSigners()
 
@@ -35,7 +35,7 @@ async function main() {
     const records = await NestedRecords.deploy()
     await records.deployed()
 
-    const factory = await NestedFactory.deploy(asset.address, records.address, dev, feeSplitter.address, weth, 0, 0)
+    const factory = await NestedFactory.deploy(asset.address, records.address, feeSplitter.address, weth, 0, 0)
     await factory.deployed()
     const tx0 = await asset.setFactory(factory.address)
     await tx0.wait()
@@ -48,15 +48,45 @@ async function main() {
 
     await factory.setReserve(reserve.address)
 
-    console.log("Factory address: ", factory.address)
     addresses[env].factory = factory.address
+    addresses[env].nestedAsset = asset.address
+    addresses[env].nestedRecords = records.address
+    addresses[env].feeSplitter = feeSplitter.address
+
+    const timelock = await configureTimelock(addresses[env], dev, timelockMinDelay)
+
+    const tx2 = await factory.transferOwnership(timelock)
+    const tx3 = await records.transferOwnership(timelock)
+    const tx4 = await asset.transferOwnership(timelock)
+    const tx5 = await feeSplitter.transferOwnership(timelock)
+
+    await Promise.all([tx2.wait(), tx3.wait(), tx4.wait(), tx5.wait()])
+
     // write factory address to addresses.json
-    fs.writeFileSync("./demo/addresses.json", JSON.stringify(addresses, null, 4))
+    if (saveAddresses) fs.writeFileSync("./demo/addresses.json", JSON.stringify(addresses, null, 4))
+    return addresses[env]
 }
 
-main()
-    .then(() => process.exit(0))
-    .catch(error => {
-        console.error(error)
-        process.exit(1)
-    })
+const configureTimelock = async (addr: any, dev: string, timelockMinDelay: number) => {
+    const TimelockFactory = await ethers.getContractFactory("TimelockController")
+
+    // add dev team multisig wallet here
+    const timelock = await TimelockFactory.deploy(timelockMinDelay, [dev], [dev])
+    addr.timelock = timelock.address
+    return timelock.address
+}
+
+export const isCallingScript = (filename: string) => {
+    return filename === process.argv?.[1]
+}
+
+if (isCallingScript(__filename))
+    main(48 * 60 * 60)
+        .then(addresses => {
+            console.log("Factory address:", addresses.factory)
+            process.exit(0)
+        })
+        .catch(error => {
+            console.error(error)
+            process.exit(1)
+        })
