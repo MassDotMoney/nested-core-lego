@@ -17,6 +17,8 @@ export async function main(timelockMinDelay: number, saveAddresses = false) {
     const nestedBuyBackerPart = ethers.BigNumber.from("30")
     const royaltiesPartPart = ethers.BigNumber.from("20")
 
+    const maxHoldingsCount = 15
+
     const FeeSplitter = await ethers.getContractFactory("FeeSplitter")
     const NestedAsset = await ethers.getContractFactory("NestedAsset")
     const NestedRecords = await ethers.getContractFactory("NestedRecords")
@@ -32,7 +34,7 @@ export async function main(timelockMinDelay: number, saveAddresses = false) {
     await feeSplitter.deployed()
     const asset = await NestedAsset.deploy()
     await asset.deployed()
-    const records = await NestedRecords.deploy()
+    const records = await NestedRecords.deploy(maxHoldingsCount)
     await records.deployed()
 
     const factory = await NestedFactory.deploy(asset.address, records.address, feeSplitter.address, weth, 0, 0)

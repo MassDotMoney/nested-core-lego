@@ -1,11 +1,11 @@
-import { Contract } from "@ethersproject/contracts"
+import { Contract, ContractFactory } from "@ethersproject/contracts"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { appendDecimals } from "./helpers"
 import { ethers } from "hardhat"
 import { expect } from "chai"
 
 describe("NestedRecords", () => {
-    let nestedRecords: Contract
+    let NestedRecords: ContractFactory, nestedRecords: Contract
     let alice: SignerWithAddress, bob: SignerWithAddress
 
     before(async () => {
@@ -15,8 +15,8 @@ describe("NestedRecords", () => {
     })
 
     beforeEach(async () => {
-        const nestedRecordsFactory = await ethers.getContractFactory("NestedRecords")
-        nestedRecords = await nestedRecordsFactory.deploy()
+        NestedRecords = await ethers.getContractFactory("NestedRecords")
+        nestedRecords = await NestedRecords.deploy(15)
         nestedRecords.setFactory(alice.address)
     })
 
@@ -43,9 +43,9 @@ describe("NestedRecords", () => {
     })
 
     it("reverts when calling store with too many orders", async () => {
-        const MAX_HOLDING_COUNT = 15
+        const maxHoldingsCount = await nestedRecords.maxHoldingsCount();
         const signers = await ethers.getSigners()
-        for (let i = 0; i < MAX_HOLDING_COUNT; i++) {
+        for (let i = 0; i < maxHoldingsCount; i++) {
             await nestedRecords.store(0, signers[i + 3].address, 20, alice.address)
         }
         await expect(nestedRecords.store(0, bob.address, 20, alice.address)).to.be.revertedWith(
@@ -67,5 +67,18 @@ describe("NestedRecords", () => {
         expect(tokens.length).to.equal(0)
         const emptyHolding = await nestedRecords.getAssetHolding(0, weth)
         expect(emptyHolding.token).to.equal(ethers.constants.AddressZero)
+    })
+
+    describe("#setMaxHoldingsCount", () => {
+        it("reverts when setting an incorrect number of max holdings", async () => {
+            await expect(nestedRecords.setMaxHoldingsCount(0)).to.be.revertedWith(
+                "NestedRecords: INVALID_MAX_HOLDINGS",
+            )
+        })
+
+        it("sets max holdings count", async () => {
+            await nestedRecords.setMaxHoldingsCount(1);
+            expect(await nestedRecords.maxHoldingsCount()).to.eq(1)
+        })
     })
 })

@@ -10,13 +10,14 @@ import "./libraries/NestedStructs.sol";
  */
 contract NestedRecords is Ownable {
     event FactoryAdded(address newFactory);
+    event MaxHoldingsChanges(uint256 maxHoldingsCount);
 
     mapping(address => bool) public supportedFactories;
 
     // stores for each NFT ID an asset record
     mapping(uint256 => NestedStructs.NftRecord) public records;
 
-    uint256 private constant MAX_HOLDINGS_COUNT = 15;
+    uint256 public maxHoldingsCount;
 
     /*
     Reverts the transaction if the caller is not the factory
@@ -27,6 +28,13 @@ contract NestedRecords is Ownable {
     }
 
     /*
+    @param maxHoldingsCount [uint] the maximum number of holdings for an NFT record
+    */
+    constructor(uint256 _maxHoldingsCount) {
+        maxHoldingsCount = _maxHoldingsCount;
+    }
+
+    /*
     Sets the factory for Nested records
     @param _factory the address of the new factory
     */
@@ -34,6 +42,16 @@ contract NestedRecords is Ownable {
         require(_factory != address(0), "NestedRecords: INVALID_ADDRESS");
         supportedFactories[_factory] = true;
         emit FactoryAdded(_factory);
+    }
+
+    /*
+    Sets the maximum number of holdings for an NFT record
+    @param _maxHoldingsCount [uint] the new maximum number of holdings
+    */
+    function setMaxHoldingsCount(uint256 _maxHoldingsCount) external onlyOwner {
+        require(_maxHoldingsCount > 0, "NestedRecords: INVALID_MAX_HOLDINGS");
+        maxHoldingsCount = _maxHoldingsCount;
+        emit MaxHoldingsChanges(maxHoldingsCount);
     }
 
     /*
@@ -121,7 +139,7 @@ contract NestedRecords is Ownable {
         uint256 _amount,
         address _reserve
     ) public onlyFactory {
-        require(records[_nftId].tokens.length < MAX_HOLDINGS_COUNT, "NestedRecords: TOO_MANY_ORDERS");
+        require(records[_nftId].tokens.length < maxHoldingsCount, "NestedRecords: TOO_MANY_ORDERS");
         require(
             _reserve != address(0) && (_reserve == records[_nftId].reserve || records[_nftId].reserve == address(0)),
             "NestedRecords: INVALID_RESERVE"

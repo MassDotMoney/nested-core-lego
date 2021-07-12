@@ -57,7 +57,7 @@ describe("NestedFactory", () => {
         asset = await nestedAsset.deploy();
         await asset.deployed();
 
-        records = await nestedRecords.deploy();
+        records = await nestedRecords.deploy(15);
         await records.deployed();
 
         factory = await nestedFactory.deploy(
