@@ -54,8 +54,8 @@
     "ropsten": {
         "uniswapRouter": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
         "uniswapFactory": "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f",
-        "factory": "0xd181FfFa9CE47A2e2E35277FEA75aFA4126f1F7d",
-        "nestedAsset": "",
+        "factory": "0x44DC05dcD62540e4d80326cBca22EecAc95F0249",
+        "nestedAsset": "0x65D829578f2962D5aBaB3789A4711DFaa18a5fA4",
         "nestedRecords": "",
         "feeSplitter": "",
         "timelock": "",
