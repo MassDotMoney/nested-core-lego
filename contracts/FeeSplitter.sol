@@ -107,7 +107,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
      * @param _amount [uint256] amount of token as fee to be claimed by this contract
      * @param _token [IERC20] currency for the fee as an ERC20 token
      */
-    function sendFees(IERC20 _token, uint256 _amount) public {
+    function sendFees(IERC20 _token, uint256 _amount) nonReentrant public {
         uint256 weights = totalWeights - royaltiesWeight;
         _sendFees(_token, _amount, weights);
     }
