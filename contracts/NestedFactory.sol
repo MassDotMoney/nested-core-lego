@@ -108,7 +108,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
 
     /*
    Sets the address receiving the fees
-   @param feeTo The address of the receiver
+   @param _feeTo The address of the receiver
    */
     function setFeeTo(FeeSplitter _feeTo) external addressExists(address(_feeTo)) onlyOwner {
         feeTo = _feeTo;
@@ -222,7 +222,6 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     /*
     Purchase tokens and store them in a reserve for the user.
     @param _originalTokenId [uint] the id of the NFT replicated, 0 if not replicating
-    @param _metadataURI The metadata URI string
     @param _sellToken [IERC20] token used to make swaps
     @param _sellTokenAmount [uint] amount of sell tokens to exchange
     @param _swapTarget [address] the address of the contract that will swap tokens
@@ -230,13 +229,12 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     */
     function create(
         uint256 _originalTokenId,
-        string memory _metadataURI,
         IERC20 _sellToken,
         uint256 _sellTokenAmount,
         address payable _swapTarget,
         NestedStructs.TokenOrder[] calldata _tokenOrders
     ) external payable nonReentrant {
-        uint256 nftId = nestedAsset.mint(msg.sender, _metadataURI, _originalTokenId);
+        uint256 nftId = nestedAsset.mint(msg.sender, _originalTokenId);
         uint256 fees = _addTokens(nftId, _sellToken, _sellTokenAmount, _swapTarget, _tokenOrders);
 
         if (address(_sellToken) == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {

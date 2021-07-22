@@ -122,10 +122,9 @@ const create = async (useWeth: boolean, user?: SignerWithAddress, replicateNFT: 
         sellToken = WETH
     }
 
-    const metadataUri = "ipfs://bafybeiam5u4xc5527tv6ghlwamd6azfthmcuoa6uwnbbvqbtsyne4p7khq/metadata.json"
     const tx2 = await nestedFactory
         .connect(user)
-        .create(replicateNFT, metadataUri, sellToken, totalSellAmount, responses[0].data.to, tokenOrders, {
+        .create(replicateNFT, sellToken, totalSellAmount, responses[0].data.to, tokenOrders, {
             value: !useWeth && totalSellAmountWithFees,
         })
     return tx2.wait()

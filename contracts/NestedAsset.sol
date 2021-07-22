@@ -32,13 +32,22 @@ contract NestedAsset is ERC721Enumerable, Ownable {
     Reverts the transaction if the caller is not the factory
     */
     modifier onlyFactory {
-        require(supportedFactories[msg.sender], "NestedAsset: FORBIDDEN");
+        require(supportedFactories[msg.sender], "NestedAsset: FORBIDDEN_NOT_FACTORY");
+        _;
+    }
+
+    /*
+    Reverts the transaction if the address is not the token owner
+    */
+    modifier onlyTokenOwner(address _address, uint256 _tokenId) {
+        require(_address == ownerOf(_tokenId), "NestedAsset: FORBIDDEN_NOT_OWNER");
         _;
     }
 
     /*
     Returns the Uniform Resource Identifier (URI) for `tokenId` token.
     @param _tokenId The id of the NestedAsset
+    @return [string]
     */
     function tokenURI(uint256 _tokenId) public view virtual override returns (string memory) {
         require(_exists(_tokenId), "URI query for nonexistent token");
@@ -47,30 +56,39 @@ contract NestedAsset is ERC721Enumerable, Ownable {
 
     /*
     Sets the Uniform Resource Identifier (URI) for `tokenId` token.
-    @param _tokenId The id of the NestedAsset
-    @param _metadataURI The metadata URI string
+    @param _tokenId [uint] The id of the NestedAsset
+    @param _metadataURI [string] The metadata URI string
     */
     function _setTokenURI(uint256 _tokenId, string memory _metadataURI) internal virtual {
         _tokenURIs[_tokenId] = _metadataURI;
     }
 
     /*
+    Backfills the token URI if it had never set
+    @param _tokenId [uint] The id of the NestedAsset
+    @param _owner [address] The id of the NestedAsset
+    @param _metadataURI [string] The metadata URI string
+    */
+    function backfillTokenURI(
+        uint256 _tokenId,
+        address _owner,
+        string memory _metadataURI
+    ) external virtual onlyFactory onlyTokenOwner(_owner, _tokenId) {
+        require(bytes(tokenURI(_tokenId)).length == 0, "NestedAsset: TOKEN_URI_IMMUTABLE");
+        _setTokenURI(_tokenId, _metadataURI);
+    }
+
+    /*
     Mints an ERC721 token for the user and stores the original asset used to create the new asset if any
-    @param owner [address] The account address that signed the transaction
-    @param _metadataURI [string ]The metadata URI string
+    @param _owner [address] The account address that signed the transaction
     @param _replicatedTokenId [uint] the token id of the replicated asset, 0 if no replication
     @return [uint256] the minted token's id
     */
-    function mint(
-        address _owner,
-        string memory _metadataURI,
-        uint256 _replicatedTokenId
-    ) external onlyFactory returns (uint256) {
+    function mint(address _owner, uint256 _replicatedTokenId) public onlyFactory returns (uint256) {
         _tokenIds.increment();
 
         uint256 tokenId = _tokenIds.current();
         _safeMint(_owner, tokenId);
-        _setTokenURI(tokenId, _metadataURI);
 
         // Stores the first asset of the replication chain as the original
         if (_replicatedTokenId == 0) return tokenId;
@@ -83,12 +101,29 @@ contract NestedAsset is ERC721Enumerable, Ownable {
     }
 
     /*
+    Mints an ERC721 token and sets the tokenUri
+    @dev see mint()
+    @param _owner [address] The account address that signed the transaction
+    @param _metadataURI [string] The metadata URI string
+    @param _replicatedTokenId [uint] the token id of the replicated asset, 0 if no replication
+    @return [uint256] the minted token's id
+    */
+    function mintWithMetadata(
+        address _owner,
+        string memory _metadataURI,
+        uint256 _replicatedTokenId
+    ) external onlyFactory returns (uint256) {
+        uint256 tokenId = mint(_owner, _replicatedTokenId);
+        _setTokenURI(tokenId, _metadataURI);
+        return tokenId;
+    }
+
+    /*
     Burns an ERC721 token
     @param _owner The account address that signed the transaction
     @param _tokenId The id of the NestedAsset
     */
-    function burn(address _owner, uint256 _tokenId) external onlyFactory {
-        require(_owner == ownerOf(_tokenId), "NestedAsset: FORBIDDEN");
+    function burn(address _owner, uint256 _tokenId) external onlyFactory onlyTokenOwner(_owner, _tokenId) {
         lastOwnerBeforeBurn[_tokenId] = _owner;
         _burn(_tokenId);
 

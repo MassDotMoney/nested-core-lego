@@ -20,8 +20,6 @@ describe("NestedFactory", () => {
     let nestedRecords: ContractFactory, records: Contract;
     let dummyRouter: Contract;
 
-    const metadataUri = "ipfs://bafybeiam5u4xc5527tv6ghlwamd6azfthmcuoa6uwnbbvqbtsyne4p7khq/metadata.json";
-
     before(async () => {
         nestedFactory = await ethers.getContractFactory("NestedFactory");
         nestedReserve = await ethers.getContractFactory("NestedReserve");
@@ -184,7 +182,7 @@ describe("NestedFactory", () => {
                 const iface = new Interface(abi);
                 buyTokenOrders[1].callData = iface.encodeFunctionData("removeNFT", [0]);
                 await expect(
-                    factory.create(0, metadataUri, mockWETH.address, totalSellAmount, records.address, buyTokenOrders),
+                    factory.create(0, mockWETH.address, totalSellAmount, records.address, buyTokenOrders),
                 ).to.be.revertedWith("INVALID_SWAP_TARGET");
             });
 
@@ -1124,7 +1122,7 @@ describe("NestedFactory", () => {
     ) =>
         factory
             .connect(signer)
-            .create(originalTokenId, metadataUri, mockWETH.address, totalSellAmount, dummyRouter.address, tokenOrders);
+            .create(originalTokenId, mockWETH.address, totalSellAmount, dummyRouter.address, tokenOrders);
 
     const createNFTFromETH = (
         tokenOrders: TokenOrder[],
@@ -1136,7 +1134,6 @@ describe("NestedFactory", () => {
             .connect(signer)
             .create(
                 0,
-                metadataUri,
                 "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
                 totalSellAmount,
                 dummyRouter.address,
