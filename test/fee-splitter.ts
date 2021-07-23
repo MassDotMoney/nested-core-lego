@@ -7,7 +7,7 @@ import { expect } from "chai"
 
 describe("Fee Splitter", () => {
     let alice: SignerWithAddress, bob: SignerWithAddress, wallet3: SignerWithAddress, feeTo: SignerWithAddress
-    let ERC20Mocks: Contract[]
+    let ERC20Mocks!: [Contract, Contract, Contract]
     let mockWETH: Contract
     let feeSplitter: Contract
 
