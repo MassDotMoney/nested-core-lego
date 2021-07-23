@@ -88,7 +88,7 @@ const create = async (useWeth: boolean, user?: SignerWithAddress, replicateNFT: 
     ]
     let responses = (await Promise.all(
         orders.map(async order => {
-            const request = `https://${env === "localhost" ? "ropsten." : ""}api.0x.org/swap/v1/quote?${qs.stringify(
+            const request = `https://${env !== "mainnet" ? "ropsten." : ""}api.0x.org/swap/v1/quote?${qs.stringify(
                 order,
             )}`
             return axios.get(request).catch(() => console.log(`Call to ${request} failed.`))

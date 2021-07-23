@@ -9,7 +9,7 @@ Smart Contracts:
 - NestedFactory: Entry point to the protocol. Holds the business logic. Responsible for interactions with other contracts or 3rd parties.
 - NestedAsset: Collection of ERC721 tokens. Called NestedNFT accross the codebase.
 - NestedReserve: Holds funds for the user. Transfered from the NestedFactory.
-- NestedRecords: Tracks underlying assets of NestedNFTs. (Amount, NestedReserve) 
+- NestedRecords: Tracks underlying assets of NestedNFTs. (Amount, NestedReserve)
 - FeeSplitter: Receives payment in ERC20 tokens from the factory when fees are taken. Allows each party to claim the amount they are due.
 - NestedBuyBacker: Pulls tokens from the FeeSplitter, buys back NST tokens on the market, and burn a part of it.
 
@@ -27,7 +27,7 @@ Fee Distribution (step 10):
 ![image](https://user-images.githubusercontent.com/32484870/117845162-962cab80-b280-11eb-9903-be91ccb41e2b.png)
 
 ## Deployment process:
-V1 release: 
+V1 release:
 ![image](https://user-images.githubusercontent.com/32484870/117945404-94a9c480-b30e-11eb-9c83-c769f3370bbe.png)
 
 Update process:
@@ -39,7 +39,7 @@ Update process:
 - Install Node > 12
 - Install Yarn
 - `yarn install`
-- Copy `.env.example` to a new file `.env` and insert a dummy mnemonic
+- Copy `.env.example` to a new file `.env` and insert a dummy mnemonic and a mainnet api key
 
 # COMMANDS
 Start a local blockchain
@@ -62,6 +62,15 @@ Run coverage
 
 Run gas profiler
 `yarn test:gas`
+
+# Local testing
+
+
+## Create an NFT from Eth
+
+```bash
+npx hardhat run --network localhost ./demo/2_create_nft_from_eth.ts
+```
 
 ## License
 UNLICENSED

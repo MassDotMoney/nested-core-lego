@@ -20,7 +20,6 @@ describe("TimelockController", () => {
     let addresses: Unwrap<ReturnType<typeof deployContracts>>
 
     before(async () => {
-        debugger;
         addresses = await deployContracts(0, false)
     })
 
