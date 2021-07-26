@@ -129,7 +129,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
      * @param _vipMinAmount [uint256] min amount that needs to be staked to be a VIP
      */
     function setVipDiscount(uint256 _vipDiscount, uint256 _vipMinAmount) external onlyOwner {
-        require(_vipDiscount < 1000, "FeeSplitter: DISCOUNT_TOO_HIGH");
+        require(_vipDiscount < 1000, "DISCOUNT_TOO_HIGH");
         (vipDiscount, vipMinAmount) = (_vipDiscount, _vipMinAmount);
         emit VipDiscountChanged(vipDiscount, vipMinAmount);
     }
@@ -139,7 +139,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
      * @param _nextSmartChef [address] new SmartChef address
      */
     function setSmartChef(address _nextSmartChef) external onlyOwner {
-        require(_nextSmartChef != address(0), "FeeSplitter: INVALID_SMARTCHEF_ADDRESS");
+        require(_nextSmartChef != address(0), "INVALID_SMARTCHEF_ADDRESS");
         smartChef = MinimalSmartChef(_nextSmartChef);
         emit SmartChefChanged(_nextSmartChef);
     }
@@ -206,13 +206,14 @@ contract NestedFactory is ReentrancyGuard, Ownable {
                 require(success, "RESERVE_CALL_FAILED");
 
                 amountBought = balanceBeforePurchase - IERC20(_tokenOrders[i].token).balanceOf(address(this));
-                require(amountBought > 0, "NOTHING_BOUGHT");
+                require(amountBought > 0, "NOTHING_DEPOSITED");
             } else {
                 require(_swapTargetValid(_swapTarget), "INVALID_SWAP_TARGET");
 
                 bool success = ExchangeHelpers.fillQuote(_sellToken, _swapTarget, _tokenOrders[i].callData);
                 require(success, "SWAP_CALL_FAILED");
                 amountBought = IERC20(_tokenOrders[i].token).balanceOf(address(this)) - balanceBeforePurchase;
+                require(amountBought > 0, "NOTHING_BOUGHT");
                 IERC20(_tokenOrders[i].token).safeTransfer(address(reserve), amountBought);
             }
             nestedRecords.store(_nftId, _tokenOrders[i].token, amountBought, address(reserve));

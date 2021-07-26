@@ -186,6 +186,17 @@ describe("NestedFactory", () => {
                 ).to.be.revertedWith("INVALID_SWAP_TARGET");
             });
 
+            it("reverts if nothing was bought during the swap", async () => {
+                await expect(createNFTFromERC20([
+                    {
+                        token: tokensToBuy[0],
+                        callData: [],
+                    },
+                ], totalSellAmount)).to.be.revertedWith(
+                    "NOTHING_BOUGHT",
+                );
+            });
+
             it("creates the NFT", async () => {
                 const initialWethBalance = await mockWETH.balanceOf(alice.address);
 
@@ -272,8 +283,8 @@ describe("NestedFactory", () => {
 
             describe("VIP tiers", () => {
                 it("should revert when setting invalid VIP discount", async () => {
-                    await expect(factory.setVipDiscount(1000, 0)).to.be.revertedWith("FeeSplitter: DISCOUNT_TOO_HIGH");
-                    await expect(factory.setVipDiscount(1001, 0)).to.be.revertedWith("FeeSplitter: DISCOUNT_TOO_HIGH");
+                    await expect(factory.setVipDiscount(1000, 0)).to.be.revertedWith("DISCOUNT_TOO_HIGH");
+                    await expect(factory.setVipDiscount(1001, 0)).to.be.revertedWith("DISCOUNT_TOO_HIGH");
                 });
 
                 it("sets the discount and min vip amount", async () => {
@@ -284,7 +295,7 @@ describe("NestedFactory", () => {
 
                 it("should revert when setting an invalid smart chef contract", async () => {
                     await expect(factory.setSmartChef(ethers.constants.AddressZero)).to.be.revertedWith(
-                        "FeeSplitter: INVALID_SMARTCHEF_ADDRESS",
+                        "INVALID_SMARTCHEF_ADDRESS",
                     );
                 });
 
@@ -448,7 +459,7 @@ describe("NestedFactory", () => {
 
             await expect(
                 factory.addTokens(assets[0], mockDAI.address, 1, dummyRouter.address, exploitAddTokens),
-            ).to.be.revertedWith("NOTHING_BOUGHT");
+            ).to.be.revertedWith("NOTHING_DEPOSITED");
 
             let inuBalanceAfter = await mockUNI.balanceOf(alice.address);
             let aliceExploit = inuBalanceAfter.sub(inuBalanceBefore);
@@ -475,7 +486,7 @@ describe("NestedFactory", () => {
 
             await expect(
                 factory.addTokens(assets[0], mockDAI.address, 1, dummyRouter.address, exploitAddTokens),
-            ).to.be.revertedWith("NOTHING_BOUGHT");
+            ).to.be.revertedWith("NOTHING_DEPOSITED");
 
             let inuBalanceAfter = await mockUNI.balanceOf(factory.address);
             let aliceExploit = inuBalanceAfter.sub(inuBalanceBefore);
