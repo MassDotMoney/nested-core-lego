@@ -22,6 +22,7 @@ import "./libraries/ExchangeHelpers.sol";
 contract NestedFactory is ReentrancyGuard, Ownable {
     using SafeERC20 for IERC20;
     event NftCreated(uint256 indexed nftId, uint256 originalNftId);
+    event NftBurned(uint256 indexed nftId);
     event FailsafeWithdraw(uint256 indexed nftId, address indexed token);
     event ReserveRegistered(address indexed reserve);
     event VipDiscountChanged(uint256 vipDiscount, uint256 vipMinAmount);
@@ -522,6 +523,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
 
         nestedRecords.removeNFT(_nftId);
         nestedAsset.burn(msg.sender, _nftId);
+        emit NftBurned(_nftId);
 
         return amountBought;
     }

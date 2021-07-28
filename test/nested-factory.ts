@@ -1195,9 +1195,12 @@ describe("NestedFactory", () => {
                 await createNFTFromERC20(buyTokenOrders, totalSellAmount, bob, aliceTokens[0]);
 
                 const [bobTokenId] = await factory.tokensOf(bob.address);
-                await factory
+                await expect(factory
                     .connect(bob)
-                    .destroyForERC20(bobTokenId, mockWETH.address, dummyRouter.address, sellTokenOrders);
+                    .destroyForERC20(bobTokenId, mockWETH.address, dummyRouter.address, sellTokenOrders)
+                    ).to
+                    .emit(factory, "NftBurned")
+                    .withArgs(bobTokenId);
 
                 // check that alice has been assigned royalties.
                 // Should be twice 10% (createNFT + destroyNFT)
@@ -1217,6 +1220,17 @@ describe("NestedFactory", () => {
                     .sub(totalSellAmount.div(100))
                     .sub(txSpent);
                 expect(await alice.getBalance()).to.equal(expectedBalance);
+            });
+
+            it("emits the NftBurned event", async () => {
+                const [aliceTokenId] = await factory.tokensOf(alice.address);
+                await expect(
+                    factory
+                    .connect(alice)
+                    .destroyForETH(assets[0], dummyRouter.address, sellTokenOrders)
+                    ).to
+                    .emit(factory, "NftBurned")
+                    .withArgs(aliceTokenId);
             });
         });
 
