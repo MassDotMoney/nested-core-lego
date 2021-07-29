@@ -28,8 +28,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     event VipDiscountChanged(uint256 vipDiscount, uint256 vipMinAmount);
     event SmartChefChanged(address nextSmartChef);
 
-    enum UpdateOperation { AddToken, RemoveToken, SwapToken }
-    event NftUpdated(uint256 indexed nftId, UpdateOperation updateOperation);
+    event NftUpdated(uint256 indexed nftId);
 
     IWETH public immutable weth;
     uint256 public vipDiscount;
@@ -267,7 +266,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
             _sellToken = IERC20(address(weth));
         }
         transferFee(fees, _sellToken);
-        emit NftUpdated(_nftId, UpdateOperation.AddToken);
+        emit NftUpdated(_nftId);
     }
 
     function _addTokens(
@@ -332,7 +331,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
 
         _updateHolding(_nftId, address(_sellToken), holding.amount - _sellTokenAmount);
         transferFee(_sellTokenAmount - amountSpent, _sellToken);
-        emit NftUpdated(_nftId, UpdateOperation.SwapToken);
+        emit NftUpdated(_nftId);
     }
 
     /**
@@ -402,7 +401,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         nestedRecords.store(_nftId, address(_buyToken), amountBought, address(reserve));
         IERC20(_buyToken).safeTransfer(address(reserve), amountBought);
 
-        emit NftUpdated(_nftId, UpdateOperation.SwapToken);
+        emit NftUpdated(_nftId);
     }
 
     /**
@@ -426,7 +425,8 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         if (address(_buyToken) == address(weth)) _unwrapWethAndTransfer(amountBought);
         else _buyToken.safeTransfer(msg.sender, amountBought);
 
-        emit NftUpdated(_nftId, UpdateOperation.RemoveToken);
+        transferFee(amountFees, _buyToken);
+        emit NftUpdated(_nftId);
     }
 
     /*
@@ -471,7 +471,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         _transferToWallet(_nftId, holding);
 
         nestedRecords.deleteAsset(_nftId, _tokenIndex);
-        emit NftUpdated(_nftId, UpdateOperation.RemoveToken);
+        emit NftUpdated(_nftId);
     }
 
     /*
