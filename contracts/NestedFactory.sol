@@ -300,7 +300,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     }
 
     /*
-    Swap an existing asset from the NFT to another one.
+    Swap an existing token from the NFT for one or more tokens.
     @param _nftId [uint] the id of the NFT to update
     @param _sellToken [IERC20] token used to make swaps
     @param _sellTokenAmount [uint] amount of sell tokens to exchange
@@ -320,7 +320,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_sellToken));
         require(holding.amount >= _sellTokenAmount, "INSUFFICIENT_AMOUNT");
 
-        // we transfer from reserve to factory
+        // transfer from reserve to factory
         NestedReserve(reserve).transfer(address(this), IERC20(holding.token), _sellTokenAmount);
 
         uint256 fees = _calculateFees(msg.sender, _sellTokenAmount);
@@ -335,7 +335,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     }
 
     /**
-    Liquidiate one or more holdings and transfer the sale amount to the User. Fee is collected without paying roylaties.
+    Liquidate one or more holdings and transfer the sale amount to the user
     @param _nftId [uint] the id of the NFT to update
     @param _sellTokensAmount [<uint>] amount of sell tokens to exchange
     @param _swapTarget [address] the address of the contract that will swap tokens
@@ -354,11 +354,11 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         uint256 buyTokenInitialBalance = _buyToken.balanceOf(address(this));
 
         for (uint256 i = 0; i < _tokenOrders.length; i++) {
-            // check if sell token exist in nft and amount is enough
+            // check if sell token exists in nft and amount is enough
             NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, _tokenOrders[i].token);
             require(holding.amount >= _sellTokensAmount[i], "INSUFFICIENT_AMOUNT");
 
-            // we transfer from reserve to factory
+            // transfer from reserve to factory
             reserve.withdraw(IERC20(holding.token), _sellTokensAmount[i]);
 
             if (_tokenOrders[i].token != address(_buyToken)) {
@@ -380,13 +380,14 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         if (address(_buyToken) == address(weth)) _unwrapWeth(amountBought);
         else _buyToken.safeTransfer(msg.sender, amountBought);
 
-        transferFee(amountFees, _buyToken);
+        transferFeeWithRoyalty(amountFees, _buyToken, _nftId);
         emit NftUpdated(_nftId, UpdateOperation.RemoveToken);
     }
 
     /*
-    send a holding content back to the owner without exchanging it. Does not update NestedRecords
-    _token has to be transfered from reserve to factory first.
+    Send a holding content back to the owner without exchanging it. Does not update NestedRecords
+    Fee is collected without paying roylaties.
+    The token has to be transfered from reserve to factory first.
     @param _nftId [uint256] NFT token ID
     @param _holding [Holding] holding to withdraw
     */
@@ -401,7 +402,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     }
 
     /*
-    send a holding content back to the owner without exchanging it
+    Withdraw a token from the reserve and transfer it to the owner without exchanging it
     @param _nftId [uint256] NFT token ID
     @param _tokenIndex [uint256] index in array of tokens for this NFT and holding.
     @param _token [IERC20] token address for the holding. Used to make sure previous index param is valid
@@ -429,7 +430,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     }
 
     /*
-    Burn NFT and Sell all tokens for a specific ERC20
+    Burn NFT and sell all tokens for a specific ERC20
     @param  _nftId uint256 NFT token Id
     @param _buyToken [IERC20] token used to make swaps
     @param _swapTarget [address] the address of the contract that will swap tokens
@@ -499,7 +500,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     }
 
     /*
-    Burn NFT and Sell all tokens for WETH, unwrap it and then send ETH back to the user
+    Burn NFT and sell all tokens for WETH, unwrap it and then send ETH to the user
     @param  _nftId uint256 NFT token Id
     @param _swapTarget [address] the address of the contract that will swap tokens
     @param _tokenOrders [<TokenOrder>] orders for token swaps
