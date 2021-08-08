@@ -335,19 +335,21 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     }
 
     /**
-    Liquidate one or more holdings and transfer the sale amount to the user
+    Swap one or more existing tokens from the NFT for one token.
     @param _nftId [uint] the id of the NFT to update
+    @param _buyToken [address] the output token
     @param _sellTokensAmount [<uint>] amount of sell tokens to exchange
     @param _swapTarget [address] the address of the contract that will swap tokens
     @param _tokenOrders [<TokenOrder>] orders for token swaps
+    @return [uint256] amount bought during the swaps
     */
-    function sellTokensToWallet(
+    function _swapTokensForToken(
         uint256 _nftId,
         IERC20 _buyToken,
         uint256[] memory _sellTokensAmount,
         address payable _swapTarget,
         NestedStructs.TokenOrder[] calldata _tokenOrders
-    ) external payable nonReentrant onlyTokenOwner(_nftId) {
+    ) internal returns (uint256){
         require(_tokenOrders.length > 0, "BUY_ARG_MISSING");
         require(_tokenOrders.length == _sellTokensAmount.length, "SELL_AMOUNT_MISSING");
 
@@ -374,13 +376,53 @@ contract NestedFactory is ReentrancyGuard, Ownable {
 
         uint256 amountBought = _buyToken.balanceOf(address(this)) - buyTokenInitialBalance;
         uint256 amountFees = _calculateFees(msg.sender, amountBought);
-        amountBought = amountBought - amountFees;
+        transferFeeWithRoyalty(amountFees, _buyToken, _nftId);
+
+       return amountBought - amountFees;
+    }
+
+    /**
+    Swap one or more existing tokens from the NFT for one token.
+    @param _nftId [uint] the id of the NFT to update
+    @param _buyToken [address] the output token
+    @param _sellTokensAmount [<uint>] amount of sell tokens to exchange
+    @param _swapTarget [address] the address of the contract that will swap tokens
+    @param _tokenOrders [<TokenOrder>] orders for token swaps
+    */
+    function sellTokensToNft(
+        uint256 _nftId,
+        IERC20 _buyToken,
+        uint256[] memory _sellTokensAmount,
+        address payable _swapTarget,
+        NestedStructs.TokenOrder[] calldata _tokenOrders
+    ) external payable nonReentrant onlyTokenOwner(_nftId) {
+        uint256 amountBought = _swapTokensForToken(_nftId, _buyToken, _sellTokensAmount, _swapTarget, _tokenOrders);
+
+        nestedRecords.store(_nftId, address(_buyToken), amountBought, address(reserve));
+        emit NftUpdated(_nftId, UpdateOperation.SwapToken);
+    }
+
+    /**
+    Liquidate one or more holdings and transfer the sale amount to the user
+    @param _nftId [uint] the id of the NFT to update
+    @param _buyToken [IERCO] token received in the swaps
+    @param _sellTokensAmount [<uint>] amount of sell tokens to exchange
+    @param _swapTarget [address] the address of the contract that will swap tokens
+    @param _tokenOrders [<TokenOrder>] orders for token swaps
+    */
+    function sellTokensToWallet(
+        uint256 _nftId,
+        IERC20 _buyToken,
+        uint256[] memory _sellTokensAmount,
+        address payable _swapTarget,
+        NestedStructs.TokenOrder[] calldata _tokenOrders
+    ) external payable nonReentrant onlyTokenOwner(_nftId) {
+        uint256 amountBought = _swapTokensForToken(_nftId, _buyToken, _sellTokensAmount, _swapTarget, _tokenOrders);
 
         // if buy token is WETH, unwrap it instead of transferring it to the sender
         if (address(_buyToken) == address(weth)) _unwrapWeth(amountBought);
         else _buyToken.safeTransfer(msg.sender, amountBought);
 
-        transferFeeWithRoyalty(amountFees, _buyToken, _nftId);
         emit NftUpdated(_nftId, UpdateOperation.RemoveToken);
     }
 

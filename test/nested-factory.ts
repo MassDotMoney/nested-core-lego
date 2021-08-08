@@ -369,6 +369,10 @@ describe("NestedFactory", () => {
         });
     });
 
+
+    // ⚠️⚠️⚠️ TODO Refactor this file ⚠️⚠️⚠️ 
+    // We need to build a test factory to create NFTs easily.  -> DRY
+
     describe("#update", () => {
         const totalSellAmount = appendDecimals(10);
         let tokensToBuy: string[] = [];
@@ -727,6 +731,141 @@ describe("NestedFactory", () => {
             let currentUNI = tokenHoldings[0].amount;
 
             expect(currentUNI).to.equal(initialUNI.sub(swapAmount));
+        });
+    });
+
+    describe("#sellTokensToNft", () => {
+        const totalSellAmount = appendDecimals(10);
+        let tokenToBuy: string;
+        let tokensToSwap: string[] = [];
+        let buyTokenOrders: TokenOrder[] = [];
+        let swapTokenOrders: TokenOrder[] = [];
+        const expectedFee = totalSellAmount.div(100);
+        let assets: string[] = [];
+        const swapAmountUNI = appendDecimals(2);
+        const swapAmountKNC = appendDecimals(3);
+
+        beforeEach(async () => {
+            const mockERC20Factory = await ethers.getContractFactory("MockERC20");
+            mockUNI = await mockERC20Factory.deploy("Mocked UNI", "INU", appendDecimals(3000000));
+            mockKNC = await mockERC20Factory.deploy("Mocked KNC", "CNK", appendDecimals(3000000));
+            mockDAI = await mockERC20Factory.deploy("Mocked DAI", "IAD", appendDecimals(3000000));
+
+            mockUNI.transfer(dummyRouter.address, appendDecimals(1000));
+            mockKNC.transfer(dummyRouter.address, appendDecimals(1000));
+            mockDAI.transfer(dummyRouter.address, appendDecimals(1000));
+
+            tokensToSwap = [mockUNI.address, mockKNC.address];
+            tokenToBuy = mockWETH.address;
+
+            mockWETH.approve(factory.address, appendDecimals(10.1));
+            await mockWETH.deposit({ value: appendDecimals(10.1) });
+
+            const abi = ["function dummyswapToken(address _inputToken, address _outputToken, uint256 _amount)"];
+            const iface = new Interface(abi);
+
+            swapTokenOrders = [
+                {
+                    token: tokensToSwap[0],
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        tokensToSwap[0],
+                        tokenToBuy,
+                        swapAmountUNI,
+                    ]),
+                },
+                {
+                    token: tokensToSwap[1],
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        tokensToSwap[1],
+                        tokenToBuy,
+                        swapAmountKNC,
+                    ]),
+                },
+            ];
+
+            // Buying two times more tokens than we will swap
+            buyTokenOrders = [
+                {
+                    token: tokensToSwap[0],
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        tokenToBuy,
+                        tokensToSwap[0],
+                        swapAmountUNI.mul(2),
+                    ]),
+                },
+                {
+                    token: tokensToSwap[1],
+                    callData: iface.encodeFunctionData("dummyswapToken", [
+                        tokenToBuy,
+                        tokensToSwap[1],
+                        swapAmountKNC.mul(2),
+                    ]),
+                },
+            ];
+
+            await mockWETH.deposit({ value: totalSellAmount.add(expectedFee) });
+            await createNFTFromETH(buyTokenOrders, totalSellAmount, totalSellAmount.add(expectedFee));
+            assets = await factory.tokensOf(alice.address);
+        });
+
+        it("reverts if token id is invalid", async () => {
+            await expect(
+                factory.sellTokensToNft(
+                    ethers.utils.parseEther("999").toString(),
+                    tokenToBuy,
+                    [swapAmountUNI, swapAmountKNC],
+                    dummyRouter.address,
+                    swapTokenOrders,
+                ),
+            ).to.be.revertedWith("ERC721: owner query for nonexistent token");
+        });
+
+        it("reverts if not owner", async () => {
+            await expect(
+                factory
+                    .connect(bob)
+                    .sellTokensToNft(
+                        assets[0],
+                        tokenToBuy,
+                        [swapAmountUNI, swapAmountKNC],
+                        dummyRouter.address,
+                        swapTokenOrders,
+                    ),
+            ).to.be.revertedWith("NOT_TOKEN_OWNER");
+        });
+
+        it("reverts if insufficient amount", async () => {
+            await expect(
+                factory.sellTokensToNft(
+                    assets[0],
+                    tokenToBuy,
+                    [swapAmountUNI.mul(2).add(1), swapAmountKNC],
+                    dummyRouter.address,
+                    swapTokenOrders,
+                ),
+            ).to.be.revertedWith("INSUFFICIENT_AMOUNT");
+        });
+
+        it("swap the tokens", async () => {
+            let tokenHoldings = await factory.tokenHoldings(assets[0]);
+
+            await factory.sellTokensToNft(
+                assets[0],
+                tokenToBuy,
+                [swapAmountUNI, swapAmountKNC],
+                dummyRouter.address,
+                swapTokenOrders,
+            );
+
+            tokenHoldings = await factory.tokenHoldings(assets[0]);
+            expect(tokenHoldings.length).to.equal(3);
+            let currentUNI = tokenHoldings[0].amount;
+            let currentKNC = tokenHoldings[1].amount;
+            let currentWETH = tokenHoldings[2].amount;
+
+            expect(currentUNI).to.equal(swapAmountUNI);
+            expect(currentKNC).to.equal(swapAmountKNC);
+            expect(currentWETH).to.equal(swapAmountUNI.add(swapAmountKNC).mul(99).div(100));
         });
     });
 
