@@ -858,14 +858,16 @@ describe("NestedFactory", () => {
             );
 
             tokenHoldings = await factory.tokenHoldings(assets[0]);
-            expect(tokenHoldings.length).to.equal(3);
-            let currentUNI = tokenHoldings[0].amount;
-            let currentKNC = tokenHoldings[1].amount;
-            let currentWETH = tokenHoldings[2].amount;
+            const amountTransfered = await mockWETH.balanceOf(reserve.address);
+
+            const currentUNI = tokenHoldings[0].amount;
+            const currentKNC = tokenHoldings[1].amount;
+            const currentWETH = tokenHoldings[2].amount;
 
             expect(currentUNI).to.equal(swapAmountUNI);
             expect(currentKNC).to.equal(swapAmountKNC);
             expect(currentWETH).to.equal(swapAmountUNI.add(swapAmountKNC).mul(99).div(100));
+            expect(amountTransfered).to.equal(swapAmountUNI.add(swapAmountKNC).mul(99).div(100));
         });
     });
 

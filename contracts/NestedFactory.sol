@@ -399,6 +399,8 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         uint256 amountBought = _swapTokensForToken(_nftId, _buyToken, _sellTokensAmount, _swapTarget, _tokenOrders);
 
         nestedRecords.store(_nftId, address(_buyToken), amountBought, address(reserve));
+        IERC20(_buyToken).safeTransfer(address(reserve), amountBought);
+
         emit NftUpdated(_nftId, UpdateOperation.SwapToken);
     }
 
