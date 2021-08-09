@@ -422,7 +422,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         uint256 amountBought = _swapTokensForToken(_nftId, _buyToken, _sellTokensAmount, _swapTarget, _tokenOrders);
 
         // if buy token is WETH, unwrap it instead of transferring it to the sender
-        if (address(_buyToken) == address(weth)) _unwrapWeth(amountBought);
+        if (address(_buyToken) == address(weth)) _unwrapWethAndTransfer(amountBought);
         else _buyToken.safeTransfer(msg.sender, amountBought);
 
         emit NftUpdated(_nftId, UpdateOperation.RemoveToken);
@@ -593,7 +593,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
      * @dev unwrap ether and transfer it to sender
      * @param _amount [uint256] amount to unwrap
      */
-    function _unwrapWeth(uint256 _amount) internal {
+    function _unwrapWethAndTransfer(uint256 _amount) internal {
         IWETH(weth).withdraw(_amount);
         (bool success, ) = msg.sender.call{ value: _amount }("");
         require(success, "ETH_TRANSFER_ERROR");
