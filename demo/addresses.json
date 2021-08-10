@@ -1,28 +1,15 @@
 {
     "localhost": {
+        "factory": "0x360ceCc9CD587e99F71Ef49259EAc671A540D9A5",
         "uniswapRouter": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
-        "factory": "0xf593928BAf4952b8141808F9E68CA1d70fE25853",
         "uniswapFactory": "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f",
-        "nestedAsset": "",
-        "nestedRecords": "",
-        "feeSplitter": "",
-        "timelock": "0x240F8BEf80CA094160f382537b312f74ED1b9af2",
+        "nestedAsset": "0xa9433c24ad72c0f513a69e02541ae09540c550a9",
+        "nestedRecords": "0x12468f1186e58d19aaf96bbcc57172b36c998479",
+        "feeSplitter": "0x86fa9812fdef775b2f04e1f020c5e8c08890ac8a",
+        "timelock": "0x4B6645B5006739C6287831659831cFe5c2864Cc7",
         "tokens": {
-            "WETH": "0xc778417E063141139Fce010982780140Aa0cD5Ab",
-            "DAI": "0x67F9c92051eF31F91374B46730Bf04E903B2c1aE",
-            "MKR": "0x3e7F971AE408084A1417a2dE63E7652a582ef339",
-            "BAT": "0xf593928BAf4952b8141808F9E68CA1d70fE25853",
-            "WBTC": "0x2afc1AA31E68db2f541198f6E515585c1FF9F17d",
-            "KNC": "0x292CEcDF281ACf0aaf25C0C603a3f80745875b51",
-            "REP": "0x3c98851CCaeDDd64Fa26EEE115D9904C19FFe669",
-            "USDC": "0x49dB132a09381BC26709bab0D7300BEA764b30e1",
-            "cZRX": "0xe7d6C37d2629e66C6E737BA0A18b478213D4cd37",
-            "ZRX": "0xFb91F492Bb13f0239aA1e3Dc60b07a981bf4DA8e",
-            "SAI": "0x25FA9e258dcd9C5eC34D7bd4980FA154C9D16A7D",
-            "cREP": "0xded317D9AD56E402a5d3b629564De90CF4BAa789",
-            "ADAI": "0xaD0778533E52EA74CD7dbdc00A0fdB36E6524C42",
-            "POLY": "0xE3021E1FFaB41D2070E4bB3FF4D74AF9B31e882D",
-            "LINK": "0xd08281E46BC3A8cc4839A534a5D2dbE693d074Cf"
+            "WETH": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
+            "USDC": "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"
         }
     },
     "kovan": {
@@ -129,6 +116,19 @@
             "ADAI": "0x028171bca77440897b824ca71d1c56cac55b68a3",
             "POLY": "0x9992ec3cf6a55b00978cddf2b27bc6882d88d1ec",
             "LINK": "0x514910771af9ca656af840dff83e8264ecf986ca"
+        }
+    },
+    "bsc": {
+        "factory": "0x360ceCc9CD587e99F71Ef49259EAc671A540D9A5",
+        "nestedAsset": "0xa9433c24ad72c0f513a69e02541ae09540c550a9",
+        "nestedRecords": "0x12468f1186e58d19aaf96bbcc57172b36c998479",
+        "feeSplitter": "0x86fa9812fdef775b2f04e1f020c5e8c08890ac8a",
+        "uniswapRouter": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
+        "uniswapFactory": "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f",
+        "timelock": "0x4B6645B5006739C6287831659831cFe5c2864Cc7",
+        "tokens": {
+            "WETH": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
+            "USDC": "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"
         }
     }
 }

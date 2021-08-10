@@ -50,6 +50,10 @@ const config: HardhatUserConfig = {
             url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_MAINNET_API_KEY}`,
             accounts: accounts,
         },
+        bsc: {
+            url: "https://bsc-dataseed.binance.org/",
+            accounts
+        }
     },
     solidity: {
         version: "0.8.4",

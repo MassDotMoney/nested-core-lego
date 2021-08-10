@@ -1,1 +1,1 @@
-export type NetworkName = "localhost" | "mainnet" | "kovan" | "ropsten"
+export type NetworkName = "localhost" | "mainnet" | "kovan" | "ropsten" | "bsc"
