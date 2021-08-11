@@ -425,7 +425,6 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         if (address(_buyToken) == address(weth)) _unwrapWethAndTransfer(amountBought);
         else _buyToken.safeTransfer(msg.sender, amountBought);
 
-        transferFee(amountFees, _buyToken);
         emit NftUpdated(_nftId);
     }
 

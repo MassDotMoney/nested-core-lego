@@ -1,11 +1,11 @@
 {
     "localhost": {
-        "factory": "0x360ceCc9CD587e99F71Ef49259EAc671A540D9A5",
-        "uniswapRouter": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
-        "uniswapFactory": "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f",
+        "factory": "0x09592efb788c90C5F4a1F207DB59bCdc667669b8",
         "nestedAsset": "0xa9433c24ad72c0f513a69e02541ae09540c550a9",
         "nestedRecords": "0x12468f1186e58d19aaf96bbcc57172b36c998479",
         "feeSplitter": "0x86fa9812fdef775b2f04e1f020c5e8c08890ac8a",
+        "uniswapRouter": "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",
+        "uniswapFactory": "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f",
         "timelock": "0x4B6645B5006739C6287831659831cFe5c2864Cc7",
         "tokens": {
             "WETH": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
@@ -119,7 +119,7 @@
         }
     },
     "bsc": {
-        "factory": "0x360ceCc9CD587e99F71Ef49259EAc671A540D9A5",
+        "factory": "0x09592efb788c90C5F4a1F207DB59bCdc667669b8",
         "nestedAsset": "0xa9433c24ad72c0f513a69e02541ae09540c550a9",
         "nestedRecords": "0x12468f1186e58d19aaf96bbcc57172b36c998479",
         "feeSplitter": "0x86fa9812fdef775b2f04e1f020c5e8c08890ac8a",
