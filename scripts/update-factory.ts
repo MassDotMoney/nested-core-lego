@@ -20,21 +20,20 @@ const main = async () => {
 	const oldFactory = await attachToContract("NestedFactory", OLD_FACTORY)
 	const reserveAddress = await oldFactory.reserve();
 	const reserve = await attachToContract("NestedReserve", reserveAddress);
-	const factory = await attachToContract("NestedReserve", reserveAddress);
 
 	const [dev] = await ethers.getSigners();
-	console.log("Onwer is", await asset.owner(), "current account is", dev.address);
+	console.log("Owner is", await asset.owner(), "current account is", dev.address);
 
 	console.log("update asset...");
-	const tx0 = await asset.setFactory(factory.address);
+	const tx0 = await asset.setFactory(addresses.factory);
 	await tx0.wait();
 
 	console.log("update records...");
-	const tx1 = await records.setFactory(factory.address);
+	const tx1 = await records.setFactory(addresses.factory);
 	await tx1.wait();
 
 	console.log("update reserve...");
-	await reserve.setFactory(factory.address);
+	await reserve.setFactory(addresses.factory);
 }
 
 main().then(() => process.exit(0)).catch((err) => {
