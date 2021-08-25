@@ -4,7 +4,7 @@ pragma solidity 0.8.4;
 import "../interfaces/IOperator.sol";
 
 /// @notice The 0x protocol operator to execute swap with this aggregator
-contract ZeroXProtocol is IOperator {
+contract ZeroXOperator is IOperator {
     bytes32 constant DATA_POSITION = keccak256("nested.operator.zerox.data");
 
     /// @notice the 0x operator data
