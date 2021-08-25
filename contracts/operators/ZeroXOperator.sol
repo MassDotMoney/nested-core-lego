@@ -5,6 +5,14 @@ import "../interfaces/IOperator.sol";
 
 /// @notice The 0x protocol operator to execute swap with this aggregator
 contract ZeroXProtocol is IOperator {
+    bytes32 constant DATA_POSITION = keccak256("nested.operator.zerox.data");
+
+    /// @notice the 0x operator data
+    /// @param swapTarget The 0x contract address to perform swaps
+    struct ZeroXData {
+        address swapTarget;
+    }
+
     /// @inheritdoc IOperator
     function commitIn(
         address tokenIn,
@@ -48,5 +56,14 @@ contract ZeroXProtocol is IOperator {
     /// @inheritdoc IOperator
     function outcome(address tokenOut, address user) external view override returns (uint256 amountOut) {
         return 0; // TODO
+    }
+
+    /// @notice Get back the operator datas (diamond storage)
+    /// @return data The ZeroXData struct
+    function operatorStorage() internal pure returns (ZeroXData storage data) {
+        bytes32 position = DATA_POSITION;
+        assembly {
+            data.slot := position
+        }
     }
 }
