@@ -2,7 +2,8 @@
 https://nested.finance
 
 # DOCUMENTATION
-Further focumentation and details can be found here: https://docs.nested.finance/
+Further documentation and details can be found here: https://docs.nested.finance/
+
 ## Architecture of the nested protocol
 
 Smart Contracts:
