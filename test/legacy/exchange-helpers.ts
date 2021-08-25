@@ -2,9 +2,9 @@ import { Contract } from "@ethersproject/contracts";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { appendDecimals, BIG_NUMBER_ZERO, UINT256_MAX } from "./helpers";
+import { appendDecimals, BIG_NUMBER_ZERO, UINT256_MAX } from "../helpers";
 
-describe("ExchangeHelpers", () => {
+describe.skip("ExchangeHelpers", () => {
     let dummyRouter: Contract, mockERC20: Contract;
     let bob: SignerWithAddress, randomContract: SignerWithAddress;
 

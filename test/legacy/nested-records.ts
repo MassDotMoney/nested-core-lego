@@ -1,6 +1,6 @@
 import { Contract, ContractFactory } from "@ethersproject/contracts";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { appendDecimals } from "./helpers";
+import { appendDecimals } from "../helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 

@@ -1,4 +1,4 @@
-import { appendDecimals, getETHSpentOnGas } from "./helpers";
+import { appendDecimals, getETHSpentOnGas } from "../helpers";
 
 import { Contract } from "@ethersproject/contracts";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";

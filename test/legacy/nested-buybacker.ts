@@ -1,7 +1,7 @@
 import { Contract } from "@ethersproject/contracts";
 import { Interface } from "@ethersproject/abi";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { appendDecimals } from "./helpers";
+import { appendDecimals } from "../helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 

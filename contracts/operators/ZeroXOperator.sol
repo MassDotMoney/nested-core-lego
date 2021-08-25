@@ -19,9 +19,7 @@ contract ZeroXOperator is IOperator {
         uint256 amountIn,
         address tokenOut,
         uint256 amountOutMin
-    ) external override returns (uint256[] memory amounts) {
-        return 0; // TODO
-    }
+    ) external override returns (uint256[] memory amounts) {}
 
     /// @inheritdoc IOperator
     function commitOut(
@@ -29,9 +27,7 @@ contract ZeroXOperator is IOperator {
         uint256 amountInMax,
         address tokenOut,
         uint256 amountOut
-    ) external override returns (uint256[] memory amounts) {
-        return 0; // TODO
-    }
+    ) external override returns (uint256[] memory amounts) {}
 
     /// @inheritdoc IOperator
     function revertIn(
@@ -39,9 +35,7 @@ contract ZeroXOperator is IOperator {
         uint256 amountIn,
         address tokenOut,
         uint256 amountOutMin
-    ) external override returns (uint256[] memory amounts) {
-        return 0; // TODO
-    }
+    ) external override returns (uint256[] memory amounts) {}
 
     /// @inheritdoc IOperator
     function revertOut(
@@ -49,14 +43,10 @@ contract ZeroXOperator is IOperator {
         uint256 amountInMax,
         address tokenOut,
         uint256 amountOut
-    ) external override returns (uint256[] memory amounts) {
-        return 0; // TODO
-    }
+    ) external override returns (uint256[] memory amounts) {}
 
     /// @inheritdoc IOperator
-    function outcome(address tokenOut, address user) external view override returns (uint256 amountOut) {
-        return 0; // TODO
-    }
+    function outcome(address tokenOut, address user) external view override returns (uint256 amountOut) {}
 
     /// @notice Get back the operator datas (diamond storage)
     /// @return data The ZeroXData struct

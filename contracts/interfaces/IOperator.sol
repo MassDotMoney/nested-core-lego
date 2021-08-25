@@ -18,7 +18,7 @@ interface IOperator {
     /// @param amountIn The amount of input tokens to send
     /// @param tokenOut Output token address
     /// @param amountOutMin The minimum amount of output tokens to receive
-    /// @return The input token amount and all subsequent output token amounts.
+    /// @return amounts The input token amount and all subsequent output token amounts.
     function commitIn(
         address tokenIn,
         uint256 amountIn,
@@ -30,8 +30,8 @@ interface IOperator {
     /// @param tokenIn Input token address
     /// @param amountInMax The maximum amount of input tokens that can be required before the transaction reverts.
     /// @param tokenOut Output token address
-    /// @param amountOutMin The amount of output tokens to receive
-    /// @return The input token amount and all subsequent output token amounts.
+    /// @param amountOut The amount of output tokens to receive
+    /// @return amounts The input token amount and all subsequent output token amounts.
     function commitOut(
         address tokenIn,
         uint256 amountInMax,
@@ -44,7 +44,7 @@ interface IOperator {
     /// @param amountIn The amount of input tokens to send
     /// @param tokenOut Output token address
     /// @param amountOutMin The minimum amount of output tokens to receive
-    /// @return The input token amount and all subsequent output token amounts.
+    /// @return amounts The input token amount and all subsequent output token amounts.
     function revertIn(
         address tokenIn,
         uint256 amountIn,
@@ -54,10 +54,10 @@ interface IOperator {
 
     /// @notice Remove/decrease a position with a minimum amount of output tokens
     /// @param tokenIn Input token address
-    /// @param amountIn The amount of input tokens to send
+    /// @param amountInMax The amount of input tokens to send
     /// @param tokenOut Output token address
-    /// @param amountOutMin The minimum amount of output tokens to receive
-    /// @return The input token amount and all subsequent output token amounts.
+    /// @param amountOut The minimum amount of output tokens to receive
+    /// @return amounts The input token amount and all subsequent output token amounts.
     function revertOut(
         address tokenIn,
         uint256 amountInMax,
@@ -68,6 +68,6 @@ interface IOperator {
     /// @notice Get the current outcome for a specific output token (for an address)
     /// @param tokenOut The output token
     /// @param user The user
-    /// @return the amount of output token
+    /// @return amountOut the amount of output token
     function outcome(address tokenOut, address user) external view returns (uint256 amountOut);
 }

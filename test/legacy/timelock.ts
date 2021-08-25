@@ -1,5 +1,5 @@
 import { Interface } from "ethers/lib/utils";
-import { main as deployContracts } from "../demo/0_deploy_contracts";
+import { main as deployContracts } from "../../demo/0_deploy_contracts";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 
