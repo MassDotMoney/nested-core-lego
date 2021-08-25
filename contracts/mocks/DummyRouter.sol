@@ -61,7 +61,11 @@ contract DummyRouter is IERC721Receiver {
         ExchangeHelpers.setMaxAllowance(_token, _spender);
     }
 
-    function setAllowance(IERC20 _token, address _spender, uint256 _amount) external {
+    function setAllowance(
+        IERC20 _token,
+        address _spender,
+        uint256 _amount
+    ) external {
         _token.approve(_spender, _amount);
     }
 

@@ -187,14 +187,17 @@ describe("NestedFactory", () => {
             });
 
             it("reverts if nothing was bought during the swap", async () => {
-                await expect(createNFTFromERC20([
-                    {
-                        token: tokensToBuy[0],
-                        callData: [],
-                    },
-                ], totalSellAmount)).to.be.revertedWith(
-                    "NOTHING_BOUGHT",
-                );
+                await expect(
+                    createNFTFromERC20(
+                        [
+                            {
+                                token: tokensToBuy[0],
+                                callData: [],
+                            },
+                        ],
+                        totalSellAmount,
+                    ),
+                ).to.be.revertedWith("NOTHING_BOUGHT");
             });
 
             it("creates the NFT", async () => {
@@ -301,10 +304,9 @@ describe("NestedFactory", () => {
 
                 it("should emit VipDiscountChanged event", async () => {
                     await expect(factory.setVipDiscount(250, 10))
-                        .to
-                        .emit(factory, "VipDiscountChanged")
+                        .to.emit(factory, "VipDiscountChanged")
                         .withArgs(250, 10);
-                })
+                });
 
                 it("should set the SmartChef address", async () => {
                     await factory.setSmartChef(alice.address);
@@ -369,8 +371,7 @@ describe("NestedFactory", () => {
         });
     });
 
-
-    // ⚠️⚠️⚠️ TODO Refactor this file ⚠️⚠️⚠️ 
+    // ⚠️⚠️⚠️ TODO Refactor this file ⚠️⚠️⚠️
     // We need to build a test factory to create NFTs easily.  -> DRY
 
     describe("#update", () => {
@@ -767,19 +768,11 @@ describe("NestedFactory", () => {
             swapTokenOrders = [
                 {
                     token: tokensToSwap[0],
-                    callData: iface.encodeFunctionData("dummyswapToken", [
-                        tokensToSwap[0],
-                        tokenToBuy,
-                        swapAmountUNI,
-                    ]),
+                    callData: iface.encodeFunctionData("dummyswapToken", [tokensToSwap[0], tokenToBuy, swapAmountUNI]),
                 },
                 {
                     token: tokensToSwap[1],
-                    callData: iface.encodeFunctionData("dummyswapToken", [
-                        tokensToSwap[1],
-                        tokenToBuy,
-                        swapAmountKNC,
-                    ]),
+                    callData: iface.encodeFunctionData("dummyswapToken", [tokensToSwap[1], tokenToBuy, swapAmountKNC]),
                 },
             ];
 
@@ -1195,11 +1188,12 @@ describe("NestedFactory", () => {
                 await createNFTFromERC20(buyTokenOrders, totalSellAmount, bob, aliceTokens[0]);
 
                 const [bobTokenId] = await factory.tokensOf(bob.address);
-                await expect(factory
-                    .connect(bob)
-                    .destroyForERC20(bobTokenId, mockWETH.address, dummyRouter.address, sellTokenOrders)
-                    ).to
-                    .emit(factory, "NftBurned")
+                await expect(
+                    factory
+                        .connect(bob)
+                        .destroyForERC20(bobTokenId, mockWETH.address, dummyRouter.address, sellTokenOrders),
+                )
+                    .to.emit(factory, "NftBurned")
                     .withArgs(bobTokenId);
 
                 // check that alice has been assigned royalties.
@@ -1224,12 +1218,8 @@ describe("NestedFactory", () => {
 
             it("emits the NftBurned event", async () => {
                 const [aliceTokenId] = await factory.tokensOf(alice.address);
-                await expect(
-                    factory
-                    .connect(alice)
-                    .destroyForETH(assets[0], dummyRouter.address, sellTokenOrders)
-                    ).to
-                    .emit(factory, "NftBurned")
+                await expect(factory.connect(alice).destroyForETH(assets[0], dummyRouter.address, sellTokenOrders))
+                    .to.emit(factory, "NftBurned")
                     .withArgs(aliceTokenId);
             });
         });

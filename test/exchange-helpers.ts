@@ -10,7 +10,7 @@ describe("ExchangeHelpers", () => {
 
     before(async () => {
         const signers = await ethers.getSigners();
-        bob = signers[0] as any
+        bob = signers[0] as any;
         randomContract = signers[1] as any;
     });
 
@@ -58,4 +58,4 @@ describe("ExchangeHelpers", () => {
             expect(currentAllowance).to.equal(UINT256_MAX);
         });
     });
-})
+});
