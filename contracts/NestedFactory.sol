@@ -297,6 +297,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         return _sellTokenAmount - amountSpent + fees;
     }
 
+
     /*
     Swap an existing token from the NFT for one or more tokens.
     @param _nftId [uint] the id of the NFT to update
