@@ -3,6 +3,7 @@ import "solidity-coverage";
 import "@nomiclabs/hardhat-waffle";
 import "hardhat-deploy";
 import "hardhat-deploy-ethers";
+import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "@nomiclabs/hardhat-solhint";
 import "hardhat-contract-sizer";
@@ -63,6 +64,10 @@ const config: HardhatUserConfig = {
                 runs: 5000,
             },
         },
+    },
+    typechain: {
+        outDir: "typechain",
+        target: "ethers-v5",
     },
     gasReporter: {
         coinmarketcap: process.env.COINMARKETCAP_API_KEY,
