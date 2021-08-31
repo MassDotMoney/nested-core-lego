@@ -20,7 +20,7 @@
         "test:fork": " hardhat coverage",
         "test:gas": "cross-env FORKING=false REPORT_GAS=true hardhat test",
         "test:fork:gas": "REPORT_GAS=true hardhat test",
-        "prettier": "prettier --write test/**/*.[jt]s && prettier --write contracts/**/*.sol",
+        "prettier": "prettier --write test/**/*.[jt]s && prettier --write test/*.[jt]s && prettier --write contracts/**/*.sol",
         "lint": "yarn prettier && solhint -c .solhint.json contracts/**/*.sol",
         "typechain": "hardhat typechain"
     },

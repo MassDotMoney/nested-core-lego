@@ -10,9 +10,9 @@ export type OperatorResolverFixture = { operatorResolver: OperatorResolver };
 export const operatorResolverFixture: Fixture<OperatorResolverFixture> = async (wallets, provider) => {
     const signer = new ActorFixture(wallets as Wallet[], provider).addressResolverOwner();
 
-    const operatorResolverFactory = await ethers.getContractFactory("OperatorResolver", signer);
+    const operatorResolverFactory = await ethers.getContractFactory("OperatorResolver");
     // @ts-ignore
-    const operatorResolver = (await operatorResolverFactory.deploy()) as OperatorResolver;
+    const operatorResolver = (await operatorResolverFactory.connect(signer).deploy()) as OperatorResolver;
 
     return { operatorResolver };
 };

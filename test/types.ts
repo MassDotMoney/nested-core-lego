@@ -1,3 +1,3 @@
-import { createFixtureLoader } from './shared/provider';
+import { createFixtureLoader } from "./shared/provider";
 
-export type LoadFixtureFunction = ReturnType<typeof createFixtureLoader>
+export type LoadFixtureFunction = ReturnType<typeof createFixtureLoader>;

@@ -1,5 +1,6 @@
 import { ethers } from "hardhat";
 import { BigNumber } from "ethers";
+const w3utils = require("web3-utils");
 
 export const appendDecimals = (amount: number) => ethers.utils.parseEther(amount.toString());
 
@@ -18,3 +19,6 @@ export const getTokenName = (address: string, tokens: Record<string, string>) =>
 
 export const BIG_NUMBER_ZERO = BigNumber.from(0);
 export const UINT256_MAX = BigNumber.from(2).pow(256).sub(1);
+
+export const toBytes32 = (key: string) => w3utils.rightPad(w3utils.asciiToHex(key), 64);
+export const fromBytes32 = (key: string) => w3utils.hexToAscii(key);
