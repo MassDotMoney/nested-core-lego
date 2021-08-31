@@ -4,7 +4,7 @@ import { ethers } from "hardhat";
 import { expect } from "chai";
 import { FeeSplitter, MockERC20, WETH9 } from "../../typechain";
 
-describe("Fee Splitter", () => {
+describe.skip("Fee Splitter", () => {
     let alice: SignerWithAddress, bob: SignerWithAddress, wallet3: SignerWithAddress, feeTo: SignerWithAddress;
     let ERC20Mocks!: [MockERC20, MockERC20, MockERC20];
     let mockWETH: WETH9;

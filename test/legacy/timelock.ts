@@ -16,7 +16,7 @@ type Unwrap<T> = T extends Promise<infer U>
     ? U
     : T;
 
-describe("TimelockController", () => {
+describe.skip("TimelockController", () => {
     let addresses: Unwrap<ReturnType<typeof deployContracts>>;
 
     before(async () => {

@@ -5,7 +5,7 @@ import { ethers } from "hardhat";
 import { expect } from "chai";
 import { DummyRouter, FeeSplitter, MockERC20, NestedBuybacker, WETH9 } from "../../typechain";
 
-describe("NestedBuybacker", () => {
+describe.skip("NestedBuybacker", () => {
     let alice: SignerWithAddress, bob: SignerWithAddress, communityReserve: SignerWithAddress;
     let feeSplitter: FeeSplitter, mockWETH: WETH9;
     let mockNST: MockERC20, mockUSDT: MockERC20;
