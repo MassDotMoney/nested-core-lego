@@ -1,13 +1,12 @@
 import { expect } from "chai";
-
 import { ethers } from "hardhat";
-import { Contract, ContractFactory } from "@ethersproject/contracts";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { appendDecimals } from "../helpers";
+import { MockERC20, MockERC20__factory, NestedReserve, NestedReserve__factory } from "../../typechain";
 
 describe("NestedReserve", () => {
-    let nestedReserve: ContractFactory, reserve: Contract;
-    let mockERC20: ContractFactory, mockUNI: Contract;
+    let nestedReserve: NestedReserve__factory, reserve: NestedReserve;
+    let mockERC20: MockERC20__factory, mockUNI: MockERC20;
     let factory: SignerWithAddress, alice: SignerWithAddress, bob: SignerWithAddress;
 
     const amountToTransfer = appendDecimals(10);

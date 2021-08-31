@@ -1,15 +1,14 @@
-import { appendDecimals, getETHSpentOnGas } from "../helpers";
-
-import { Contract } from "@ethersproject/contracts";
+import { getETHSpentOnGas } from "../helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
+import { FeeSplitter, MockERC20, WETH9 } from "../../typechain";
 
 describe("Fee Splitter", () => {
     let alice: SignerWithAddress, bob: SignerWithAddress, wallet3: SignerWithAddress, feeTo: SignerWithAddress;
-    let ERC20Mocks!: [Contract, Contract, Contract];
-    let mockWETH: Contract;
-    let feeSplitter: Contract;
+    let ERC20Mocks!: [MockERC20, MockERC20, MockERC20];
+    let mockWETH: WETH9;
+    let feeSplitter: FeeSplitter;
 
     before(async () => {
         const signers = await ethers.getSigners();
@@ -197,7 +196,7 @@ describe("Fee Splitter", () => {
         else await feeSplitter.sendFees(token.address, amount);
     };
 
-    const clearBalance = async (account: SignerWithAddress, token: Contract) => {
+    const clearBalance = async (account: SignerWithAddress, token: MockERC20) => {
         const balance = await token.balanceOf(account.address);
         return token.connect(account).burn(balance);
     };

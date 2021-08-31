@@ -1,15 +1,15 @@
-import { Contract } from "@ethersproject/contracts";
 import { Interface } from "@ethersproject/abi";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { appendDecimals } from "../helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
+import { DummyRouter, FeeSplitter, MockERC20, NestedBuybacker, WETH9 } from "../../typechain";
 
 describe("NestedBuybacker", () => {
     let alice: SignerWithAddress, bob: SignerWithAddress, communityReserve: SignerWithAddress;
-    let feeSplitter: Contract, mockWETH: Contract;
-    let mockNST: Contract, mockUSDT: Contract;
-    let dummyRouter: Contract, buyBacker: Contract;
+    let feeSplitter: FeeSplitter, mockWETH: WETH9;
+    let mockNST: MockERC20, mockUSDT: MockERC20;
+    let dummyRouter: DummyRouter, buyBacker: NestedBuybacker;
 
     before(async () => {
         const signers = await ethers.getSigners();

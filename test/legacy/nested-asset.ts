@@ -1,10 +1,10 @@
-import { Contract, ContractFactory } from "@ethersproject/contracts";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { NestedAsset, NestedAsset__factory } from "../../typechain";
 
 describe("NestedAsset", () => {
-    let NestedAsset: ContractFactory, asset: Contract;
+    let NestedAsset: NestedAsset__factory, asset: NestedAsset;
     let factory: SignerWithAddress,
         otherFactory: SignerWithAddress,
         alice: SignerWithAddress,

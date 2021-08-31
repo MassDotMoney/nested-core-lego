@@ -1,11 +1,11 @@
-import { Contract, ContractFactory } from "@ethersproject/contracts";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { appendDecimals } from "../helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
+import { NestedRecords, NestedRecords__factory } from "../../typechain";
 
 describe("NestedRecords", () => {
-    let NestedRecords: ContractFactory, nestedRecords: Contract;
+    let NestedRecords: NestedRecords__factory, nestedRecords: NestedRecords;
     let alice: SignerWithAddress, bob: SignerWithAddress;
 
     before(async () => {
@@ -45,7 +45,7 @@ describe("NestedRecords", () => {
     it("reverts when calling store with too many orders", async () => {
         const maxHoldingsCount = await nestedRecords.maxHoldingsCount();
         const signers = await ethers.getSigners();
-        for (let i = 0; i < maxHoldingsCount; i++) {
+        for (let i = 0; i < maxHoldingsCount.toNumber(); i++) {
             await nestedRecords.store(0, signers[i + 3].address, 20, alice.address);
         }
         await expect(nestedRecords.store(0, bob.address, 20, alice.address)).to.be.revertedWith(

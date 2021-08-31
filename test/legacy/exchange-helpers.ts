@@ -1,11 +1,11 @@
-import { Contract } from "@ethersproject/contracts";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { appendDecimals, BIG_NUMBER_ZERO, UINT256_MAX } from "../helpers";
+import { DummyRouter, MockERC20 } from "../../typechain";
 
 describe.skip("ExchangeHelpers", () => {
-    let dummyRouter: Contract, mockERC20: Contract;
+    let dummyRouter: DummyRouter, mockERC20: MockERC20;
     let bob: SignerWithAddress, randomContract: SignerWithAddress;
 
     before(async () => {

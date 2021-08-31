@@ -1,24 +1,30 @@
-import { Contract, ContractFactory } from "@ethersproject/contracts";
 import { appendDecimals, getETHSpentOnGas } from "../helpers";
 import { ethers, network } from "hardhat";
-
-import { BigNumber } from "@ethersproject/bignumber";
+import { BigNumber } from "ethers";
 import { Interface } from "@ethersproject/abi";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
+import {
+    DummyRouter, FeeSplitter, MockERC20, NestedAsset,
+    NestedAsset__factory, NestedFactory, NestedFactory__factory,
+    NestedRecords,
+    NestedRecords__factory, NestedReserve,
+    NestedReserve__factory, WETH9,
+} from "../../typechain";
+
 
 describe.skip("NestedFactory", () => {
-    let nestedFactory: ContractFactory, factory: Contract;
+    let nestedFactory: NestedFactory__factory, factory: NestedFactory;
     let alice: SignerWithAddress,
         bob: SignerWithAddress,
         wallet3: SignerWithAddress,
         wallet4: SignerWithAddress,
         newReserve: SignerWithAddress;
-    let mockWETH: Contract, mockUNI: Contract, mockKNC: Contract, mockDAI: Contract, feeTo: Contract;
-    let nestedReserve: ContractFactory, reserve: Contract;
-    let nestedAsset: ContractFactory, asset: Contract;
-    let nestedRecords: ContractFactory, records: Contract;
-    let dummyRouter: Contract;
+    let mockWETH: WETH9, mockUNI: MockERC20, mockKNC: MockERC20, mockDAI: MockERC20, feeTo: FeeSplitter;
+    let nestedReserve: NestedReserve__factory, reserve: NestedReserve;
+    let nestedAsset: NestedAsset__factory, asset: NestedAsset;
+    let nestedRecords: NestedRecords__factory, records: NestedRecords;
+    let dummyRouter: DummyRouter;
 
     before(async () => {
         nestedFactory = await ethers.getContractFactory("NestedFactory");
@@ -214,13 +220,13 @@ describe.skip("NestedFactory", () => {
 
                 expect(await mockWETH.balanceOf(alice.address)).to.equal(expectedAliceWethBalance);
                 // fee x2 because bob and alice each bought a NFT
-                expect(await mockWETH.balanceOf(factory.feeTo())).to.equal(expectedFee.mul(2));
+                expect(await mockWETH.balanceOf(await factory.feeTo())).to.equal(expectedFee.mul(2));
 
                 const buyUNIAmount = appendDecimals(4);
                 const buyKNCAmount = appendDecimals(6);
 
-                expect(await mockUNI.balanceOf(factory.reserve())).to.equal(buyUNIAmount.mul(2));
-                expect(await mockKNC.balanceOf(factory.reserve())).to.equal(buyKNCAmount.mul(2));
+                expect(await mockUNI.balanceOf(await factory.reserve())).to.equal(buyUNIAmount.mul(2));
+                expect(await mockKNC.balanceOf(await factory.reserve())).to.equal(buyKNCAmount.mul(2));
 
                 // check if NFT was created
                 const aliceTokens = await factory.tokensOf(alice.address);
@@ -243,7 +249,7 @@ describe.skip("NestedFactory", () => {
                 mockWETH.connect(bob).approve(factory.address, totalSellAmount.add(expectedFee));
                 await mockWETH.connect(bob).deposit({ value: totalSellAmount.add(expectedFee) });
 
-                await createNFTFromERC20(buyTokenOrders, totalSellAmount, bob, aliceTokens[0]);
+                await createNFTFromERC20(buyTokenOrders, totalSellAmount, bob, aliceTokens[0].toNumber());
 
                 // check if NFT was created
                 const bobTokens = await factory.tokensOf(bob.address);
@@ -354,7 +360,7 @@ describe.skip("NestedFactory", () => {
                     .sub(await getETHSpentOnGas(tx));
 
                 expect(await bob.getBalance()).to.equal(expectedBobBalance);
-                expect(await mockWETH.balanceOf(factory.feeTo())).to.equal(expectedFee.toString());
+                expect(await mockWETH.balanceOf(await factory.feeTo())).to.equal(expectedFee.toString());
 
                 // check if NFT was created
                 const bobTokens = await factory.tokensOf(bob.address);
@@ -381,7 +387,7 @@ describe.skip("NestedFactory", () => {
         let buyTokenOrders: TokenOrder[] = [];
         let addTokenOrders: TokenOrder[] = [];
         const expectedFee = totalSellAmount.div(100);
-        let assets: string[] = [];
+        let assets: BigNumber[] = [];
 
         beforeEach(async () => {
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
@@ -534,7 +540,7 @@ describe.skip("NestedFactory", () => {
 
         it("updates NFT", async () => {
             const initialWethBalance = await mockWETH.balanceOf(alice.address);
-            const initialFeeBalance = await mockWETH.balanceOf(factory.feeTo());
+            const initialFeeBalance = await mockWETH.balanceOf(await factory.feeTo());
 
             await factory.addTokens(assets[0], mockWETH.address, totalSellAmount, dummyRouter.address, addTokenOrders);
 
@@ -542,7 +548,7 @@ describe.skip("NestedFactory", () => {
             const expectedFeeWethBalance = initialFeeBalance.add(expectedFee);
 
             expect(await mockWETH.balanceOf(alice.address)).to.equal(expectedAliceWethBalance);
-            expect(await mockWETH.balanceOf(factory.feeTo())).to.equal(expectedFeeWethBalance);
+            expect(await mockWETH.balanceOf(await factory.feeTo())).to.equal(expectedFeeWethBalance);
 
             let tokenHoldings = await factory.tokenHoldings(assets[0]);
             expect(tokenHoldings[0].amount).to.equal(appendDecimals(8));
@@ -586,7 +592,7 @@ describe.skip("NestedFactory", () => {
 
         it("updates NFT with ETH", async () => {
             const initialWethBalance = await mockWETH.balanceOf(alice.address);
-            const initialFeeBalance = await mockWETH.balanceOf(factory.feeTo());
+            const initialFeeBalance = await mockWETH.balanceOf(await factory.feeTo());
             const initialAliceBalance = await alice.getBalance();
 
             const tx = await factory.addTokens(
@@ -607,7 +613,7 @@ describe.skip("NestedFactory", () => {
             expect(await alice.getBalance()).to.equal(expectedAliceBalance);
 
             const expectedFeeWethBalance = initialFeeBalance.add(expectedFee);
-            expect(await mockWETH.balanceOf(factory.feeTo())).to.equal(expectedFeeWethBalance);
+            expect(await mockWETH.balanceOf(await factory.feeTo())).to.equal(expectedFeeWethBalance);
 
             let tokenHoldings = await factory.tokenHoldings(assets[0]);
             expect(tokenHoldings[0].amount).to.equal(appendDecimals(8));
@@ -621,7 +627,7 @@ describe.skip("NestedFactory", () => {
         let buyTokenOrders: TokenOrder[] = [];
         let swapTokenOrders: TokenOrder[] = [];
         const expectedFee = totalSellAmount.div(100);
-        let assets: string[] = [];
+        let assets: BigNumber[] = [];
 
         beforeEach(async () => {
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
@@ -742,7 +748,7 @@ describe.skip("NestedFactory", () => {
         let buyTokenOrders: TokenOrder[] = [];
         let swapTokenOrders: TokenOrder[] = [];
         const expectedFee = totalSellAmount.div(100);
-        let assets: string[] = [];
+        let assets: BigNumber[] = [];
         const swapAmountUNI = appendDecimals(2);
         const swapAmountKNC = appendDecimals(3);
 
@@ -871,7 +877,7 @@ describe.skip("NestedFactory", () => {
         let buyTokenOrders: TokenOrder[] = [];
         let sellTokenOrders: TokenOrder[] = [];
         const expectedFee = totalSellAmount.div(100);
-        let assets: string[] = [];
+        let assets: BigNumber[] = [];
 
         beforeEach(async () => {
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
@@ -988,7 +994,6 @@ describe.skip("NestedFactory", () => {
             const prevTokenHoldings = await factory.tokenHoldings(assets[0]);
             const initialUNI = prevTokenHoldings[0].amount;
             const initialKNC = prevTokenHoldings[1].amount;
-            const initialWETH = prevTokenHoldings[2].amount;
 
             await factory.sellTokensToWallet(
                 assets[0],
@@ -1083,7 +1088,7 @@ describe.skip("NestedFactory", () => {
         let sellTokenOrders: TokenOrder[] = [];
         let buyTokenOrders: TokenOrder[] = [];
         const expectedFee = totalSellAmount.div(100);
-        let assets: string[] = [];
+        let assets: BigNumber[] = [];
 
         beforeEach(async () => {
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
@@ -1185,7 +1190,7 @@ describe.skip("NestedFactory", () => {
                 mockWETH.connect(bob).approve(factory.address, totalSellAmount.add(expectedFee));
                 await mockWETH.connect(bob).deposit({ value: totalSellAmount.add(expectedFee) });
 
-                await createNFTFromERC20(buyTokenOrders, totalSellAmount, bob, aliceTokens[0]);
+                await createNFTFromERC20(buyTokenOrders, totalSellAmount, bob, aliceTokens[0].toNumber());
 
                 const [bobTokenId] = await factory.tokensOf(bob.address);
                 await expect(
