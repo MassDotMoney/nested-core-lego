@@ -23,7 +23,7 @@ abstract contract MixinOperatorResolver {
 
     /// @dev This function is public not external in order for it to be overridden and
     /// invoked via super in subclasses
-    function resolverAddressesRequired() public view returns (bytes32[] memory addresses) {}
+    function resolverAddressesRequired() public view virtual returns (bytes32[] memory addresses) {}
 
     /// @notice Rebuild the addressCache
     function rebuildCache() public {

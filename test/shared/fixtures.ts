@@ -11,8 +11,7 @@ export const operatorResolverFixture: Fixture<OperatorResolverFixture> = async (
     const signer = new ActorFixture(wallets as Wallet[], provider).addressResolverOwner();
 
     const operatorResolverFactory = await ethers.getContractFactory("OperatorResolver");
-    // @ts-ignore
-    const operatorResolver = (await operatorResolverFactory.connect(signer).deploy()) as OperatorResolver;
+    const operatorResolver = await operatorResolverFactory.connect(signer).deploy();
 
     return { operatorResolver };
 };
