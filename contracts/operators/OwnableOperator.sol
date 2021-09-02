@@ -54,7 +54,7 @@ abstract contract OwnableOperator is Context {
     /// @dev Retrieve the OwnableOperatorData struct to get the owner (at a specific location)
     ///
     /// NOTE : This function must be overrided in subclasses (operators). If not, the data location
-    /// will be the one by default and create conflicts. There is default position because the
+    /// will be the one by default and will create conflicts. There is a default position because the
     /// variable is of storage pointer type and can be returned without prior assignment.
     /// @return data The OwnableOperatorData struct with the current owner address.
     function ownerStorage() internal pure virtual returns (OwnableOperatorData storage data) {
