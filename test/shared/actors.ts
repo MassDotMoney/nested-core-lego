@@ -4,6 +4,7 @@ import { Wallet } from "ethers";
 export const WALLET_USER_INDEXES = {
     ADDRESS_RESOLVER_OWNER: 1,
     USER_1: 2,
+    OWNABLE_OPERATOR_OWNER: 3,
 };
 
 export class ActorFixture {
@@ -21,6 +22,10 @@ export class ActorFixture {
 
     user1() {
         return this._getActor(WALLET_USER_INDEXES.USER_1);
+    }
+
+    ownableOperatorOwner() {
+        return this._getActor(WALLET_USER_INDEXES.OWNABLE_OPERATOR_OWNER);
     }
 
     private _getActor(index: number): Wallet {

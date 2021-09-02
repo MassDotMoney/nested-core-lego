@@ -1,15 +1,17 @@
-//SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.4;
 
 import "../interfaces/IOperator.sol";
+import "./OwnableOperator.sol";
 
-/// @notice The 0x protocol operator to execute swap with this aggregator
-contract ZeroXOperator is IOperator {
-    bytes32 constant DATA_POSITION = keccak256("nested.operator.zerox.data");
+/// @notice The 0x protocol operator to execute swap with the aggregator
+contract ZeroExOperator is IOperator, OwnableOperator {
+    bytes32 constant DATA_POSITION = keccak256("nested.operator.zeroex.data");
+    bytes32 constant OWNER_POSITION = keccak256("nested.operator.zeroex.owner");
 
     /// @notice the 0x operator data
     /// @param swapTarget The 0x contract address to perform swaps
-    struct ZeroXData {
+    struct ZeroExData {
         address swapTarget;
     }
 
@@ -50,8 +52,16 @@ contract ZeroXOperator is IOperator {
 
     /// @notice Get back the operator datas (diamond storage)
     /// @return data The ZeroXData struct
-    function operatorStorage() internal pure returns (ZeroXData storage data) {
+    function operatorStorage() internal pure returns (ZeroExData storage data) {
         bytes32 position = DATA_POSITION;
+        assembly {
+            data.slot := position
+        }
+    }
+
+    /// @inheritdoc OwnableOperator
+    function ownerStorage() internal pure override returns (OwnableOperatorData storage data) {
+        bytes32 position = OWNER_POSITION;
         assembly {
             data.slot := position
         }

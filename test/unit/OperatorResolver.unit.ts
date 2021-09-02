@@ -1,6 +1,6 @@
 import { LoadFixtureFunction } from "../types";
 import { OperatorResolverFixture, operatorResolverFixture } from "../shared/fixtures";
-import { createFixtureLoader, provider, expect} from "../shared/provider";
+import { createFixtureLoader, provider, expect } from "../shared/provider";
 import { toBytes32 } from "../helpers";
 import { ActorFixture } from "../shared/actors";
 import { Wallet } from "ethers";
@@ -227,6 +227,4 @@ describe("OperatorResolver", () => {
             });
         });
     });
-
-    describe("", () => {});
 });
