@@ -1,7 +1,7 @@
 import { ethers, network } from "hardhat"
 
-import IUniswap02Factory from "../artifacts/contracts/interfaces/IUniswapV2Factory.sol/IUniswapV2Factory.json"
-import IUniswap02Pair from "../artifacts/contracts/interfaces/IUniswapV2Pair.sol/IUniswapV2Pair.json"
+import IUniswap02Factory from "@uniswap/v2-core/build/IUniswapV2Factory.json"
+import IUniswap02Pair from "@uniswap/v2-core/build/IUniswapV2Pair.json"
 import { NetworkName } from "./demo-types"
 import addresses from "./addresses.json"
 

@@ -2,15 +2,14 @@ import { ethers, network } from "hardhat"
 
 import { Contract } from "@ethersproject/contracts"
 import IERC20Artifact from "../artifacts/contracts/mocks/MockERC20.sol/MockERC20.json"
-import IUniswap02Router from "../artifacts/contracts/interfaces/IUniswapV2Router02.sol/IUniswapV2Router02.json"
-import IUniswapFactory from "../artifacts/contracts/interfaces/IUniswapV2Factory.sol/IUniswapV2Factory.json"
+import IUniswap02Router from "@uniswap/v2-periphery/build/IUniswapV2Router02.json"
+import IUniswapFactory from "@uniswap/v2-core/build/IUniswapV2Factory.json"
 import { NetworkName } from "./demo-types"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import addresses from "./addresses.json"
 import { appendDecimals } from "../test/helpers"
 import { deployERC20 } from "./deploy-erc20"
 import fs from "fs"
-import { fstat } from "node:fs"
 
 const env = network.name as NetworkName
 const INITIAL_ETH_LIQUIDITY = ethers.utils.parseEther("0.2")
