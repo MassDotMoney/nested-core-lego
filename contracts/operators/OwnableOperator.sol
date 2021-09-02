@@ -55,7 +55,7 @@ abstract contract OwnableOperator is Context {
     ///
     /// NOTE : This function must be overrided in subclasses (operators). If not, the data location
     /// will be the one by default and will create conflicts. There is a default position because the
-    /// variable is of storage pointer type and can be returned without prior assignment.
+    /// variable is of storage pointer type and can't be returned without prior assignment.
     /// @return data The OwnableOperatorData struct with the current owner address.
     function ownerStorage() internal pure virtual returns (OwnableOperatorData storage data) {
         bytes32 position = keccak256("nested.operator.owner");
