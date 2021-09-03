@@ -5,9 +5,8 @@ import "../interfaces/IOperator.sol";
 import "./OwnableOperator.sol";
 
 /// @notice The 0x protocol operator to execute swap with the aggregator
-contract ZeroExOperator is IOperator, OwnableOperator {
+contract ZeroExOperator is IOperator {
     bytes32 constant DATA_POSITION = keccak256("nested.operator.zeroex.data");
-    bytes32 constant OWNER_POSITION = keccak256("nested.operator.zeroex.owner");
 
     /// @notice the 0x operator data
     /// @param swapTarget The 0x contract address to perform swaps
@@ -54,14 +53,6 @@ contract ZeroExOperator is IOperator, OwnableOperator {
     /// @return data The ZeroXData struct
     function operatorStorage() internal pure returns (ZeroExData storage data) {
         bytes32 position = DATA_POSITION;
-        assembly {
-            data.slot := position
-        }
-    }
-
-    /// @inheritdoc OwnableOperator
-    function ownerStorage() internal pure override returns (OwnableOperatorData storage data) {
-        bytes32 position = OWNER_POSITION;
         assembly {
             data.slot := position
         }
