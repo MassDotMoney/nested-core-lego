@@ -8,7 +8,10 @@ import "@openzeppelin/contracts/utils/Create2.sol";
 /// @dev The operator externalize the Ownable logic
 contract TestableOwnedOperator {
     modifier onlyOwner(address own) {
-        require(OwnableOperator(ownableOperatorAddress(own)).owner() == msg.sender, "TestableOwnedOperator: caller is not the owner");
+        require(
+            OwnableOperator(ownableOperatorAddress(own)).owner() == msg.sender,
+            "TestableOwnedOperator: caller is not the owner"
+        );
         _;
     }
 
@@ -23,9 +26,10 @@ contract TestableOwnedOperator {
     }
 
     function ownableOperatorAddress(address own) internal view returns (address) {
-        bytes32 _data = keccak256(
-            abi.encodePacked(bytes1(0xff), own, bytes32("salt"), keccak256(type(OwnableOperator).creationCode))
-        );
+        bytes32 _data =
+            keccak256(
+                abi.encodePacked(bytes1(0xff), own, bytes32("salt"), keccak256(type(OwnableOperator).creationCode))
+            );
         return address(uint160(uint256(_data)));
     }
 }

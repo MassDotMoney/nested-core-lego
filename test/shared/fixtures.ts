@@ -5,7 +5,8 @@ import { ActorFixture } from "./actors";
 import {
     OperatorResolver,
     OwnableOperator,
-    TestableOwnableOperatorCaller, TestableOwnedOperator,
+    TestableOwnableOperatorCaller,
+    TestableOwnedOperator,
 } from "../../typechain";
 import { Wallet } from "ethers";
 

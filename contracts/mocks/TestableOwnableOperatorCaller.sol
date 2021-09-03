@@ -11,7 +11,8 @@ contract TestableOwnableOperatorCaller {
 
     /// @notice Return true if the caller is the operator contract owner
     function test() external returns (bool) {
-        (bool success, bytes memory data) = testableOwnableOperator.delegatecall(abi.encodeWithSignature("isOwner(address)", testableOwnableOperator));
+        (bool success, bytes memory data) =
+            testableOwnableOperator.delegatecall(abi.encodeWithSignature("isOwner(address)", testableOwnableOperator));
         require(success, "TestableOwnableOperatorCaller::renounceOwnership: Error");
         return true;
     }
