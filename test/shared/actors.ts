@@ -5,6 +5,7 @@ export const WALLET_USER_INDEXES = {
     ADDRESS_RESOLVER_OWNER: 1,
     USER_1: 2,
     OWNABLE_OPERATOR_OWNER: 3,
+    ZERO_EX_OPERATOR_OWNER: 4,
 };
 
 export class ActorFixture {
@@ -26,6 +27,10 @@ export class ActorFixture {
 
     ownableOperatorOwner() {
         return this._getActor(WALLET_USER_INDEXES.OWNABLE_OPERATOR_OWNER);
+    }
+
+    zeroExOperatorOwner() {
+        return this._getActor(WALLET_USER_INDEXES.ZERO_EX_OPERATOR_OWNER);
     }
 
     private _getActor(index: number): Wallet {

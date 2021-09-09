@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "../NestedFactory.sol";
 import "../libraries/NestedStructs.sol";
 import "../libraries/ExchangeHelpers.sol";
-import "hardhat/console.sol";
 
 contract DummyRouter is IERC721Receiver {
     address payable public factory;

@@ -1,9 +1,9 @@
-//SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-/// @notice Ownable contract for operators using Diamond Storage
+/// @notice Ownable contract for operators data layer
 contract OwnableOperator is Ownable {
     function requireIsOwner() external view onlyOwner returns (bool) {
         return true;
