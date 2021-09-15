@@ -6,9 +6,10 @@ import "../../libraries/ExchangeHelpers.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Create2.sol";
 import "./IZeroExOperator.sol";
+import "../../interfaces/IOperatorSelector.sol";
 
 /// @notice The 0x protocol operator to execute swap with the aggregator
-contract ZeroExOperator is IZeroExOperator {
+contract ZeroExOperator is IZeroExOperator, IOperatorSelector {
 
     /// @dev Deploy with the swapTarget to store in storage contract
     constructor(address swapTarget) {
@@ -27,8 +28,9 @@ contract ZeroExOperator is IZeroExOperator {
         amounts = new uint[](1);
         address swapTarget = ZeroExStorage(storageAddress(own)).swapTarget();
         uint256 balanceBeforePurchase = buyToken.balanceOf(address(this));
+
         bool success = ExchangeHelpers.fillQuote(sellToken, swapTarget, swapCallData);
-        require(success, "SWAP_CALL_FAILED");
+        require(success, "ZeroExOperator::commitAndRevert: 0x swap failed");
 
         uint256 amountBought = buyToken.balanceOf(address(this)) - balanceBeforePurchase;
         assert(amountBought > 0);
@@ -43,5 +45,15 @@ contract ZeroExOperator is IZeroExOperator {
             abi.encodePacked(bytes1(0xff), own, bytes32("nested.zeroex.operator"), keccak256(type(ZeroExStorage).creationCode))
         );
         return address(uint160(uint256(_data)));
+    }
+
+    /// @inheritdoc IOperatorSelector
+    function getCommitSelector() external pure override returns (bytes4) {
+        return this.commitAndRevert.selector;
+    }
+
+    /// @inheritdoc IOperatorSelector
+    function getRevertSelector() external pure override returns (bytes4) {
+        return this.commitAndRevert.selector;
     }
 }

@@ -12,20 +12,25 @@ contract OperatorResolver is IOperatorResolver, Ownable {
     mapping(bytes32 => address) public operators;
 
     /// @inheritdoc IOperatorResolver
-    function getAddress(bytes32 name) external override view returns (address) {
+    function getAddress(bytes32 name) external view override returns (address) {
         return operators[name];
     }
 
     /// @inheritdoc IOperatorResolver
-    function requireAndGetAddress(bytes32 name, string calldata reason) external override view returns (address) {
+    function requireAndGetAddress(bytes32 name, string calldata reason) external view override returns (address) {
         address _foundAddress = operators[name];
         require(_foundAddress != address(0), reason);
         return _foundAddress;
     }
 
     /// @inheritdoc IOperatorResolver
-    function areAddressesImported(bytes32[] calldata names, address[] calldata destinations) external override view returns (bool) {
-        for (uint i = 0; i < names.length; i++) {
+    function areAddressesImported(bytes32[] calldata names, address[] calldata destinations)
+        external
+        view
+        override
+        returns (bool)
+    {
+        for (uint256 i = 0; i < names.length; i++) {
             if (operators[names[i]] != destinations[i]) {
                 return false;
             }
@@ -37,7 +42,7 @@ contract OperatorResolver is IOperatorResolver, Ownable {
     function importOperators(bytes32[] calldata names, address[] calldata destinations) external override onlyOwner {
         require(names.length == destinations.length, "OperatorResolver::importOperators: Input lengths must match");
 
-        for (uint i = 0; i < names.length; i++) {
+        for (uint256 i = 0; i < names.length; i++) {
             bytes32 name = names[i];
             address destination = destinations[i];
             operators[name] = destination;
@@ -48,7 +53,7 @@ contract OperatorResolver is IOperatorResolver, Ownable {
     /// @notice rebuild the caches of mixin smart contracts
     /// @param destinations The list of mixinOperatorResolver to rebuild
     function rebuildCaches(MixinOperatorResolver[] calldata destinations) external {
-        for (uint i = 0; i < destinations.length; i++) {
+        for (uint256 i = 0; i < destinations.length; i++) {
             destinations[i].rebuildCache();
         }
     }

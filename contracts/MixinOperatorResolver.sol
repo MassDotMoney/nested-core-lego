@@ -29,11 +29,11 @@ abstract contract MixinOperatorResolver {
     function rebuildCache() public {
         bytes32[] memory requiredAddresses = resolverAddressesRequired();
         // The resolver must call this function whenever it updates its state
-        for (uint i = 0; i < requiredAddresses.length; i++) {
+        for (uint256 i = 0; i < requiredAddresses.length; i++) {
             bytes32 name = requiredAddresses[i];
             // Note: can only be invoked once the resolver has all the targets needed added
             address destination =
-            resolver.requireAndGetAddress(name, string(abi.encodePacked("Resolver missing target: ", name)));
+                resolver.requireAndGetAddress(name, string(abi.encodePacked("Resolver missing target: ", name)));
             addressCache[name] = destination;
             emit CacheUpdated(name, destination);
         }
@@ -42,7 +42,7 @@ abstract contract MixinOperatorResolver {
     /// @notice Check the state of addressCache
     function isResolverCached() external view returns (bool) {
         bytes32[] memory requiredAddresses = resolverAddressesRequired();
-        for (uint i = 0; i < requiredAddresses.length; i++) {
+        for (uint256 i = 0; i < requiredAddresses.length; i++) {
             bytes32 name = requiredAddresses[i];
             // false if our cache is invalid or if the resolver doesn't have the required address
             if (resolver.getAddress(name) != addressCache[name] || addressCache[name] == address(0)) {
@@ -54,17 +54,17 @@ abstract contract MixinOperatorResolver {
 
     /// @dev Helper to combine two arrays
     function combineArrays(bytes32[] memory first, bytes32[] memory second)
-    internal
-    pure
-    returns (bytes32[] memory combination)
+        internal
+        pure
+        returns (bytes32[] memory combination)
     {
         combination = new bytes32[](first.length + second.length);
 
-        for (uint i = 0; i < first.length; i++) {
+        for (uint256 i = 0; i < first.length; i++) {
             combination[i] = first[i];
         }
 
-        for (uint j = 0; j < second.length; j++) {
+        for (uint256 j = 0; j < second.length; j++) {
             combination[first.length + j] = second[j];
         }
     }

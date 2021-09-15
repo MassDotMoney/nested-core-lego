@@ -16,7 +16,7 @@ contract NestedReserve is Ownable {
     address public factory;
 
     constructor(address _factory) {
-       setFactory(_factory);
+        setFactory(_factory);
     }
 
     /*

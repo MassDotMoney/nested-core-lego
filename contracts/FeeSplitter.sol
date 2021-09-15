@@ -107,7 +107,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
      * @param _amount [uint256] amount of token as fee to be claimed by this contract
      * @param _token [IERC20] currency for the fee as an ERC20 token
      */
-    function sendFees(IERC20 _token, uint256 _amount) nonReentrant public {
+    function sendFees(IERC20 _token, uint256 _amount) public nonReentrant {
         uint256 weights = totalWeights - royaltiesWeight;
         _sendFees(_token, _amount, weights);
     }
@@ -122,7 +122,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         address _royaltiesTarget,
         IERC20 _token,
         uint256 _amount
-    ) nonReentrant public {
+    ) public nonReentrant {
         require(_royaltiesTarget != address(0), "FeeSplitter: INVALID_ROYALTIES_TARGET_ADDRESS");
 
         _sendFees(_token, _amount, totalWeights);
@@ -165,7 +165,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
      * the amount of shares they own and their previous withdrawals.
      * @param _token [address] payment token address
      */
-    function releaseToken(IERC20 _token) nonReentrant public {
+    function releaseToken(IERC20 _token) public nonReentrant {
         uint256 amount = _releaseToken(msg.sender, _token);
         _token.safeTransfer(msg.sender, amount);
         emit PaymentReleased(msg.sender, address(_token), amount);

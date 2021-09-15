@@ -76,7 +76,7 @@ describe("ZeroExOperator", () => {
                         context.mockDAI.address,
                         context.mockUNI.address,
                         calldata,
-                    )
+                    ),
             ).to.be.revertedWith("TestableOperatorCaller::zeroExCommitAndRevert: Error");
         });
     });

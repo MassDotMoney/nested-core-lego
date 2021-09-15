@@ -297,7 +297,6 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         return _sellTokenAmount - amountSpent + fees;
     }
 
-
     /*
     Swap an existing token from the NFT for one or more tokens.
     @param _nftId [uint] the id of the NFT to update
@@ -348,7 +347,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         uint256[] memory _sellTokensAmount,
         address payable _swapTarget,
         NestedStructs.TokenOrder[] calldata _tokenOrders
-    ) internal returns (uint256){
+    ) internal returns (uint256) {
         require(_tokenOrders.length > 0, "BUY_ARG_MISSING");
         require(_tokenOrders.length == _sellTokensAmount.length, "SELL_AMOUNT_MISSING");
 
@@ -377,7 +376,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
         uint256 amountFees = _calculateFees(msg.sender, amountBought);
         transferFeeWithRoyalty(amountFees, _buyToken, _nftId);
 
-       return amountBought - amountFees;
+        return amountBought - amountFees;
     }
 
     /**

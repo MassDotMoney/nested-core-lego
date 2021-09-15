@@ -1,6 +1,7 @@
-//SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.4;
 
+/// @title Library gathering structs used in Nested Finance
 library NestedStructs {
     /*
     Info about assets stored in reserves
