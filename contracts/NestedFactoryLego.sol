@@ -69,7 +69,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         reserve = _reserve;
     }
 
-    /// @dev Update the VIP discount and min staked amount to be a VIP
+    /// @notice Update the VIP discount and min staked amount to be a VIP
     /// @param _vipDiscount [uint256] the fee discount to apply to a VIP user
     /// @param _vipMinAmount [uint256] min amount that needs to be staked to be a VIP
     function updateVipDiscount(uint256 _vipDiscount, uint256 _vipMinAmount) external onlyOwner {
