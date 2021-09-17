@@ -54,6 +54,13 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         vipMinAmount = _vipMinAmount;
     }
 
+    /// @dev Reverts the transaction if the caller is not the token owner
+    /// @param _nftId uint256 the NFT Id
+    modifier onlyTokenOwner(uint256 _nftId) {
+        require(nestedAsset.ownerOf(_nftId) == msg.sender, "NestedFactory: Not the token owner");
+        _;
+    }
+
     /// @dev Receive function
     receive() external payable {}
 
@@ -68,7 +75,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         operators.push(operator);
     }
 
-    /// @dev Update the SmartChef contract address
+    /// @notice Update the SmartChef contract address
     /// @param _smartChef New SmartChef address
     function updateSmartChef(address _smartChef) external onlyOwner {
         require(_smartChef != address(0), "NestedFactory::updateSmartChef: Invalid smartchef address");
@@ -106,10 +113,26 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         require(_orders.length > 0, "NestedFactory::create: Missing orders");
 
         uint256 nftId = nestedAsset.mint(msg.sender, _originalTokenId);
-        uint256 spentAmount = _commitOrders(nftId, _sellToken, _sellTokenAmount, _orders);
+        (uint256 spentAmount, IERC20 tokenSold) = _commitOrders(nftId, _sellToken, _sellTokenAmount, _orders);
 
-        transferFeeWithRoyalty(spentAmount, _sellToken, nftId);
+        transferFeeWithRoyalty(spentAmount, tokenSold, nftId);
         emit NftCreated(nftId, _originalTokenId);
+    }
+
+    /// Commit new orders and update the NFT
+    /// @param _nftId The id of the NFT to update
+    /// @param _sellToken Token used to make the orders
+    /// @param _sellTokenAmount Amount of sell tokens to use
+    /// @param _orders Orders calldata
+    function addTokens(
+        uint256 _nftId,
+        IERC20 _sellToken,
+        uint256 _sellTokenAmount,
+        Order[] calldata _orders
+    ) external payable nonReentrant onlyTokenOwner(_nftId) {
+        (uint256 spentAmount, IERC20 tokenSold) = _commitOrders(_nftId, _sellToken, _sellTokenAmount, _orders);
+        transferFee(spentAmount, tokenSold);
+        emit NftUpdated(_nftId);
     }
 
     /// @dev For every orders, call the operator with the calldata
@@ -119,12 +142,13 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
     /// @param _sellTokenAmount Amount of sell tokens to use
     /// @param _orders Orders calldata
     /// @return spentAmount The total amount spent (to apply fees)
+    /// @return tokenSold The ERC20 token sold (in case of ETH to WETH)
     function _commitOrders(
         uint256 _nftId,
         IERC20 _sellToken,
         uint256 _sellTokenAmount,
         Order[] calldata _orders
-    ) private returns (uint256 spentAmount) {
+    ) internal returns (uint256 spentAmount, IERC20 tokenSold) {
         uint256 fees = _calculateFees(msg.sender, _sellTokenAmount);
         uint256 sellAmountWithFees = _sellTokenAmount + fees;
 
@@ -145,13 +169,14 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         assert(amountSpent <= _sellTokenAmount); // overspent
 
         spentAmount = _sellTokenAmount - amountSpent + fees;
+        tokenSold = _sellToken;
     }
 
     /// @dev Call the operator to commit the order and add the output
     /// assets to the reserve.
     /// @param _nftId The nftId
     /// @param _order The order calldata
-    function _commitOrder(uint256 _nftId, Order calldata _order) private {
+    function _commitOrder(uint256 _nftId, Order calldata _order) internal {
         address operator = requireAndGetAddress(_order.operator);
 
         // The operator address needs to be the first parameter of the operator delegatecall.
@@ -170,6 +195,32 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
 
         // Store position
         nestedRecords.store(_nftId, _order.operator, _order.outputToken, amounts[0], address(reserve));
+    }
+
+    /// @dev Send a fee to the FeeSplitter, royalties will be paid to the owner of the original asset
+    /// @param _amount Amount to send
+    /// @param _token Token to send
+    /// @param _nftId User portfolio ID used to find a potential royalties recipient
+    function transferFeeWithRoyalty(
+        uint256 _amount,
+        IERC20 _token,
+        uint256 _nftId
+    ) internal {
+        address originalOwner = nestedAsset.originalOwner(_nftId);
+        ExchangeHelpers.setMaxAllowance(_token, address(feeSplitter));
+        if (originalOwner != address(0)) {
+            feeSplitter.sendFeesWithRoyalties(originalOwner, _token, _amount);
+        } else {
+            feeSplitter.sendFees(_token, _amount);
+        }
+    }
+
+    /// @dev Send a fee to the FeeSplitter
+    /// @param _amount Amount to send
+    /// @param _token Token to send
+    function transferFee(uint256 _amount, IERC20 _token) internal {
+        ExchangeHelpers.setMaxAllowance(_token, address(feeSplitter));
+        feeSplitter.sendFees(_token, _amount);
     }
 
     /// @dev Calculate the fees for a specific user and amount
@@ -205,23 +256,5 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         }
         uint256 stakedNst = smartChef.userInfo(_account).amount;
         return stakedNst >= vipMinAmount;
-    }
-
-    /// @dev Send a fee to the FeeSplitter, royalties will be paid to the owner of the original asset
-    /// @param _amount Amount to send
-    /// @param _token Token to send
-    /// @param _nftId User portfolio ID used to find a potential royalties recipient
-    function transferFeeWithRoyalty(
-        uint256 _amount,
-        IERC20 _token,
-        uint256 _nftId
-    ) private {
-        address originalOwner = nestedAsset.originalOwner(_nftId);
-        ExchangeHelpers.setMaxAllowance(_token, address(feeSplitter));
-        if (originalOwner != address(0)) {
-            feeSplitter.sendFeesWithRoyalties(originalOwner, _token, _amount);
-        } else {
-            feeSplitter.sendFees(_token, _amount);
-        }
     }
 }

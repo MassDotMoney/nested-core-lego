@@ -19,6 +19,10 @@ interface INestedFactoryLego {
     /// @param originalNftId If replicated, the original NFT token Id
     event NftCreated(uint256 indexed nftId, uint256 originalNftId);
 
+    /// @dev Emitted when a NFT (portfolio) is updated
+    /// @param nftId The NFT token Id
+    event NftUpdated(uint256 indexed nftId);
+
     /// @dev Represent an order made to the factory when creating/editing an NFT
     /// @param operator The bytes32 name of the Operator
     /// @param outputToken The expected token address in output
