@@ -115,7 +115,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         uint256 nftId = nestedAsset.mint(msg.sender, _originalTokenId);
         (uint256 fees, IERC20 tokenSold) = _commitOrders(nftId, _sellToken, _sellTokenAmount, _orders);
 
-        transferFeeWithRoyalty(fees, tokenSold, nftId);
+        _transferFeeWithRoyalty(fees, tokenSold, nftId);
         emit NftCreated(nftId, _originalTokenId);
     }
 
@@ -133,7 +133,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         require(_orders.length > 0, "NestedFactory::addTokens: Missing orders");
 
         (uint256 fees, IERC20 tokenSold) = _commitOrders(_nftId, _sellToken, _sellTokenAmount, _orders);
-        transferFee(fees, tokenSold);
+        _transferFee(fees, tokenSold);
         emit NftUpdated(_nftId);
     }
 
@@ -158,7 +158,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         NestedReserve(reserve).transfer(address(this), IERC20(holding.token), _sellTokenAmount);
 
         (uint256 fees, IERC20 tokenSold) = _commitOrders(_nftId, _sellToken, _sellTokenAmount, _orders);
-        transferFee(fees, tokenSold);
+        _transferFee(fees, tokenSold);
 
         // Update used token records
         nestedRecords.updateHoldingAmount(_nftId, address(_sellToken), holding.amount - _sellTokenAmount);
@@ -231,7 +231,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
     /// @param _amount Amount to send
     /// @param _token Token to send
     /// @param _nftId User portfolio ID used to find a potential royalties recipient
-    function transferFeeWithRoyalty(
+    function _transferFeeWithRoyalty(
         uint256 _amount,
         IERC20 _token,
         uint256 _nftId
@@ -248,7 +248,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
     /// @dev Send a fee to the FeeSplitter
     /// @param _amount Amount to send
     /// @param _token Token to send
-    function transferFee(uint256 _amount, IERC20 _token) internal {
+    function _transferFee(uint256 _amount, IERC20 _token) internal {
         ExchangeHelpers.setMaxAllowance(_token, address(feeSplitter));
         feeSplitter.sendFees(_token, _amount);
     }
