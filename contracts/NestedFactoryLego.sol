@@ -113,9 +113,9 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         require(_orders.length > 0, "NestedFactory::create: Missing orders");
 
         uint256 nftId = nestedAsset.mint(msg.sender, _originalTokenId);
-        (uint256 spentAmount, IERC20 tokenSold) = _commitOrders(nftId, _sellToken, _sellTokenAmount, _orders);
+        (uint256 fees, IERC20 tokenSold) = _commitOrders(nftId, _sellToken, _sellTokenAmount, _orders);
 
-        transferFeeWithRoyalty(spentAmount, tokenSold, nftId);
+        transferFeeWithRoyalty(fees, tokenSold, nftId);
         emit NftCreated(nftId, _originalTokenId);
     }
 
@@ -130,8 +130,39 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         uint256 _sellTokenAmount,
         Order[] calldata _orders
     ) external payable nonReentrant onlyTokenOwner(_nftId) {
-        (uint256 spentAmount, IERC20 tokenSold) = _commitOrders(_nftId, _sellToken, _sellTokenAmount, _orders);
-        transferFee(spentAmount, tokenSold);
+        require(_orders.length > 0, "NestedFactory::addTokens: Missing orders");
+
+        (uint256 fees, IERC20 tokenSold) = _commitOrders(_nftId, _sellToken, _sellTokenAmount, _orders);
+        transferFee(fees, tokenSold);
+        emit NftUpdated(_nftId);
+    }
+
+    /// Exchange an existing position from the NFT for one or more positions.
+    /// @param _nftId The id of the NFT to update
+    /// @param _sellToken Token used to make the orders
+    /// @param _sellTokenAmount Amount of sell tokens to use
+    /// @param _orders Orders calldata
+    function swapTokenForTokens(
+        uint256 _nftId,
+        IERC20 _sellToken,
+        uint256 _sellTokenAmount,
+        Order[] calldata _orders
+    ) external payable nonReentrant onlyTokenOwner(_nftId) {
+        require(_orders.length > 0, "NestedFactory::swapTokenForTokens: Missing orders");
+
+        // Check if sell token exist in nft and amount is enough
+        NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_sellToken));
+        require(holding.amount >= _sellTokenAmount, "NestedFactory::swapTokenForTokens: Insufficient amount");
+
+        // Transfer from Reserve to Factory
+        NestedReserve(reserve).transfer(address(this), IERC20(holding.token), _sellTokenAmount);
+
+        (uint256 fees, IERC20 tokenSold) = _commitOrders(_nftId, _sellToken, _sellTokenAmount, _orders);
+        transferFee(fees, tokenSold);
+
+        // Update used token records
+        nestedRecords.updateHoldingAmount(_nftId, address(_sellToken), holding.amount - _sellTokenAmount);
+
         emit NftUpdated(_nftId);
     }
 
@@ -141,24 +172,23 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
     /// @param _sellToken Token used to make the orders
     /// @param _sellTokenAmount Amount of sell tokens to use
     /// @param _orders Orders calldata
-    /// @return spentAmount The total amount spent (to apply fees)
+    /// @return feesAmount The total amount of fees
     /// @return tokenSold The ERC20 token sold (in case of ETH to WETH)
     function _commitOrders(
         uint256 _nftId,
         IERC20 _sellToken,
         uint256 _sellTokenAmount,
         Order[] calldata _orders
-    ) internal returns (uint256 spentAmount, IERC20 tokenSold) {
+    ) internal returns (uint256 feesAmount, IERC20 tokenSold) {
         uint256 fees = _calculateFees(msg.sender, _sellTokenAmount);
-        uint256 sellAmountWithFees = _sellTokenAmount + fees;
 
         // Choose between ERC20 (safeTransfer) and ETH (deposit)
         if (address(_sellToken) == ETH) {
-            require(msg.value >= sellAmountWithFees, "NestedFactory::_commitOrders: Insufficient amount in");
+            require(msg.value >= _sellTokenAmount, "NestedFactory::_commitOrders: Insufficient amount in");
             weth.deposit{ value: msg.value }();
             _sellToken = IERC20(address(weth));
         } else {
-            _sellToken.safeTransferFrom(msg.sender, address(this), sellAmountWithFees);
+            _sellToken.safeTransferFrom(msg.sender, address(this), _sellTokenAmount);
         }
 
         uint256 balanceBeforePurchase = _sellToken.balanceOf(address(this));
@@ -166,9 +196,9 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
             _commitOrder(_nftId, _orders[i]);
         }
         uint256 amountSpent = balanceBeforePurchase - _sellToken.balanceOf(address(this));
-        assert(amountSpent <= _sellTokenAmount); // overspent
+        assert(amountSpent <= _sellTokenAmount - fees); // overspent
 
-        spentAmount = _sellTokenAmount - amountSpent + fees;
+        feesAmount = _sellTokenAmount - amountSpent;
         tokenSold = _sellToken;
     }
 
@@ -227,7 +257,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
     /// @param _user The user address
     /// @param _amount The amount
     /// @return The fees amount
-    function _calculateFees(address _user, uint256 _amount) private view returns (uint256) {
+    function _calculateFees(address _user, uint256 _amount) internal view returns (uint256) {
         uint256 baseFee = _amount / 100;
         uint256 feeWithDiscount = baseFee - _calculateDiscount(_user, baseFee);
         return feeWithDiscount;
@@ -237,7 +267,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
     /// @param _user User to check the VIP status of
     /// @param _amount Amount to calculate the discount on
     /// @return The discount amount
-    function _calculateDiscount(address _user, uint256 _amount) private view returns (uint256) {
+    function _calculateDiscount(address _user, uint256 _amount) internal view returns (uint256) {
         // give a discount to VIP users
         if (_isVIP(_user)) {
             return (_amount * vipDiscount) / 1000;
@@ -250,7 +280,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
     /// User needs to have at least vipMinAmount of NST staked
     /// @param _account User address
     /// @return Boolean indicating if user is VIP
-    function _isVIP(address _account) private view returns (bool) {
+    function _isVIP(address _account) internal view returns (bool) {
         if (address(smartChef) == address(0)) {
             return false;
         }

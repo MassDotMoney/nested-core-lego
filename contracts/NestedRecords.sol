@@ -67,7 +67,8 @@ contract NestedRecords is Ownable {
         records[_nftId].reserve = _reserve;
     }
 
-    /// @notice Update the amount for a specific holding
+    /// @notice Update the amount for a specific holding and delete
+    /// the holding if the amount is zero.
     /// @param _nftId The id of the NFT
     /// @param _token The token/holding address
     /// @param _amount Updated amount for this asset
@@ -76,7 +77,17 @@ contract NestedRecords is Ownable {
         address _token,
         uint256 _amount
     ) public onlyFactory {
-        records[_nftId].holdings[_token].amount = _amount;
+        if (_amount == 0) {
+            uint256 tokenIndex = 0;
+            address[] memory tokens = getAssetTokens(_nftId);
+            while (tokenIndex < tokens.length) {
+                if (tokens[tokenIndex] == _token) break;
+                tokenIndex++;
+            }
+            deleteAsset(_nftId, tokenIndex);
+        } else {
+            records[_nftId].holdings[_token].amount = _amount;
+        }
     }
 
     /// @notice Helper function that creates a record or add the holding if record already exists
@@ -176,7 +187,7 @@ contract NestedRecords is Ownable {
     /// @notice Fully delete a holding record for an NFT
     /// @param _nftId The id of the NFT
     /// @param _tokenIndex The token index in holdings array
-    function deleteAsset(uint256 _nftId, uint256 _tokenIndex) external onlyFactory {
+    function deleteAsset(uint256 _nftId, uint256 _tokenIndex) public onlyFactory {
         address[] storage tokens = records[_nftId].tokens;
         address token = tokens[_tokenIndex];
         NestedStructs.Holding memory holding = records[_nftId].holdings[token];
