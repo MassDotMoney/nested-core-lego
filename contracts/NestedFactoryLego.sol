@@ -6,35 +6,49 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/INestedFactoryLego.sol";
 import "./interfaces/IOperatorSelector.sol";
+import "./libraries/ExchangeHelpers.sol";
 import "./NestedAsset.sol";
 import "./interfaces/IWETH.sol";
 import "./MixinOperatorResolver.sol";
 import "./NestedReserve.sol";
 import "./interfaces/MinimalSmartChef.sol";
+import "./NestedRecords.sol";
+import "./FeeSplitter.sol";
 
 /// @title Creates, updates and destroys NestedAssets.
 /// @notice Responsible for the business logic of the protocol and interaction with operators
 contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, MixinOperatorResolver {
-    address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     using SafeERC20 for IERC20;
+    address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     uint256 public vipDiscount;
     uint256 public vipMinAmount;
-    NestedReserve public reserve;
+
+    /// @dev Yield farming contract
     MinimalSmartChef public smartChef;
+
+    /// @dev Current feeSplitter contract/address
+    FeeSplitter public feeSplitter;
+
+    /// @dev Current reserve contract/address
+    NestedReserve public reserve;
+
     NestedAsset public immutable nestedAsset;
     IWETH public immutable weth;
+    NestedRecords public immutable nestedRecords;
 
     bytes32[] private operators;
 
     constructor(
         NestedAsset _nestedAsset,
+        NestedRecords _nestedRecords,
         IWETH _weth,
         address _operatorResolver,
         uint256 _vipDiscount,
         uint256 _vipMinAmount
     ) MixinOperatorResolver(_operatorResolver) {
         nestedAsset = _nestedAsset;
+        nestedRecords = _nestedRecords;
         weth = _weth;
         vipDiscount = _vipDiscount;
         vipMinAmount = _vipMinAmount;
@@ -94,11 +108,12 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         uint256 nftId = nestedAsset.mint(msg.sender, _originalTokenId);
         uint256 spentAmount = _commitOrders(nftId, _sellToken, _sellTokenAmount, _orders);
 
-        // TODO
+        transferFeeWithRoyalty(spentAmount, _sellToken, nftId);
+        emit NftCreated(nftId, _originalTokenId);
     }
 
     /// @dev For every orders, call the operator with the calldata
-    /// to commit to order. Add the output assets to the reserve.
+    /// to commit to order.
     /// @param _nftId The id of the NFT impacted by the orders
     /// @param _sellToken Token used to make the orders
     /// @param _sellTokenAmount Amount of sell tokens to use
@@ -124,28 +139,37 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
 
         uint256 balanceBeforePurchase = _sellToken.balanceOf(address(this));
         for (uint256 i = 0; i < _orders.length; i++) {
-            address operator = requireAndGetAddress(_orders[i].operator);
-
-            // The operator address needs to be the first parameter of the operator delegatecall.
-            // We assume that the calldata given by the user are only the params, without the signature.
-            // Parameters are concatenated and padded to 32 bytes.
-            // We are concatenating the selector + operator address + given params
-            bytes4 selector = IOperatorSelector(operator).getCommitSelector();
-            bytes memory safeCalldata = bytes.concat(selector, abi.encodePacked(operator), _orders[i].callData);
-
-            (bool success, bytes memory data) = operator.delegatecall(safeCalldata);
-            require(success, "NestedFactory::_commitOrders: Operator call failed");
-
-            // Get amounts from operator call
-            uint256[] memory amounts = abi.decode(data, (uint256[]));
-            IERC20(_orders[i].outputToken).safeTransfer(address(reserve), amounts[0]);
-
-            // TODO Store position
+            _commitOrder(_nftId, _orders[i]);
         }
         uint256 amountSpent = balanceBeforePurchase - _sellToken.balanceOf(address(this));
         assert(amountSpent <= _sellTokenAmount); // overspent
 
         spentAmount = _sellTokenAmount - amountSpent + fees;
+    }
+
+    /// @dev Call the operator to commit the order and add the output
+    /// assets to the reserve.
+    /// @param _nftId The nftId
+    /// @param _order The order calldata
+    function _commitOrder(uint256 _nftId, Order calldata _order) private {
+        address operator = requireAndGetAddress(_order.operator);
+
+        // The operator address needs to be the first parameter of the operator delegatecall.
+        // We assume that the calldata given by the user are only the params, without the signature.
+        // Parameters are concatenated and padded to 32 bytes.
+        // We are concatenating the selector + operator address + given params
+        bytes4 selector = IOperatorSelector(operator).getCommitSelector();
+        bytes memory safeCalldata = bytes.concat(selector, abi.encodePacked(operator), _order.callData);
+
+        (bool success, bytes memory data) = operator.delegatecall(safeCalldata);
+        require(success, "NestedFactory::_commitOrders: Operator call failed");
+
+        // Get amounts from operator call
+        uint256[] memory amounts = abi.decode(data, (uint256[]));
+        IERC20(_order.outputToken).safeTransfer(address(reserve), amounts[0]);
+
+        // Store position
+        nestedRecords.store(_nftId, _order.operator, _order.outputToken, amounts[0], address(reserve));
     }
 
     /// @dev Calculate the fees for a specific user and amount
@@ -181,5 +205,23 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         }
         uint256 stakedNst = smartChef.userInfo(_account).amount;
         return stakedNst >= vipMinAmount;
+    }
+
+    /// @dev Send a fee to the FeeSplitter, royalties will be paid to the owner of the original asset
+    /// @param _amount Amount to send
+    /// @param _token Token to send
+    /// @param _nftId User portfolio ID used to find a potential royalties recipient
+    function transferFeeWithRoyalty(
+        uint256 _amount,
+        IERC20 _token,
+        uint256 _nftId
+    ) private {
+        address originalOwner = nestedAsset.originalOwner(_nftId);
+        ExchangeHelpers.setMaxAllowance(_token, address(feeSplitter));
+        if (originalOwner != address(0)) {
+            feeSplitter.sendFeesWithRoyalties(originalOwner, _token, _amount);
+        } else {
+            feeSplitter.sendFees(_token, _amount);
+        }
     }
 }
