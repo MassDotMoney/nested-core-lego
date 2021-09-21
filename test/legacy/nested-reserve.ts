@@ -34,13 +34,13 @@ describe.skip("NestedReserve", () => {
         });
 
         it("sets a new factory", async () => {
-            const tx = await reserve.setFactory(bob.address);
+            const tx = await reserve.updateFactory(bob.address);
             await tx.wait();
             expect(await reserve.factory()).to.eq(bob.address);
         });
 
         it("should revert if unauthorized account sets the factory", async () => {
-            await expect(reserve.connect(bob).setFactory(bob.address)).to.be.revertedWith(
+            await expect(reserve.connect(bob).updateFactory(bob.address)).to.be.revertedWith(
                 "Ownable: caller is not the owner",
             );
         });

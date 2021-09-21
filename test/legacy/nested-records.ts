@@ -33,11 +33,11 @@ describe.skip("NestedRecords", () => {
     });
 
     it("reverts when setting a wrong reserve to a NFT", async () => {
-        await expect(nestedRecords.store(0, bob.address, 20, ethers.constants.AddressZero)).to.be.revertedWith(
+        await expect(nestedRecords.store(0, "test", bob.address, 20, ethers.constants.AddressZero)).to.be.revertedWith(
             "NestedRecords: INVALID_RESERVE",
         );
-        await nestedRecords.store(0, bob.address, 20, alice.address);
-        await expect(nestedRecords.store(0, bob.address, 20, bob.address)).to.be.revertedWith(
+        await nestedRecords.store(0, bob.address,"test", 20, alice.address);
+        await expect(nestedRecords.store(0,"test", bob.address, 20, bob.address)).to.be.revertedWith(
             "NestedRecords: RESERVE_MISMATCH",
         );
     });
@@ -46,16 +46,16 @@ describe.skip("NestedRecords", () => {
         const maxHoldingsCount = await nestedRecords.maxHoldingsCount();
         const signers = await ethers.getSigners();
         for (let i = 0; i < maxHoldingsCount.toNumber(); i++) {
-            await nestedRecords.store(0, signers[i + 3].address, 20, alice.address);
+            await nestedRecords.store(0, "test", signers[i + 3].address, 20, alice.address);
         }
-        await expect(nestedRecords.store(0, bob.address, 20, alice.address)).to.be.revertedWith(
+        await expect(nestedRecords.store(0, "test", bob.address, 20, alice.address)).to.be.revertedWith(
             "NestedRecords: TOO_MANY_ORDERS",
         );
     });
 
     it("updates a record", async () => {
         const weth = "0xc778417E063141139Fce010982780140Aa0cD5Ab";
-        const tx = await nestedRecords.store(0, weth, appendDecimals(10), bob.address);
+        const tx = await nestedRecords.store(0, "test", weth, appendDecimals(10), bob.address);
         await tx.wait();
         const tx0 = await nestedRecords.update(0, 0, weth, appendDecimals(5));
         await tx0.wait();
