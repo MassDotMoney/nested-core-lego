@@ -10,10 +10,12 @@ interface IZeroExOperator {
     /// @param sellToken The token sold
     /// @param buyToken The token bought
     /// @param swapCallData 0x calldata from the API
+    /// @return amounts Array of output amounts
+    /// @return tokens Array of output tokens
     function commitAndRevert(
         address own,
         IERC20 sellToken,
         IERC20 buyToken,
         bytes calldata swapCallData
-    ) external returns (uint256[] memory amounts);
+    ) external returns (uint256[] memory amounts, address[] memory tokens);
 }

@@ -24,8 +24,9 @@ contract ZeroExOperator is IZeroExOperator, IOperatorSelector {
         IERC20 sellToken,
         IERC20 buyToken,
         bytes calldata swapCallData
-    ) external override returns (uint256[] memory amounts) {
+    ) external override returns (uint256[] memory amounts, address[] memory tokens) {
         amounts = new uint[](1);
+        tokens = new address[](1);
         address swapTarget = ZeroExStorage(storageAddress(own)).swapTarget();
         uint256 balanceBeforePurchase = buyToken.balanceOf(address(this));
 
@@ -34,7 +35,8 @@ contract ZeroExOperator is IZeroExOperator, IOperatorSelector {
 
         uint256 amountBought = buyToken.balanceOf(address(this)) - balanceBeforePurchase;
         assert(amountBought > 0);
-        amounts[0] = amountBought;
+        amounts[0] = amountBought; // Output amount
+        tokens[0] = address(buyToken); // Output token
     }
 
     /// @notice Return the operator storage address
