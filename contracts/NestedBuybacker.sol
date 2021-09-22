@@ -1,89 +1,99 @@
-//SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import "contracts/interfaces/INestedToken.sol";
-import "contracts/FeeSplitter.sol";
-import "contracts/libraries/ExchangeHelpers.sol";
+import "./interfaces/INestedToken.sol";
+import "./FeeSplitter.sol";
+import "./libraries/ExchangeHelpers.sol";
 
-/**
- * @title Token sent to this contract are used to purchase NST.
- * Some of it is burned, the rest is sent to a pool that will redistribute
- * to the NST ecosystem and community
- */
+/// @title Token sent to this contract are used to purchase NST.
+/// @dev Some of it is burned, the rest is sent to a pool that will redistribute
+///      to the NST ecosystem and community.
 contract NestedBuybacker is Ownable {
     using SafeERC20 for IERC20;
-    event ReserveChanged(address newReserve);
-    event FeeSplitterChanged(FeeSplitter newFeeSplitter);
+
+    /// @dev Emitted when the reserve address is updated
+    /// @param newReserve The new reserve address
+    event ReserveUpdated(address newReserve);
+
+    /// @dev Emitted when the fee splitter address is updated
+    /// @param newFeeSplitter The new FeeSplitter address
+    event FeeSplitterUpdated(FeeSplitter newFeeSplitter);
+
+    /// @dev Emitted when the burn percentage is updated
+    /// @param newBurnPart The new burn percentage amount
     event BurnPartUpdated(uint256 newBurnPart);
+
+    /// @dev Emitted when the buy back is executed
+    /// @param forToken sellToken used for the buy back
     event BuybackTriggered(IERC20 forToken);
 
+    /// @dev The Nested project token
     INestedToken public immutable NST;
+
+    /// @dev Current address where user assets are stored
     address public nstReserve;
+
+    /// @dev Current fee splitter address
     FeeSplitter public feeSplitter;
 
-    // part of the bought tokens to be burned
+    /// @dev Part of the bought tokens to be burned (100% = 1000)
     uint256 public burnPercentage;
 
-    /**
-     * @param _NST [address] address for the Nested project token
-     * @param _nstReserve [address] contract where user assets are stored
-     * @param _burnPercentage [uint] burn part 100% = 1000
-     */
     constructor(
         address _NST,
         address _nstReserve,
         address payable _feeSplitter,
         uint256 _burnPercentage
     ) {
+        burnPercentage = _burnPercentage;
         NST = INestedToken(_NST);
         feeSplitter = FeeSplitter(_feeSplitter);
         nstReserve = _nstReserve;
-        setBurnPart(_burnPercentage);
     }
 
-    /**
-     * @dev update the nested reserve address
-     * @param _nstReserve [address] reserve contract address
-     */
+    /// @notice Claim awarded fees from the FeeSplitter contract
+    /// @param _token Token address for the fees
+    function claimFees(IERC20 _token) public {
+        feeSplitter.releaseToken(_token);
+    }
+
+    /// @notice Update the nested reserve address
+    /// @param _nstReserve New reserve contract address
     function setNestedReserve(address _nstReserve) external onlyOwner {
         nstReserve = _nstReserve;
-        emit ReserveChanged(nstReserve);
+        emit ReserveUpdated(nstReserve);
     }
 
-    /**
-     * @dev update the fee splitter address
-     * @param _feeSplitter [address] fee splitter contract address
-     */
+    /// @notice Update the fee splitter address
+    /// @param _feeSplitter The new fee splitter contract address
     function setFeeSplitter(FeeSplitter _feeSplitter) external onlyOwner {
         feeSplitter = _feeSplitter;
-        emit FeeSplitterChanged(feeSplitter);
+        emit FeeSplitterUpdated(feeSplitter);
     }
 
-    /**
-     * @dev update parts deciding what amount is sent to reserve or burned
-     * @param _burnPercentage [uint] burn part
-     */
+    /// @notice Update parts deciding what amount is sent to reserve or burned
+    /// @param _burnPercentage The new burn percentage
     function setBurnPart(uint256 _burnPercentage) public onlyOwner {
-        require(_burnPercentage <= 1000, "NestedBuybacker: BURN_PART_TOO_HIGH");
+        require(_burnPercentage <= 1000, "NestedBuybacker::setBurnPart: Burn part to high");
         burnPercentage = _burnPercentage;
         emit BurnPartUpdated(burnPercentage);
     }
 
-    /**
-     * @dev triggers the purchase of NST sent to reserve and burn
-     * @param _swapCallData call data provided by 0x to fill quotes
-     * @param _swapTarget target contract for the swap (could be Uniswap router for example)
-     * @param _sellToken [address] token to sell in order to buy NST
-     */
+    /// @notice Triggers the purchase of NST sent to reserve and burn
+    /// @param _swapCallData Call data provided by 0x to fill quotes
+    /// @param _swapTarget Target contract for the swap (could be Uniswap router for example)
+    /// @param _sellToken Token to sell in order to buy NST
     function triggerForToken(
         bytes calldata _swapCallData,
         address payable _swapTarget,
         IERC20 _sellToken
     ) external onlyOwner {
-        if (feeSplitter.getAmountDue(address(this), _sellToken) > 0) claimFees(_sellToken);
+        if (feeSplitter.getAmountDue(address(this), _sellToken) > 0) {
+            claimFees(_sellToken);
+        }
 
         uint256 balance = _sellToken.balanceOf(address(this));
         _sellToken.approve(_swapTarget, balance);
@@ -92,9 +102,7 @@ contract NestedBuybacker is Ownable {
         emit BuybackTriggered(_sellToken);
     }
 
-    /**
-     * @dev burns part of the bought NST and send the rest to the reserve
-     */
+    /// @dev burns part of the bought NST and send the rest to the reserve
     function trigger() internal {
         uint256 balance = NST.balanceOf(address(this));
         uint256 toBurn = (balance * burnPercentage) / 1000;
@@ -103,14 +111,8 @@ contract NestedBuybacker is Ownable {
         NST.transfer(nstReserve, toSendToReserve);
     }
 
-    /**
-     * @dev claim awarded fees from the FeeSplitter contract
-     * @param _token [IERC20] token address for the fees
-     */
-    function claimFees(IERC20 _token) public {
-        feeSplitter.releaseToken(_token);
-    }
-
+    /// @dev Burn NST token from the smart contract
+    /// @param _amount The amount to burn
     function _burnNST(uint256 _amount) private {
         NST.burn(_amount);
     }

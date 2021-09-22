@@ -36,8 +36,8 @@ describe.skip("NestedRecords", () => {
         await expect(nestedRecords.store(0, "test", bob.address, 20, ethers.constants.AddressZero)).to.be.revertedWith(
             "NestedRecords: INVALID_RESERVE",
         );
-        await nestedRecords.store(0, bob.address,"test", 20, alice.address);
-        await expect(nestedRecords.store(0,"test", bob.address, 20, bob.address)).to.be.revertedWith(
+        await nestedRecords.store(0, bob.address, "test", 20, alice.address);
+        await expect(nestedRecords.store(0, "test", bob.address, 20, bob.address)).to.be.revertedWith(
             "NestedRecords: RESERVE_MISMATCH",
         );
     });
