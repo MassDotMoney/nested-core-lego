@@ -55,11 +55,7 @@ contract NestedRecords is Ownable {
         NestedStructs.Holding memory holding = records[_nftId].holdings[_token];
         require(!holding.isActive, "NestedRecords: HOLDING_EXISTS");
 
-        records[_nftId].holdings[_token] = NestedStructs.Holding({
-            token: _token,
-            amount: _amount,
-            isActive: true
-        });
+        records[_nftId].holdings[_token] = NestedStructs.Holding({ token: _token, amount: _amount, isActive: true });
         records[_nftId].tokens.push(_token);
         records[_nftId].reserve = _reserve;
     }

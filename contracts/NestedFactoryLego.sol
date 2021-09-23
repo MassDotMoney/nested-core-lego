@@ -171,8 +171,32 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         require(_orders.length > 0, "NestedFactory::sellTokensToNft: Missing orders");
         require(_sellTokensAmount.length == _orders.length, "NestedFactory::sellTokensToNft: Input lengths must match");
 
-        (uint256 feesAmount, IERC20 tokenSold) = _submitOutOrders(_nftId, _buyToken, _sellTokensAmount, _orders, true, true);
-        _transferFeeWithRoyalty(feesAmount, tokenSold, _nftId);
+        (uint256 feesAmount, ) = _submitOutOrders(_nftId, _buyToken, _sellTokensAmount, _orders, true, true);
+        _transferFeeWithRoyalty(feesAmount, _buyToken, _nftId);
+
+        emit NftUpdated(_nftId);
+    }
+
+    /// Liquidate one or more holdings and transfer the sale amount to the user
+    /// @param _nftId The id of the NFT to update
+    /// @param _buyToken The output token
+    /// @param _sellTokensAmount The amount of sell tokens to use
+    /// @param _orders Orders calldata
+    function sellTokensToWallet(
+        uint256 _nftId,
+        IERC20 _buyToken,
+        uint256[] memory _sellTokensAmount,
+        Order[] calldata _orders
+    ) external payable nonReentrant onlyTokenOwner(_nftId) {
+        require(_orders.length > 0, "NestedFactory::sellTokensToWallet: Missing orders");
+        require(
+            _sellTokensAmount.length == _orders.length,
+            "NestedFactory::sellTokensToWallet: Input lengths must match"
+        );
+
+        (uint256 feesAmount, uint256 amountBought) =
+            _submitOutOrders(_nftId, _buyToken, _sellTokensAmount, _orders, true, true);
+        _transferFromFactory(_buyToken, amountBought, _msgSender());
 
         emit NftUpdated(_nftId);
     }
@@ -206,8 +230,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
 
         // If input is from the reserve, update the records
         if (_fromReserve) {
-            NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_inputToken));
-            nestedRecords.updateHoldingAmount(_nftId, address(_inputToken), holding.amount - _inputTokenAmount);
+            _decreaseHoldingAmount(_nftId, address(_inputToken), _inputTokenAmount);
         }
 
         feesAmount = _inputTokenAmount - amountSpent;
@@ -223,7 +246,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
     /// @param _reserved True if the output is store in the reserve/records, false if not.
     /// @param _fromReserve True if the input tokens are from the reserve
     /// @return feesAmount The total amount of fees
-    /// @return tokenBought The ERC20 token bought
+    /// @return amountBought The total amount bought
     function _submitOutOrders(
         uint256 _nftId,
         IERC20 _outputToken,
@@ -231,24 +254,23 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         Order[] calldata _orders,
         bool _reserved,
         bool _fromReserve
-    ) internal returns (uint256 feesAmount, IERC20 tokenBought) {
+    ) internal returns (uint256 feesAmount, uint256 amountBought) {
         uint256 _outputTokenInitialBalance = _outputToken.balanceOf(address(this));
 
         for (uint256 i = 0; i < _orders.length; i++) {
-            IERC20 _inputToken = _transferInputTokens(_nftId, IERC20(_orders[i].token), _inputTokenAmounts[i], _fromReserve);
+            IERC20 _inputToken =
+                _transferInputTokens(_nftId, IERC20(_orders[i].token), _inputTokenAmounts[i], _fromReserve);
 
             // Submit order and update holding of spent token
             uint256 amountSpent = _submitOrder(_inputToken, address(_outputToken), _nftId, _orders[i], _reserved);
 
             if (_fromReserve) {
-                NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_inputToken));
-                nestedRecords.updateHoldingAmount(_nftId, address(_inputToken), holding.amount - amountSpent);
+                _decreaseHoldingAmount(_nftId, address(_inputToken), amountSpent);
             }
         }
-        uint256 amountBought = _outputToken.balanceOf(address(this)) - _outputTokenInitialBalance;
 
+        amountBought = _outputToken.balanceOf(address(this)) - _outputTokenInitialBalance;
         feesAmount = _calculateFees(msg.sender, amountBought);
-        tokenBought = _outputToken;
     }
 
     /// @dev Call the operator to submit the order (commit/revert) and add the output
@@ -305,7 +327,12 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
     /// @param _inputTokenAmount Amount to transfer
     /// @param _fromReserve True to transfer from the reserve
     /// @return tokenUsed Token transfered (in case of ETH)
-    function _transferInputTokens(uint256 _nftId, IERC20 _inputToken, uint256 _inputTokenAmount, bool _fromReserve) internal returns (IERC20 tokenUsed) {
+    function _transferInputTokens(
+        uint256 _nftId,
+        IERC20 _inputToken,
+        uint256 _inputTokenAmount,
+        bool _fromReserve
+    ) internal returns (IERC20 tokenUsed) {
         if (_fromReserve) {
             NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_inputToken));
             require(holding.amount >= _inputTokenAmount, "NestedFactory:_transferInputTokens: Insufficient amount");
@@ -381,5 +408,38 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         }
         uint256 stakedNst = smartChef.userInfo(_account).amount;
         return stakedNst >= vipMinAmount;
+    }
+
+    /// @dev Decrease the amount of a NFT holding
+    /// @param _nftId The NFT id
+    /// @param _inputToken The token holding
+    /// @param _amount The amount to subtract from the actual holding amount
+    function _decreaseHoldingAmount(
+        uint256 _nftId,
+        address _inputToken,
+        uint256 _amount
+    ) internal {
+        NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, _inputToken);
+        nestedRecords.updateHoldingAmount(_nftId, _inputToken, holding.amount - _amount);
+    }
+
+    /// @dev Transfer a token amount from the factory to the recipient.
+    ///      The token is unwrapped if WETH.
+    /// @param _token The token to transfer
+    /// @param _amount The amount to transfer
+    /// @param _dest The address receiving the funds
+    function _transferFromFactory(
+        IERC20 _token,
+        uint256 _amount,
+        address _dest
+    ) private {
+        // if buy token is WETH, unwrap it instead of transferring it to the sender
+        if (address(_token) == address(weth)) {
+            IWETH(weth).withdraw(_amount);
+            (bool success, ) = _dest.call{ value: _amount }("");
+            require(success, "ETH_TRANSFER_ERROR");
+        } else {
+            _token.safeTransfer(_dest, _amount);
+        }
     }
 }
