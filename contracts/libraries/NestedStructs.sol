@@ -5,7 +5,6 @@ pragma solidity 0.8.4;
 library NestedStructs {
     /// @dev Info about assets stored in reserves
     struct Holding {
-        bytes32 operator;
         address token;
         uint256 amount;
         bool isActive;

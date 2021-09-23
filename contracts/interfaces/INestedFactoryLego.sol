@@ -25,7 +25,7 @@ interface INestedFactoryLego {
 
     /// @dev Represent an order made to the factory when creating/editing an NFT
     /// @param operator The bytes32 name of the Operator
-    /// @param outputToken The expected token address in output/input
+    /// @param token The expected token address in output/input
     /// @param callData The operator parameters (delegatecall)
     /// @param commit If the order is a commit (false if it's a revert)
     struct Order {

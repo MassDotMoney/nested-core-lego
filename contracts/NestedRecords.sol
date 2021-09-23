@@ -37,13 +37,11 @@ contract NestedRecords is Ownable {
 
     /// @notice Add a record for NFT data into our mappings
     /// @param _nftId The id of the NFT
-    /// @param _operator The operator used to get the holdings
     /// @param _token The address of the token
     /// @param _amount The amount of tokens bought
     /// @param _reserve The address of the reserve
     function createRecord(
         uint256 _nftId,
-        bytes32 _operator,
         address _token,
         uint256 _amount,
         address _reserve
@@ -58,7 +56,6 @@ contract NestedRecords is Ownable {
         require(!holding.isActive, "NestedRecords: HOLDING_EXISTS");
 
         records[_nftId].holdings[_token] = NestedStructs.Holding({
-            operator: _operator,
             token: _token,
             amount: _amount,
             isActive: true
@@ -92,13 +89,11 @@ contract NestedRecords is Ownable {
 
     /// @notice Helper function that creates a record or add the holding if record already exists
     /// @param _nftId The NFT's identifier
-    /// @param _operator The operator used to get the holdings
     /// @param _token The token/holding address
     /// @param _amount Amount to add for this asset
     /// @param _reserve Reserve address
     function store(
         uint256 _nftId,
-        bytes32 _operator,
         address _token,
         uint256 _amount,
         address _reserve
@@ -109,7 +104,7 @@ contract NestedRecords is Ownable {
             updateHoldingAmount(_nftId, _token, holding.amount + _amount);
             return;
         }
-        createRecord(_nftId, _operator, _token, _amount, _reserve);
+        createRecord(_nftId, _token, _amount, _reserve);
     }
 
     /// @notice Get holding object for this NFT ID

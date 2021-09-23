@@ -214,7 +214,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
                 require(amountBought > 0, "NOTHING_BOUGHT");
                 IERC20(_tokenOrders[i].token).safeTransfer(address(reserve), amountBought);
             }
-            nestedRecords.store(_nftId, bytes32("1"), _tokenOrders[i].token, amountBought, address(reserve));
+            nestedRecords.store(_nftId, _tokenOrders[i].token, amountBought, address(reserve));
         }
     }
 
@@ -396,7 +396,7 @@ contract NestedFactory is ReentrancyGuard, Ownable {
     ) external payable nonReentrant onlyTokenOwner(_nftId) {
         uint256 amountBought = _swapTokensForToken(_nftId, _buyToken, _sellTokensAmount, _swapTarget, _tokenOrders);
 
-        nestedRecords.store(_nftId, bytes32("1"), address(_buyToken), amountBought, address(reserve));
+        nestedRecords.store(_nftId, address(_buyToken), amountBought, address(reserve));
         IERC20(_buyToken).safeTransfer(address(reserve), amountBought);
 
         emit NftUpdated(_nftId);
