@@ -177,7 +177,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         emit NftUpdated(_nftId);
     }
 
-    /// Liquidate one or more holdings and transfer the sale amount to the user
+    /// @notice Liquidate one or more holdings and transfer the sale amount to the user
     /// @param _nftId The id of the NFT to update
     /// @param _buyToken The output token
     /// @param _sellTokensAmount The amount of sell tokens to use
@@ -195,8 +195,33 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         );
 
         (uint256 feesAmount, uint256 amountBought) =
-            _submitOutOrders(_nftId, _buyToken, _sellTokensAmount, _orders, true, true);
-        _transferFromFactory(_buyToken, amountBought, _msgSender());
+            _submitOutOrders(_nftId, _buyToken, _sellTokensAmount, _orders, false, true);
+        _safeTransferAndUnwrap(_buyToken, amountBought, _msgSender());
+
+        emit NftUpdated(_nftId);
+    }
+
+    /// @notice Withdraw a token from the reserve and transfer it to the owner without exchanging it
+    /// @param _nftId NFT token ID
+    /// @param _tokenIndex Index in array of tokens for this NFT and holding.
+    /// @param _token Token address for the holding. Used to make sure previous index param is valid
+    function withdraw(
+        uint256 _nftId,
+        uint256 _tokenIndex,
+        IERC20 _token
+    ) external nonReentrant onlyTokenOwner(_nftId) {
+        uint256 assetTokensLength = nestedRecords.getAssetTokensLength(_nftId);
+        require(
+            assetTokensLength > _tokenIndex && nestedRecords.getAssetTokens(_nftId)[_tokenIndex] == address(_token),
+            "NestedFactory::withdraw: Invalid token index"
+        );
+        // Use destroy instead if NFT has a single holding
+        require(assetTokensLength > 1, "NestedFactory::withdraw: Can't withdraw the last asset");
+
+        NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_token));
+        reserve.withdraw(IERC20(holding.token), holding.amount);
+        _safeTransferWithFees(IERC20(holding.token), holding.amount, _msgSender());
+        nestedRecords.deleteAsset(_nftId, _tokenIndex);
 
         emit NftUpdated(_nftId);
     }
@@ -428,7 +453,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
     /// @param _token The token to transfer
     /// @param _amount The amount to transfer
     /// @param _dest The address receiving the funds
-    function _transferFromFactory(
+    function _safeTransferAndUnwrap(
         IERC20 _token,
         uint256 _amount,
         address _dest
@@ -441,5 +466,19 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         } else {
             _token.safeTransfer(_dest, _amount);
         }
+    }
+
+    /// @dev Transfer from factory and collect fees (without royalties)
+    /// @param _token The token to transfer
+    /// @param _amount The amount (with fees) to transfer
+    /// @param _dest The address receiving the funds
+    function _safeTransferWithFees(
+        IERC20 _token,
+        uint256 _amount,
+        address _dest
+    ) private {
+        uint256 feeAmount = _calculateFees(_dest, _amount);
+        _transferFee(feeAmount, _token);
+        _token.safeTransfer(_dest, _amount - feeAmount);
     }
 }
