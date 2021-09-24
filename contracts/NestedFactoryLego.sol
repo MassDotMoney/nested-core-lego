@@ -21,8 +21,14 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
     using SafeERC20 for IERC20;
     address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
+    /// @dev Amount of the fee discount (for VIP users)
     uint256 public vipDiscount;
+
+    /// @dev Minimum of Nested Token staked to be a VIP user
     uint256 public vipMinAmount;
+
+    /// @dev Supported operators by the factory contract
+    bytes32[] private operators;
 
     /// @dev Yield farming contract
     MinimalSmartChef public smartChef;
@@ -36,8 +42,6 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
     NestedAsset public immutable nestedAsset;
     IWETH public immutable weth;
     NestedRecords public immutable nestedRecords;
-
-    bytes32[] private operators;
 
     constructor(
         NestedAsset _nestedAsset,
@@ -295,7 +299,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         Order[] calldata _orders,
         bool _reserved,
         bool _fromReserve
-    ) internal returns (uint256 feesAmount, IERC20 tokenSold) {
+    ) private returns (uint256 feesAmount, IERC20 tokenSold) {
         _inputToken = _transferInputTokens(_nftId, _inputToken, _inputTokenAmount, _fromReserve);
 
         uint256 amountSpent;
@@ -331,7 +335,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         Order[] calldata _orders,
         bool _reserved,
         bool _fromReserve
-    ) internal returns (uint256 feesAmount, uint256 amountBought) {
+    ) private returns (uint256 feesAmount, uint256 amountBought) {
         uint256 _outputTokenInitialBalance = _outputToken.balanceOf(address(this));
 
         for (uint256 i = 0; i < _orders.length; i++) {
@@ -363,7 +367,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         uint256 _nftId,
         Order calldata _order,
         bool _reserved
-    ) internal returns (uint256 amountSpent) {
+    ) private returns (uint256 amountSpent) {
         address operator = requireAndGetAddress(_order.operator);
         uint256 balanceBeforePurchase = _inputToken.balanceOf(address(this));
 
@@ -409,7 +413,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         IERC20 _inputToken,
         uint256 _inputTokenAmount,
         bool _fromReserve
-    ) internal returns (IERC20 tokenUsed) {
+    ) private returns (IERC20 tokenUsed) {
         if (_fromReserve) {
             NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_inputToken));
             require(holding.amount >= _inputTokenAmount, "NestedFactory:_transferInputTokens: Insufficient amount");
@@ -434,7 +438,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         uint256 _amount,
         IERC20 _token,
         uint256 _nftId
-    ) internal {
+    ) private {
         address originalOwner = nestedAsset.originalOwner(_nftId);
         ExchangeHelpers.setMaxAllowance(_token, address(feeSplitter));
         if (originalOwner != address(0)) {
@@ -447,7 +451,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
     /// @dev Send a fee to the FeeSplitter
     /// @param _amount Amount to send
     /// @param _token Token to send
-    function _transferFee(uint256 _amount, IERC20 _token) internal {
+    function _transferFee(uint256 _amount, IERC20 _token) private {
         ExchangeHelpers.setMaxAllowance(_token, address(feeSplitter));
         feeSplitter.sendFees(_token, _amount);
     }
@@ -456,7 +460,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
     /// @param _user The user address
     /// @param _amount The amount
     /// @return The fees amount
-    function _calculateFees(address _user, uint256 _amount) internal view returns (uint256) {
+    function _calculateFees(address _user, uint256 _amount) private view returns (uint256) {
         uint256 baseFee = _amount / 100;
         uint256 feeWithDiscount = baseFee - _calculateDiscount(_user, baseFee);
         return feeWithDiscount;
@@ -466,7 +470,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
     /// @param _user User to check the VIP status of
     /// @param _amount Amount to calculate the discount on
     /// @return The discount amount
-    function _calculateDiscount(address _user, uint256 _amount) internal view returns (uint256) {
+    function _calculateDiscount(address _user, uint256 _amount) private view returns (uint256) {
         // give a discount to VIP users
         if (_isVIP(_user)) {
             return (_amount * vipDiscount) / 1000;
@@ -479,7 +483,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
     /// User needs to have at least vipMinAmount of NST staked
     /// @param _account User address
     /// @return Boolean indicating if user is VIP
-    function _isVIP(address _account) internal view returns (bool) {
+    function _isVIP(address _account) private view returns (bool) {
         if (address(smartChef) == address(0)) {
             return false;
         }
@@ -495,7 +499,7 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         uint256 _nftId,
         address _inputToken,
         uint256 _amount
-    ) internal {
+    ) private {
         NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, _inputToken);
         nestedRecords.updateHoldingAmount(_nftId, _inputToken, holding.amount - _amount);
     }
