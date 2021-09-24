@@ -150,6 +150,10 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
         Order[] calldata _orders
     ) external payable nonReentrant onlyTokenOwner(_nftId) {
         require(_orders.length > 0, "NestedFactory::swapTokenForTokens: Missing orders");
+        require(
+            nestedRecords.getAssetReserve(_nftId) == address(reserve),
+            "NestedFactory::swapTokenForTokens: Assets in different reserve"
+        );
 
         (uint256 fees, IERC20 tokenSold) = _submitInOrders(_nftId, _sellToken, _sellTokenAmount, _orders, true, true);
         _transferFee(fees, tokenSold);
@@ -170,6 +174,10 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
     ) external payable nonReentrant onlyTokenOwner(_nftId) {
         require(_orders.length > 0, "NestedFactory::sellTokensToNft: Missing orders");
         require(_sellTokensAmount.length == _orders.length, "NestedFactory::sellTokensToNft: Input lengths must match");
+        require(
+            nestedRecords.getAssetReserve(_nftId) == address(reserve),
+            "NestedFactory::sellTokensToNft: Assets in different reserve"
+        );
 
         (uint256 feesAmount, ) = _submitOutOrders(_nftId, _buyToken, _sellTokensAmount, _orders, true, true);
         _transferFeeWithRoyalty(feesAmount, _buyToken, _nftId);
@@ -196,9 +204,52 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
 
         (uint256 feesAmount, uint256 amountBought) =
             _submitOutOrders(_nftId, _buyToken, _sellTokensAmount, _orders, false, true);
-        _safeTransferAndUnwrap(_buyToken, amountBought, _msgSender());
+        _safeTransferAndUnwrap(_buyToken, amountBought, msg.sender);
 
         emit NftUpdated(_nftId);
+    }
+
+    /// @notice Burn NFT and Sell all tokens for a specific ERC20 then send it back to the user
+    /// @dev Will unwrap WETH output to ETH
+    /// @param _nftId The id of the NFT to destroy
+    /// @param _buyToken The output token
+    /// @param _orders Orders calldata
+    function destroy(
+        uint256 _nftId,
+        IERC20 _buyToken,
+        Order[] calldata _orders
+    ) external onlyTokenOwner(_nftId) {
+        address[] memory tokens = nestedRecords.getAssetTokens(_nftId);
+        require(_orders.length > 0, "NestedFactory::sellTokensToWallet: Missing orders");
+        require(tokens.length == _orders.length, "NestedFactory::sellTokensToWallet: Missing sell args");
+        require(
+            nestedRecords.getAssetReserve(_nftId) == address(reserve),
+            "NestedFactory::sellTokensToWallet: Assets in different reserve"
+        );
+
+        uint256 buyTokenInitialBalance = _buyToken.balanceOf(address(this));
+
+        for (uint256 i = 0; i < tokens.length; i++) {
+            NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
+            reserve.withdraw(IERC20(holding.token), holding.amount);
+
+            _submitOrder(IERC20(tokens[i]), address(_buyToken), _nftId, _orders[i], false);
+
+            nestedRecords.freeHolding(_nftId, tokens[i]);
+        }
+
+        // Amount calculation to send fees and tokens
+        uint256 amountBought = _buyToken.balanceOf(address(this)) - buyTokenInitialBalance;
+        uint256 amountFees = _calculateFees(msg.sender, amountBought);
+        amountBought = amountBought - amountFees;
+
+        _transferFeeWithRoyalty(amountFees, _buyToken, _nftId);
+        _safeTransferAndUnwrap(_buyToken, amountBought, msg.sender);
+
+        // Burn NFT
+        nestedRecords.removeNFT(_nftId);
+        nestedAsset.burn(msg.sender, _nftId);
+        emit NftBurned(_nftId);
     }
 
     /// @notice Withdraw a token from the reserve and transfer it to the owner without exchanging it
@@ -220,7 +271,8 @@ contract NestedFactoryLego is INestedFactoryLego, ReentrancyGuard, Ownable, Mixi
 
         NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_token));
         reserve.withdraw(IERC20(holding.token), holding.amount);
-        _safeTransferWithFees(IERC20(holding.token), holding.amount, _msgSender());
+        _safeTransferWithFees(IERC20(holding.token), holding.amount, msg.sender);
+
         nestedRecords.deleteAsset(_nftId, _tokenIndex);
 
         emit NftUpdated(_nftId);

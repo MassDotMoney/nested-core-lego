@@ -3,7 +3,7 @@ pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-/// @notice NestedFactory interface
+/// @title NestedFactory interface
 interface INestedFactoryLego {
     /// @dev Emitted when the smartChef address is updated
     /// @param nextSmartChef The new smartChef address
@@ -22,6 +22,10 @@ interface INestedFactoryLego {
     /// @dev Emitted when a NFT (portfolio) is updated
     /// @param nftId The NFT token Id
     event NftUpdated(uint256 indexed nftId);
+
+    /// @dev Emitted when a NFT (portfolio) is burned
+    /// @param nftId The burned NFT token iI
+    event NftBurned(uint256 indexed nftId);
 
     /// @dev Represent an order made to the factory when creating/editing an NFT
     /// @param operator The bytes32 name of the Operator
