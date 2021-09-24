@@ -3,6 +3,7 @@ pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../NestedReserve.sol";
+import "../FeeSplitter.sol";
 
 /// @title NestedFactory interface
 interface INestedFactory {
@@ -51,6 +52,10 @@ interface INestedFactory {
     /// @notice Sets the reserve where the funds are stored
     /// @param _reserve the address of the new reserve
     function setReserve(NestedReserve _reserve) external;
+
+    /// @notice Sets the address receiving the fees
+    /// @param _feeSplitter The address of the receiver
+    function setFeeSplitter(FeeSplitter _feeSplitter) external;
 
     /// @notice Update the VIP discount and min staked amount to be a VIP
     /// @param _vipDiscount The fee discount to apply to a VIP user

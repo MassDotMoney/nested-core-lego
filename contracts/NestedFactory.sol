@@ -46,6 +46,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     constructor(
         NestedAsset _nestedAsset,
         NestedRecords _nestedRecords,
+        FeeSplitter _feeSplitter,
         IWETH _weth,
         address _operatorResolver,
         uint256 _vipDiscount,
@@ -53,6 +54,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     ) MixinOperatorResolver(_operatorResolver) {
         nestedAsset = _nestedAsset;
         nestedRecords = _nestedRecords;
+        feeSplitter = _feeSplitter;
         weth = _weth;
         vipDiscount = _vipDiscount;
         vipMinAmount = _vipMinAmount;
@@ -89,6 +91,12 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     function setReserve(NestedReserve _reserve) external override onlyOwner {
         require(address(reserve) == address(0), "NestedFactory::setReserve: Reserve is immutable");
         reserve = _reserve;
+    }
+
+    /// @inheritdoc INestedFactory
+    function setFeeSplitter(FeeSplitter _feeSplitter) external override onlyOwner {
+        require(address(_feeSplitter) != address(0), "NestedFactory::setFeeSplitter: Invalid feeSplitter address");
+        feeSplitter = _feeSplitter;
     }
 
     /// @inheritdoc INestedFactory

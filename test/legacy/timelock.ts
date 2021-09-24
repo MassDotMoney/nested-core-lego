@@ -35,7 +35,7 @@ describe.skip("TimelockController", () => {
         await expect(nestedAsset.setFactory(addresses.feeSplitter)).to.be.revertedWith(
             "Ownable: caller is not the owner",
         );
-        await expect(nestedFactory.setFeeTo(addresses.uniswapRouter)).to.be.revertedWith(
+        await expect(nestedFactory.setReserve(addresses.uniswapRouter)).to.be.revertedWith(
             "Ownable: caller is not the owner",
         );
         await expect(feeSplitter.setRoyaltiesWeight(2)).to.be.revertedWith("Ownable: caller is not the owner");
@@ -43,7 +43,19 @@ describe.skip("TimelockController", () => {
 
     it("schedules and executes a transaction to set a new factory", async () => {
         const [alice] = await ethers.getSigners();
-        const timelock = await getContract("TimelockController", addresses.timelock);
+
+        const TimelockControllerBytecode = require("@openzeppelin/contracts/build/contracts/TimelockController.json")
+            .bytecode;
+        const TimelockControllerFactory = await ethers.getContractFactory(
+            [
+                "function schedule(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt, uint256 delay) public",
+                "function execute(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt) public payable",
+            ],
+            TimelockControllerBytecode,
+        );
+
+        const timelock = TimelockControllerFactory.attach(addresses.timelock);
+
         const records = await getContract("NestedRecords", addresses.nestedRecords);
 
         const abi = ["function setFactory(address)"];

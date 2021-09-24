@@ -70,10 +70,18 @@ export async function main(timelockMinDelay: number, saveAddresses = false) {
 }
 
 const configureTimelock = async (addr: any, dev: string, timelockMinDelay: number) => {
-    const TimelockFactory = await ethers.getContractFactory("TimelockController");
+    const TimelockControllerBytecode = require("@openzeppelin/contracts/build/contracts/TimelockController.json").bytecode;
+    const TimelockControllerFactory = await ethers.getContractFactory(
+        [
+            "constructor(uint256 minDelay, address[] memory proposers, address[] memory executors)",
+            "function schedule(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt, uint256 delay) public",
+            "function execute(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt) public payable",
+        ],
+        TimelockControllerBytecode
+    );
 
     // add dev team multisig wallet here
-    const timelock = await TimelockFactory.deploy(timelockMinDelay, [dev], [dev]);
+    const timelock = await TimelockControllerFactory.deploy(timelockMinDelay, [dev], [dev]);
     addr.timelock = timelock.address;
     return timelock.address;
 };
