@@ -4,7 +4,7 @@ pragma solidity 0.8.4;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title NestedFactory interface
-interface INestedFactoryLego {
+interface INestedFactory {
     /// @dev Emitted when the smartChef address is updated
     /// @param nextSmartChef The new smartChef address
     event SmartChefUpdated(address nextSmartChef);

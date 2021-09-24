@@ -1,666 +1,540 @@
-//SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-import "./libraries/NestedStructs.sol";
-import "./NestedAsset.sol";
-import "./NestedReserve.sol";
-import "./NestedRecords.sol";
-import "./interfaces/IWETH.sol";
-import "./FeeSplitter.sol";
+import "./interfaces/INestedFactory.sol";
+import "./interfaces/IOperatorSelector.sol";
 import "./libraries/ExchangeHelpers.sol";
+import "./NestedAsset.sol";
+import "./interfaces/IWETH.sol";
+import "./MixinOperatorResolver.sol";
+import "./NestedReserve.sol";
+import "./interfaces/MinimalSmartChef.sol";
+import "./NestedRecords.sol";
+import "./FeeSplitter.sol";
 
-/**
- * @title Creates, updates and destroys NestedAssets.
- * It is responsible for the business logic of the protocol and interaction with other contracts.
- */
-contract NestedFactory is ReentrancyGuard, Ownable {
+/// @title Creates, updates and destroys NestedAssets.
+/// @notice Responsible for the business logic of the protocol and interaction with operators
+contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperatorResolver {
     using SafeERC20 for IERC20;
-    event NftCreated(uint256 indexed nftId, uint256 originalNftId);
-    event NftBurned(uint256 indexed nftId);
-    event FailsafeWithdraw(uint256 indexed nftId, address indexed token);
-    event ReserveRegistered(address indexed reserve);
-    event VipDiscountChanged(uint256 vipDiscount, uint256 vipMinAmount);
-    event SmartChefChanged(address nextSmartChef);
+    address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    event NftUpdated(uint256 indexed nftId);
-
-    IWETH public immutable weth;
+    /// @dev Amount of the fee discount (for VIP users)
     uint256 public vipDiscount;
+
+    /// @dev Minimum of Nested Token staked to be a VIP user
     uint256 public vipMinAmount;
+
+    /// @dev Supported operators by the factory contract
+    bytes32[] private operators;
+
+    /// @dev Yield farming contract
     MinimalSmartChef public smartChef;
 
-    FeeSplitter public feeTo;
+    /// @dev Current feeSplitter contract/address
+    FeeSplitter public feeSplitter;
+
+    /// @dev Current reserve contract/address
     NestedReserve public reserve;
+
     NestedAsset public immutable nestedAsset;
+    IWETH public immutable weth;
     NestedRecords public immutable nestedRecords;
 
-    mapping(address => bool) public supportedReserves;
-
-    /*
-    Reverts if the address does not exist
-    @param _address [address]
-    */
-    modifier addressExists(address _address) {
-        require(_address != address(0), "INVALID_ADDRESS");
-        _;
-    }
-
-    /*
-    Reverts if the address is not a reserve
-    @param _reserve [address]
-    */
-    modifier isNestedReserve(address _reserve) {
-        require(supportedReserves[_reserve], "NOT_A_RESERVE");
-        _;
-    }
-
-    /*
-    @param _asset [NestedReserve]
-    @param _feeTo [FeeSplitter] the address or contract that receives fees
-    @param _weth [IWETH] The wrapped ether contract
-    @param _vipDiscount [uint256] discount percentage for VIP users (times 1000)
-    @param _vipMinAmount [uint256] minimum staked amount for users to unlock VIP tier
-    */
     constructor(
-        NestedAsset _asset,
-        NestedRecords _records,
-        FeeSplitter _feeTo,
+        NestedAsset _nestedAsset,
+        NestedRecords _nestedRecords,
         IWETH _weth,
+        address _operatorResolver,
         uint256 _vipDiscount,
         uint256 _vipMinAmount
-    ) {
-        feeTo = _feeTo;
+    ) MixinOperatorResolver(_operatorResolver) {
+        nestedAsset = _nestedAsset;
+        nestedRecords = _nestedRecords;
         weth = _weth;
-        nestedAsset = _asset;
-        nestedRecords = _records;
         vipDiscount = _vipDiscount;
         vipMinAmount = _vipMinAmount;
     }
 
-    /*
-    Reverts the transaction if the caller is not the token owner
-    @param _nftId uint256 the NFT Id
-    */
+    /// @dev Reverts the transaction if the caller is not the token owner
+    /// @param _nftId uint256 the NFT Id
     modifier onlyTokenOwner(uint256 _nftId) {
-        require(nestedAsset.ownerOf(_nftId) == msg.sender, "NOT_TOKEN_OWNER");
+        require(nestedAsset.ownerOf(_nftId) == msg.sender, "NestedFactory: Not the token owner");
         _;
     }
 
-    /*
-    Receive function
-    */
+    /// @dev Receive function
     receive() external payable {}
 
-    /**
-    @dev Adds a reserve to the supported reserves mapping
-    @param _reserve [address] the address for the reserve to register
-    */
-    function registerReserve(address _reserve) external onlyOwner {
-        supportedReserves[_reserve] = true;
-        emit ReserveRegistered(_reserve);
+    /// @notice Get the required operator addresses
+    function resolverAddressesRequired() public view override returns (bytes32[] memory addresses) {
+        return operators;
     }
 
-    /*
-   Sets the address receiving the fees
-   @param _feeTo The address of the receiver
-   */
-    function setFeeTo(FeeSplitter _feeTo) external addressExists(address(_feeTo)) onlyOwner {
-        feeTo = _feeTo;
+    /// @notice Add an operator (name) for building cache
+    /// @param operator The operator name to add
+    function addOperator(bytes32 operator) external onlyOwner {
+        operators.push(operator);
     }
 
-    /*
-    Sets the reserve where the funds are stored
-    @param _reserve the address of the new reserve
-    */
-    function setReserve(NestedReserve _reserve) external onlyOwner addressExists(address(_reserve)) {
-        require(address(reserve) == address(0), "RESERVE_IMMUTABLE");
+    /// @notice Update the SmartChef contract address
+    /// @param _smartChef New SmartChef address
+    function updateSmartChef(address _smartChef) external onlyOwner {
+        require(_smartChef != address(0), "NestedFactory::updateSmartChef: Invalid smartchef address");
+        smartChef = MinimalSmartChef(_smartChef);
+        emit SmartChefUpdated(_smartChef);
+    }
+
+    /// @notice Sets the reserve where the funds are stored
+    /// @param _reserve the address of the new reserve
+    function setReserve(NestedReserve _reserve) external onlyOwner {
+        require(address(reserve) == address(0), "NestedFactory::setReserve: Reserve is immutable");
         reserve = _reserve;
     }
 
-    /**
-     * @dev set the VIP discount and min staked amount to be a VIP
-     * @param _vipDiscount [uint256] the fee discount to apply to a VIP user
-     * @param _vipMinAmount [uint256] min amount that needs to be staked to be a VIP
-     */
-    function setVipDiscount(uint256 _vipDiscount, uint256 _vipMinAmount) external onlyOwner {
-        require(_vipDiscount < 1000, "DISCOUNT_TOO_HIGH");
+    /// @notice Update the VIP discount and min staked amount to be a VIP
+    /// @param _vipDiscount [uint256] the fee discount to apply to a VIP user
+    /// @param _vipMinAmount [uint256] min amount that needs to be staked to be a VIP
+    function updateVipDiscount(uint256 _vipDiscount, uint256 _vipMinAmount) external onlyOwner {
+        require(_vipDiscount < 1000, "NestedFactory::updateVipDiscount: Discount too high");
         (vipDiscount, vipMinAmount) = (_vipDiscount, _vipMinAmount);
-        emit VipDiscountChanged(vipDiscount, vipMinAmount);
+        emit VipDiscountUpdated(vipDiscount, vipMinAmount);
     }
 
-    /**
-     * @dev set the SmartChef contract address
-     * @param _nextSmartChef [address] new SmartChef address
-     */
-    function setSmartChef(address _nextSmartChef) external onlyOwner {
-        require(_nextSmartChef != address(0), "INVALID_SMARTCHEF_ADDRESS");
-        smartChef = MinimalSmartChef(_nextSmartChef);
-        emit SmartChefChanged(_nextSmartChef);
-    }
-
-    /*
-    Returns the list of NestedAsset ids owned by an address
-    @params account [address] address
-    @return [<uint256>]
-    */
-    function tokensOf(address _address) public view virtual returns (uint256[] memory) {
-        uint256 tokensCount = nestedAsset.balanceOf(_address);
-        uint256[] memory tokenIds = new uint256[](tokensCount);
-
-        for (uint256 i = 0; i < tokensCount; i++) {
-            tokenIds[i] = nestedAsset.tokenOfOwnerByIndex(_address, i);
-        }
-        return tokenIds;
-    }
-
-    /*
-    Returns the holdings associated to a NestedAsset
-    @params _nftId [uint256] the id of the NestedAsset
-    @return [<Holding>]
-    */
-    function tokenHoldings(uint256 _nftId) public view virtual returns (NestedStructs.Holding[] memory) {
-        address[] memory tokens = nestedRecords.getAssetTokens(_nftId);
-        uint256 tokensCount = tokens.length;
-        NestedStructs.Holding[] memory holdings = new NestedStructs.Holding[](tokensCount);
-
-        for (uint256 i = 0; i < tokensCount; i++) {
-            NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
-            holdings[i] = holding;
-        }
-        return holdings;
-    }
-
-    /*
-    Purchase tokens and store them in a reserve for the user.
-    @param _nftId [uint] the id of the Nested NFT
-    @param _sellToken [IERC20] token used to make swaps
-    @param _swapTarget [address] the address of the contract that will swap tokens
-    @param _tokenOrders [<TokenOrder>] orders for token swaps
-    @param _maxAllowance [<uint256>] maximum allowance needed to perform a swap
-    */
-    function exchangeAndStoreTokens(
-        uint256 _nftId,
-        IERC20 _sellToken,
-        address payable _swapTarget,
-        NestedStructs.TokenOrder[] calldata _tokenOrders
-    ) internal {
-        uint256 buyCount = _tokenOrders.length;
-
-        for (uint256 i = 0; i < buyCount; i++) {
-            uint256 amountBought = 0;
-            uint256 balanceBeforePurchase = IERC20(_tokenOrders[i].token).balanceOf(address(this));
-
-            /* If token being exchanged is the sell token, the callData sent by the caller
-             ** will be used on the reserve to call the transferFromFactory, taking the funds
-             ** directly instead of swapping
-             */
-            if (_tokenOrders[i].token == address(_sellToken)) {
-                ExchangeHelpers.setMaxAllowance(_sellToken, address(reserve));
-                (bool success, ) = address(reserve).call(_tokenOrders[i].callData);
-                require(success, "RESERVE_CALL_FAILED");
-
-                amountBought = balanceBeforePurchase - IERC20(_tokenOrders[i].token).balanceOf(address(this));
-                require(amountBought > 0, "NOTHING_DEPOSITED");
-            } else {
-                require(_swapTargetValid(_swapTarget), "INVALID_SWAP_TARGET");
-
-                bool success = ExchangeHelpers.fillQuote(_sellToken, _swapTarget, _tokenOrders[i].callData);
-                require(success, "SWAP_CALL_FAILED");
-                amountBought = IERC20(_tokenOrders[i].token).balanceOf(address(this)) - balanceBeforePurchase;
-                require(amountBought > 0, "NOTHING_BOUGHT");
-                IERC20(_tokenOrders[i].token).safeTransfer(address(reserve), amountBought);
-            }
-            nestedRecords.store(_nftId, _tokenOrders[i].token, amountBought, address(reserve));
-        }
-    }
-
-    /*
-    Purchase tokens and store them in a reserve for the user.
-    @param _originalTokenId [uint] the id of the NFT replicated, 0 if not replicating
-    @param _sellToken [IERC20] token used to make swaps
-    @param _sellTokenAmount [uint] amount of sell tokens to exchange
-    @param _swapTarget [address] the address of the contract that will swap tokens
-    @param _tokenOrders [<TokenOrder>] orders for token swaps
-    */
+    /// @notice Create a portfolio and store the underlying assets from the positions
+    /// @param _originalTokenId The id of the NFT replicated, 0 if not replicating
+    /// @param _sellToken Token used to make the orders
+    /// @param _sellTokenAmount Amount of sell tokens to use
+    /// @param _orders Orders calldata
     function create(
         uint256 _originalTokenId,
         IERC20 _sellToken,
         uint256 _sellTokenAmount,
-        address payable _swapTarget,
-        NestedStructs.TokenOrder[] calldata _tokenOrders
+        Order[] calldata _orders
     ) external payable nonReentrant {
-        uint256 nftId = nestedAsset.mint(msg.sender, _originalTokenId);
-        uint256 fees = _addTokens(nftId, _sellToken, _sellTokenAmount, _swapTarget, _tokenOrders);
+        require(_orders.length > 0, "NestedFactory::create: Missing orders");
 
-        if (address(_sellToken) == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
-            _sellToken = IERC20(address(weth));
-        }
-        transferFeeWithRoyalty(fees, _sellToken, nftId);
+        uint256 nftId = nestedAsset.mint(msg.sender, _originalTokenId);
+        (uint256 fees, IERC20 tokenSold) = _submitInOrders(nftId, _sellToken, _sellTokenAmount, _orders, true, false);
+
+        _transferFeeWithRoyalty(fees, tokenSold, nftId);
         emit NftCreated(nftId, _originalTokenId);
     }
 
-    /*
-    Purchase more tokens and update NFT.
-    @param _nftId [uint] the id of the NFT to update
-    @param _sellToken [IERC20] token used to make swaps
-    @param _sellTokenAmount [uint] amount of sell tokens to exchange
-    @param _swapTarget [address] the address of the contract that will swap tokens
-    @param _tokenOrders [<TokenOrder>] orders for token swaps
-    */
+    /// @notice Add or increase one position (or more) and update the NFT
+    /// @param _nftId The id of the NFT to update
+    /// @param _sellToken Token used to make the orders
+    /// @param _sellTokenAmount Amount of sell tokens to use
+    /// @param _orders Orders calldata
     function addTokens(
         uint256 _nftId,
         IERC20 _sellToken,
         uint256 _sellTokenAmount,
-        address payable _swapTarget,
-        NestedStructs.TokenOrder[] calldata _tokenOrders
+        Order[] calldata _orders
     ) external payable nonReentrant onlyTokenOwner(_nftId) {
-        uint256 fees = _addTokens(_nftId, _sellToken, _sellTokenAmount, _swapTarget, _tokenOrders);
+        require(_orders.length > 0, "NestedFactory::addTokens: Missing orders");
 
-        if (address(_sellToken) == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
-            _sellToken = IERC20(address(weth));
-        }
-        transferFee(fees, _sellToken);
+        (uint256 fees, IERC20 tokenSold) = _submitInOrders(_nftId, _sellToken, _sellTokenAmount, _orders, true, false);
+        _transferFee(fees, tokenSold);
         emit NftUpdated(_nftId);
     }
 
-    function _addTokens(
-        uint256 _nftId,
-        IERC20 _sellToken,
-        uint256 _sellTokenAmount,
-        address payable _swapTarget,
-        NestedStructs.TokenOrder[] calldata _tokenOrders
-    ) internal returns (uint256) {
-        require(_tokenOrders.length > 0, "BUY_ARG_MISSING");
-
-        uint256 fees = _calculateFees(msg.sender, _sellTokenAmount);
-        uint256 sellAmountWithFees = _sellTokenAmount + fees;
-
-        // pays with ETH
-        if (address(_sellToken) == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
-            require(msg.value >= sellAmountWithFees, "INSUFFICIENT_AMOUNT_IN");
-            weth.deposit{ value: msg.value }();
-            _sellToken = IERC20(address(weth));
-        } else {
-            // pays with an ERC20
-            _sellToken.safeTransferFrom(msg.sender, address(this), sellAmountWithFees);
-        }
-
-        uint256 balanceBeforePurchase = _sellToken.balanceOf(address(this));
-        exchangeAndStoreTokens(_nftId, _sellToken, _swapTarget, _tokenOrders);
-        uint256 amountSpent = balanceBeforePurchase - _sellToken.balanceOf(address(this));
-        require(amountSpent <= _sellTokenAmount, "OVERSPENT_ERROR");
-
-        return _sellTokenAmount - amountSpent + fees;
-    }
-
-    /*
-    Swap an existing token from the NFT for one or more tokens.
-    @param _nftId [uint] the id of the NFT to update
-    @param _sellToken [IERC20] token used to make swaps
-    @param _sellTokenAmount [uint] amount of sell tokens to exchange
-    @param _swapTarget [address] the address of the contract that will swap tokens
-    @param _tokenOrders [<TokenOrder>] orders for token swaps
-    */
+    /// @notice Use the output token of an existing position from
+    /// the NFT for one or more positions.
+    /// @param _nftId The id of the NFT to update
+    /// @param _sellToken Token used to make the orders
+    /// @param _sellTokenAmount Amount of sell tokens to use
+    /// @param _orders Orders calldata
     function swapTokenForTokens(
         uint256 _nftId,
         IERC20 _sellToken,
         uint256 _sellTokenAmount,
-        address payable _swapTarget,
-        NestedStructs.TokenOrder[] calldata _tokenOrders
+        Order[] calldata _orders
     ) external payable nonReentrant onlyTokenOwner(_nftId) {
-        require(_tokenOrders.length > 0, "BUY_ARG_MISSING");
+        require(_orders.length > 0, "NestedFactory::swapTokenForTokens: Missing orders");
+        require(
+            nestedRecords.getAssetReserve(_nftId) == address(reserve),
+            "NestedFactory::swapTokenForTokens: Assets in different reserve"
+        );
 
-        // check if sell token exist in nft and amount is enough
-        NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_sellToken));
-        require(holding.amount >= _sellTokenAmount, "INSUFFICIENT_AMOUNT");
+        (uint256 fees, IERC20 tokenSold) = _submitInOrders(_nftId, _sellToken, _sellTokenAmount, _orders, true, true);
+        _transferFee(fees, tokenSold);
 
-        // transfer from reserve to factory
-        NestedReserve(reserve).transfer(address(this), IERC20(holding.token), _sellTokenAmount);
-
-        uint256 fees = _calculateFees(msg.sender, _sellTokenAmount);
-        uint256 balanceBeforePurchase = _sellToken.balanceOf(address(this));
-        exchangeAndStoreTokens(_nftId, _sellToken, _swapTarget, _tokenOrders);
-        uint256 amountSpent = balanceBeforePurchase - _sellToken.balanceOf(address(this));
-        require(amountSpent <= _sellTokenAmount - fees, "OVERSPENT_ERROR");
-
-        _updateHolding(_nftId, address(_sellToken), holding.amount - _sellTokenAmount);
-        transferFee(_sellTokenAmount - amountSpent, _sellToken);
         emit NftUpdated(_nftId);
     }
 
-    /**
-    Swap one or more existing tokens from the NFT for one token.
-    @param _nftId [uint] the id of the NFT to update
-    @param _buyToken [address] the output token
-    @param _sellTokensAmount [<uint>] amount of sell tokens to exchange
-    @param _swapTarget [address] the address of the contract that will swap tokens
-    @param _tokenOrders [<TokenOrder>] orders for token swaps
-    @return [uint256] amount bought during the swaps
-    */
-    function _swapTokensForToken(
-        uint256 _nftId,
-        IERC20 _buyToken,
-        uint256[] memory _sellTokensAmount,
-        address payable _swapTarget,
-        NestedStructs.TokenOrder[] calldata _tokenOrders
-    ) internal returns (uint256) {
-        require(_tokenOrders.length > 0, "BUY_ARG_MISSING");
-        require(_tokenOrders.length == _sellTokensAmount.length, "SELL_AMOUNT_MISSING");
-
-        uint256 buyTokenInitialBalance = _buyToken.balanceOf(address(this));
-
-        for (uint256 i = 0; i < _tokenOrders.length; i++) {
-            // check if sell token exists in nft and amount is enough
-            NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, _tokenOrders[i].token);
-            require(holding.amount >= _sellTokensAmount[i], "INSUFFICIENT_AMOUNT");
-
-            // transfer from reserve to factory
-            reserve.withdraw(IERC20(holding.token), _sellTokensAmount[i]);
-
-            if (_tokenOrders[i].token != address(_buyToken)) {
-                require(_swapTargetValid(_swapTarget), "INVALID_SWAP_TARGET");
-                IERC20 sellToken = IERC20(_tokenOrders[i].token);
-                bool success = ExchangeHelpers.fillQuote(sellToken, _swapTarget, _tokenOrders[i].callData);
-                require(success, "SWAP_CALL_FAILED");
-            }
-
-            uint256 nextAmount = holding.amount - _sellTokensAmount[i];
-            _updateHolding(_nftId, _tokenOrders[i].token, nextAmount);
-        }
-
-        uint256 amountBought = _buyToken.balanceOf(address(this)) - buyTokenInitialBalance;
-        uint256 amountFees = _calculateFees(msg.sender, amountBought);
-        transferFeeWithRoyalty(amountFees, _buyToken, _nftId);
-
-        return amountBought - amountFees;
-    }
-
-    /**
-    Swap one or more existing tokens from the NFT for one token.
-    @param _nftId [uint] the id of the NFT to update
-    @param _buyToken [address] the output token
-    @param _sellTokensAmount [<uint>] amount of sell tokens to exchange
-    @param _swapTarget [address] the address of the contract that will swap tokens
-    @param _tokenOrders [<TokenOrder>] orders for token swaps
-    */
+    /// @notice Use one or more existing tokens from the NFT for one position.
+    /// @param _nftId The id of the NFT to update
+    /// @param _buyToken The output token
+    /// @param _sellTokensAmount The amount of sell tokens to use
+    /// @param _orders Orders calldata
     function sellTokensToNft(
         uint256 _nftId,
         IERC20 _buyToken,
         uint256[] memory _sellTokensAmount,
-        address payable _swapTarget,
-        NestedStructs.TokenOrder[] calldata _tokenOrders
+        Order[] calldata _orders
     ) external payable nonReentrant onlyTokenOwner(_nftId) {
-        uint256 amountBought = _swapTokensForToken(_nftId, _buyToken, _sellTokensAmount, _swapTarget, _tokenOrders);
+        require(_orders.length > 0, "NestedFactory::sellTokensToNft: Missing orders");
+        require(_sellTokensAmount.length == _orders.length, "NestedFactory::sellTokensToNft: Input lengths must match");
+        require(
+            nestedRecords.getAssetReserve(_nftId) == address(reserve),
+            "NestedFactory::sellTokensToNft: Assets in different reserve"
+        );
 
-        nestedRecords.store(_nftId, address(_buyToken), amountBought, address(reserve));
-        IERC20(_buyToken).safeTransfer(address(reserve), amountBought);
+        (uint256 feesAmount, ) = _submitOutOrders(_nftId, _buyToken, _sellTokensAmount, _orders, true, true);
+        _transferFeeWithRoyalty(feesAmount, _buyToken, _nftId);
 
         emit NftUpdated(_nftId);
     }
 
-    /**
-    Liquidate one or more holdings and transfer the sale amount to the user
-    @param _nftId [uint] the id of the NFT to update
-    @param _buyToken [IERCO] token received in the swaps
-    @param _sellTokensAmount [<uint>] amount of sell tokens to exchange
-    @param _swapTarget [address] the address of the contract that will swap tokens
-    @param _tokenOrders [<TokenOrder>] orders for token swaps
-    */
+    /// @notice Liquidate one or more holdings and transfer the sale amount to the user
+    /// @param _nftId The id of the NFT to update
+    /// @param _buyToken The output token
+    /// @param _sellTokensAmount The amount of sell tokens to use
+    /// @param _orders Orders calldata
     function sellTokensToWallet(
         uint256 _nftId,
         IERC20 _buyToken,
         uint256[] memory _sellTokensAmount,
-        address payable _swapTarget,
-        NestedStructs.TokenOrder[] calldata _tokenOrders
+        Order[] calldata _orders
     ) external payable nonReentrant onlyTokenOwner(_nftId) {
-        uint256 amountBought = _swapTokensForToken(_nftId, _buyToken, _sellTokensAmount, _swapTarget, _tokenOrders);
+        require(_orders.length > 0, "NestedFactory::sellTokensToWallet: Missing orders");
+        require(
+            _sellTokensAmount.length == _orders.length,
+            "NestedFactory::sellTokensToWallet: Input lengths must match"
+        );
 
-        // if buy token is WETH, unwrap it instead of transferring it to the sender
-        if (address(_buyToken) == address(weth)) _unwrapWethAndTransfer(amountBought);
-        else _buyToken.safeTransfer(msg.sender, amountBought);
+        (uint256 feesAmount, uint256 amountBought) =
+            _submitOutOrders(_nftId, _buyToken, _sellTokensAmount, _orders, false, true);
+        _safeTransferAndUnwrap(_buyToken, amountBought, msg.sender);
 
         emit NftUpdated(_nftId);
     }
 
-    /*
-    Send a holding content back to the owner without exchanging it. Does not update NestedRecords
-    Fee is collected without paying roylaties.
-    The token has to be transfered from reserve to factory first.
-    @param _nftId [uint256] NFT token ID
-    @param _holding [Holding] holding to withdraw
-    */
-    function _transferToWallet(uint256 _nftId, NestedStructs.Holding memory _holding) internal onlyTokenOwner(_nftId) {
-        IERC20 token = IERC20(_holding.token);
-        uint256 feeAmount = _calculateFees(msg.sender, _holding.amount);
+    /// @notice Burn NFT and Sell all tokens for a specific ERC20 then send it back to the user
+    /// @dev Will unwrap WETH output to ETH
+    /// @param _nftId The id of the NFT to destroy
+    /// @param _buyToken The output token
+    /// @param _orders Orders calldata
+    function destroy(
+        uint256 _nftId,
+        IERC20 _buyToken,
+        Order[] calldata _orders
+    ) external onlyTokenOwner(_nftId) {
+        address[] memory tokens = nestedRecords.getAssetTokens(_nftId);
+        require(_orders.length > 0, "NestedFactory::sellTokensToWallet: Missing orders");
+        require(tokens.length == _orders.length, "NestedFactory::sellTokensToWallet: Missing sell args");
+        require(
+            nestedRecords.getAssetReserve(_nftId) == address(reserve),
+            "NestedFactory::sellTokensToWallet: Assets in different reserve"
+        );
 
-        transferFee(feeAmount, token);
-        token.safeTransfer(msg.sender, _holding.amount - feeAmount);
+        uint256 buyTokenInitialBalance = _buyToken.balanceOf(address(this));
 
-        emit FailsafeWithdraw(_nftId, address(token));
+        for (uint256 i = 0; i < tokens.length; i++) {
+            NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
+            reserve.withdraw(IERC20(holding.token), holding.amount);
+
+            _submitOrder(IERC20(tokens[i]), address(_buyToken), _nftId, _orders[i], false);
+
+            nestedRecords.freeHolding(_nftId, tokens[i]);
+        }
+
+        // Amount calculation to send fees and tokens
+        uint256 amountBought = _buyToken.balanceOf(address(this)) - buyTokenInitialBalance;
+        uint256 amountFees = _calculateFees(msg.sender, amountBought);
+        amountBought = amountBought - amountFees;
+
+        _transferFeeWithRoyalty(amountFees, _buyToken, _nftId);
+        _safeTransferAndUnwrap(_buyToken, amountBought, msg.sender);
+
+        // Burn NFT
+        nestedRecords.removeNFT(_nftId);
+        nestedAsset.burn(msg.sender, _nftId);
+        emit NftBurned(_nftId);
     }
 
-    /*
-    Withdraw a token from the reserve and transfer it to the owner without exchanging it
-    @param _nftId [uint256] NFT token ID
-    @param _tokenIndex [uint256] index in array of tokens for this NFT and holding.
-    @param _token [IERC20] token address for the holding. Used to make sure previous index param is valid
-    */
+    /// @notice Withdraw a token from the reserve and transfer it to the owner without exchanging it
+    /// @param _nftId NFT token ID
+    /// @param _tokenIndex Index in array of tokens for this NFT and holding.
+    /// @param _token Token address for the holding. Used to make sure previous index param is valid
     function withdraw(
         uint256 _nftId,
         uint256 _tokenIndex,
         IERC20 _token
     ) external nonReentrant onlyTokenOwner(_nftId) {
-        require(
-            nestedRecords.getAssetTokensLength(_nftId) > _tokenIndex &&
-                nestedRecords.getAssetTokens(_nftId)[_tokenIndex] == address(_token),
-            "INVALID_TOKEN_INDEX"
-        );
         uint256 assetTokensLength = nestedRecords.getAssetTokensLength(_nftId);
-        // use destroy instead if NFT has a single holding
-        require(assetTokensLength > 1, "ERR_EMPTY_NFT");
+        require(
+            assetTokensLength > _tokenIndex && nestedRecords.getAssetTokens(_nftId)[_tokenIndex] == address(_token),
+            "NestedFactory::withdraw: Invalid token index"
+        );
+        // Use destroy instead if NFT has a single holding
+        require(assetTokensLength > 1, "NestedFactory::withdraw: Can't withdraw the last asset");
 
         NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_token));
         reserve.withdraw(IERC20(holding.token), holding.amount);
-        _transferToWallet(_nftId, holding);
+        _safeTransferWithFees(IERC20(holding.token), holding.amount, msg.sender);
 
         nestedRecords.deleteAsset(_nftId, _tokenIndex);
+
         emit NftUpdated(_nftId);
     }
 
-    /*
-    Burn NFT and sell all tokens for a specific ERC20
-    @param  _nftId uint256 NFT token Id
-    @param _buyToken [IERC20] token used to make swaps
-    @param _swapTarget [address] the address of the contract that will swap tokens
-    @param _tokenOrders [<TokenOrder>] orders for token swaps
-    */
-    function _destroyForERC20(
+    /// @dev For every orders, call the operator with the calldata
+    /// to submit buy orders (where the input is one asset).
+    /// @param _nftId The id of the NFT impacted by the orders
+    /// @param _inputToken Token used to make the orders
+    /// @param _inputTokenAmount Amount of input tokens to use
+    /// @param _orders Orders calldata
+    /// @param _reserved True if the output is store in the reserve/records, false if not.
+    /// @param _fromReserve True if the input tokens are from the reserve
+    /// @return feesAmount The total amount of fees
+    /// @return tokenSold The ERC20 token sold (in case of ETH to WETH)
+    function _submitInOrders(
         uint256 _nftId,
-        IERC20 _buyToken,
-        address payable _swapTarget,
-        NestedStructs.TokenOrder[] calldata _tokenOrders
-    ) internal nonReentrant onlyTokenOwner(_nftId) returns (uint256) {
-        address[] memory tokens = nestedRecords.getAssetTokens(_nftId);
-        uint256 tokenLength = tokens.length;
+        IERC20 _inputToken,
+        uint256 _inputTokenAmount,
+        Order[] calldata _orders,
+        bool _reserved,
+        bool _fromReserve
+    ) private returns (uint256 feesAmount, IERC20 tokenSold) {
+        _inputToken = _transferInputTokens(_nftId, _inputToken, _inputTokenAmount, _fromReserve);
 
-        require(tokenLength == _tokenOrders.length, "MISSING_SELL_ARGS");
-        require(nestedRecords.getAssetReserve(_nftId) == address(reserve), "ASSETS_IN_DIFFERENT_RESERVE");
+        uint256 amountSpent;
+        for (uint256 i = 0; i < _orders.length; i++) {
+            amountSpent += _submitOrder(_inputToken, _orders[i].token, _nftId, _orders[i], _reserved);
+        }
+        uint256 fees = _calculateFees(msg.sender, _inputTokenAmount);
+        assert(amountSpent <= _inputTokenAmount - fees); // overspent
 
-        uint256 buyTokenInitialBalance = _buyToken.balanceOf(address(this));
-
-        // first transfer holdings from reserve to factory
-        for (uint256 i = 0; i < tokenLength; i++) {
-            NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
-            reserve.withdraw(IERC20(holding.token), holding.amount);
-
-            bool success = false;
-            if (holding.token != address(_buyToken)) {
-                require(_swapTargetValid(_swapTarget), "INVALID_SWAP_TARGET");
-
-                success = ExchangeHelpers.fillQuote(
-                    IERC20(_tokenOrders[i].token),
-                    _swapTarget,
-                    _tokenOrders[i].callData
-                );
-            }
-            if (!success) _transferToWallet(_nftId, holding);
-            nestedRecords.freeHolding(_nftId, tokens[i]);
+        // If input is from the reserve, update the records
+        if (_fromReserve) {
+            _decreaseHoldingAmount(_nftId, address(_inputToken), _inputTokenAmount);
         }
 
-        // send swapped ERC20 to user minus fees
-        uint256 amountBought = _buyToken.balanceOf(address(this)) - buyTokenInitialBalance;
-        uint256 amountFees = _calculateFees(msg.sender, amountBought);
-        amountBought = amountBought - amountFees;
-
-        transferFeeWithRoyalty(amountFees, _buyToken, _nftId);
-
-        nestedRecords.removeNFT(_nftId);
-        nestedAsset.burn(msg.sender, _nftId);
-        emit NftBurned(_nftId);
-
-        return amountBought;
+        feesAmount = _inputTokenAmount - amountSpent;
+        tokenSold = _inputToken;
     }
 
-    /*
-    Burn NFT and Sell all tokens for a specific ERC20 then send it back to the user
-    @param  _nftId uint256 NFT token Id
-    @param _buyToken [IERC20] token used to make swaps
-    @param _swapTarget [address] the address of the contract that will swap tokens
-    @param _tokenOrders [<TokenOrder>] orders for token swaps
-    */
-    function destroyForERC20(
+    /// @dev For every orders, call the operator with the calldata
+    /// to submit sell orders (where the output is one asset).
+    /// @param _nftId The id of the NFT impacted by the orders
+    /// @param _outputToken Token received for every orders
+    /// @param _inputTokenAmounts Amounts of tokens to use (respectively with Orders)
+    /// @param _orders Orders calldata
+    /// @param _reserved True if the output is store in the reserve/records, false if not.
+    /// @param _fromReserve True if the input tokens are from the reserve
+    /// @return feesAmount The total amount of fees
+    /// @return amountBought The total amount bought
+    function _submitOutOrders(
         uint256 _nftId,
-        IERC20 _buyToken,
-        address payable _swapTarget,
-        NestedStructs.TokenOrder[] calldata _tokenOrders
-    ) external onlyTokenOwner(_nftId) {
-        uint256 amountBought = _destroyForERC20(_nftId, _buyToken, _swapTarget, _tokenOrders);
-        _buyToken.safeTransfer(msg.sender, amountBought);
+        IERC20 _outputToken,
+        uint256[] memory _inputTokenAmounts,
+        Order[] calldata _orders,
+        bool _reserved,
+        bool _fromReserve
+    ) private returns (uint256 feesAmount, uint256 amountBought) {
+        uint256 _outputTokenInitialBalance = _outputToken.balanceOf(address(this));
+
+        for (uint256 i = 0; i < _orders.length; i++) {
+            IERC20 _inputToken =
+                _transferInputTokens(_nftId, IERC20(_orders[i].token), _inputTokenAmounts[i], _fromReserve);
+
+            // Submit order and update holding of spent token
+            uint256 amountSpent = _submitOrder(_inputToken, address(_outputToken), _nftId, _orders[i], _reserved);
+
+            if (_fromReserve) {
+                _decreaseHoldingAmount(_nftId, address(_inputToken), amountSpent);
+            }
+        }
+
+        amountBought = _outputToken.balanceOf(address(this)) - _outputTokenInitialBalance;
+        feesAmount = _calculateFees(msg.sender, amountBought);
     }
 
-    /*
-    Burn NFT and sell all tokens for WETH, unwrap it and then send ETH to the user
-    @param  _nftId uint256 NFT token Id
-    @param _swapTarget [address] the address of the contract that will swap tokens
-    @param _tokenOrders [<TokenOrder>] orders for token swaps
-    */
-    function destroyForETH(
+    /// @dev Call the operator to submit the order (commit/revert) and add the output
+    /// assets to the reserve (if needed).
+    /// @param _inputToken Token used to make the orders
+    /// @param _outputToken Expected output token
+    /// @param _nftId The nftId
+    /// @param _order The order calldata
+    /// @param _reserved True if the output is store in the reserve/records, false if not.
+    function _submitOrder(
+        IERC20 _inputToken,
+        address _outputToken,
         uint256 _nftId,
-        address payable _swapTarget,
-        NestedStructs.TokenOrder[] calldata _tokenOrders
-    ) external payable onlyTokenOwner(_nftId) {
-        // no need to check for reeentrancy because destroyForERC20 checks it
-        uint256 amountBought = _destroyForERC20(_nftId, IERC20(address(weth)), _swapTarget, _tokenOrders);
-        IWETH(weth).withdraw(amountBought);
+        Order calldata _order,
+        bool _reserved
+    ) private returns (uint256 amountSpent) {
+        address operator = requireAndGetAddress(_order.operator);
+        uint256 balanceBeforePurchase = _inputToken.balanceOf(address(this));
 
-        (bool success, ) = msg.sender.call{ value: amountBought }("");
-        require(success, "ETH_TRANSFER_ERROR");
+        // The operator address needs to be the first parameter of the operator delegatecall.
+        // We assume that the calldata given by the user are only the params, without the signature.
+        // Parameters are concatenated and padded to 32 bytes.
+        // We are concatenating the selector + operator address + given params
+        bytes4 selector;
+        if (_order.commit) {
+            selector = IOperatorSelector(operator).getCommitSelector();
+        } else {
+            selector = IOperatorSelector(operator).getRevertSelector();
+        }
+
+        bytes memory safeCalldata = bytes.concat(selector, abi.encodePacked(operator), _order.callData);
+
+        (bool success, bytes memory data) = operator.delegatecall(safeCalldata);
+        require(success, "NestedFactory::_submitOrder: Operator call failed");
+
+        // Get amounts and tokens from operator call
+        (uint256[] memory amounts, address[] memory tokens) = abi.decode(data, (uint256[], address[]));
+        require(tokens[0] == _outputToken, "NestedFactory::_submitOrder: Wrong output token in calldata");
+
+        if (_reserved) {
+            // Send output to reserve
+            IERC20(_outputToken).safeTransfer(address(reserve), amounts[0]);
+
+            // Store position
+            nestedRecords.store(_nftId, _outputToken, amounts[0], address(reserve));
+        }
+        amountSpent = balanceBeforePurchase - _inputToken.balanceOf(address(this));
     }
 
-    /**
-    @dev send a fee to the FeeSplitter, royalties will be paid to the owner of the original asset
-    @param _amount [uint256] to send
-    @param _token [IERC20] token to send
-    @param _nftId [uint256] user portfolio ID used to find a potential royalties recipient
-    */
-    function transferFeeWithRoyalty(
+    /// @dev Choose between ERC20 (safeTransfer) and ETH (deposit), to transfer from the Reserve
+    ///      or the user wallet, to the factory.
+    /// @param _nftId The NFT id
+    /// @param _inputToken The token to receive
+    /// @param _inputTokenAmount Amount to transfer
+    /// @param _fromReserve True to transfer from the reserve
+    /// @return tokenUsed Token transfered (in case of ETH)
+    function _transferInputTokens(
+        uint256 _nftId,
+        IERC20 _inputToken,
+        uint256 _inputTokenAmount,
+        bool _fromReserve
+    ) private returns (IERC20 tokenUsed) {
+        if (_fromReserve) {
+            NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_inputToken));
+            require(holding.amount >= _inputTokenAmount, "NestedFactory:_transferInputTokens: Insufficient amount");
+
+            // Get input from reserve
+            reserve.withdraw(IERC20(holding.token), _inputTokenAmount);
+        } else if (address(_inputToken) == ETH) {
+            require(msg.value >= _inputTokenAmount, "NestedFactory::_transferInputTokens: Insufficient amount in");
+            weth.deposit{ value: msg.value }();
+            _inputToken = IERC20(address(weth));
+        } else {
+            _inputToken.safeTransferFrom(msg.sender, address(this), _inputTokenAmount);
+        }
+        tokenUsed = _inputToken;
+    }
+
+    /// @dev Send a fee to the FeeSplitter, royalties will be paid to the owner of the original asset
+    /// @param _amount Amount to send
+    /// @param _token Token to send
+    /// @param _nftId User portfolio ID used to find a potential royalties recipient
+    function _transferFeeWithRoyalty(
         uint256 _amount,
         IERC20 _token,
         uint256 _nftId
-    ) internal {
+    ) private {
         address originalOwner = nestedAsset.originalOwner(_nftId);
-        ExchangeHelpers.setMaxAllowance(_token, address(feeTo));
-        if (originalOwner != address(0)) feeTo.sendFeesWithRoyalties(originalOwner, _token, _amount);
-        else feeTo.sendFees(_token, _amount);
-    }
-
-    /**
-    @dev send a fee to the FeeSplitter
-    @param _amount [uint256] to send
-    @param _token [IERC20] token to send
-    */
-    function transferFee(uint256 _amount, IERC20 _token) internal {
-        ExchangeHelpers.setMaxAllowance(_token, address(feeTo));
-        feeTo.sendFees(_token, _amount);
-    }
-
-    /**
-     * @dev unwrap ether and transfer it to sender
-     * @param _amount [uint256] amount to unwrap
-     */
-    function _unwrapWethAndTransfer(uint256 _amount) internal {
-        IWETH(weth).withdraw(_amount);
-        (bool success, ) = msg.sender.call{ value: _amount }("");
-        require(success, "ETH_TRANSFER_ERROR");
-    }
-
-    /**
-     * @dev update the amount for a holding in NestedRecords, and deletes it if amount is 0
-     * @param _nftId [uint256] NFT ID to update
-     * @param _token [address] holding's token address
-     * @param _amount [uint256] new holding amount
-     */
-    function _updateHolding(
-        uint256 _nftId,
-        address _token,
-        uint256 _amount
-    ) internal {
-        nestedRecords.updateHoldingAmount(_nftId, _token, _amount);
-        if (_amount == 0) {
-            uint256 tokenIndex = 0;
-            address[] memory tokens = nestedRecords.getAssetTokens(_nftId);
-            while (tokenIndex < tokens.length) {
-                if (tokens[tokenIndex] == _token) break;
-                tokenIndex++;
-            }
-            nestedRecords.deleteAsset(_nftId, tokenIndex);
+        ExchangeHelpers.setMaxAllowance(_token, address(feeSplitter));
+        if (originalOwner != address(0)) {
+            feeSplitter.sendFeesWithRoyalties(originalOwner, _token, _amount);
+        } else {
+            feeSplitter.sendFees(_token, _amount);
         }
     }
 
-    /**
-     * @dev Checks if a user is a VIP. User needs to have at least vipMinAmount of NST staked
-     * @param _account [address] user address
-     * @return a boolean indicating if user is VIP
-     */
-    function _isVIP(address _account) internal view returns (bool) {
-        if (address(smartChef) == address(0)) return false;
-        uint256 stakedNst = smartChef.userInfo(_account).amount;
-        return stakedNst >= vipMinAmount;
+    /// @dev Send a fee to the FeeSplitter
+    /// @param _amount Amount to send
+    /// @param _token Token to send
+    function _transferFee(uint256 _amount, IERC20 _token) private {
+        ExchangeHelpers.setMaxAllowance(_token, address(feeSplitter));
+        feeSplitter.sendFees(_token, _amount);
     }
 
-    /**
-     * @dev calculates the discount for a VIP user
-     * @param _user [address] user to check the VIP status of
-     * @param _amount [address] amount to calculate the discount on
-     * @return [uint256] the discount amount
-     */
-    function _calculateDiscount(address _user, uint256 _amount) private view returns (uint256) {
-        // give a discount to VIP users
-        if (_isVIP(_user)) return (_amount * vipDiscount) / 1000;
-        return 0;
-    }
-
+    /// @dev Calculate the fees for a specific user and amount
+    /// @param _user The user address
+    /// @param _amount The amount
+    /// @return The fees amount
     function _calculateFees(address _user, uint256 _amount) private view returns (uint256) {
         uint256 baseFee = _amount / 100;
         uint256 feeWithDiscount = baseFee - _calculateDiscount(_user, baseFee);
         return feeWithDiscount;
     }
 
-    /**
-     * Checks if the swap target is one of the contracts nested factory has privilege on
-     * @param _swapTarget address for the contract that will be called
-     * @return [bool] is the swap target valid
-     */
-    function _swapTargetValid(address _swapTarget) private view returns (bool) {
-        return
-            _swapTarget != address(feeTo) &&
-            _swapTarget != address(nestedAsset) &&
-            _swapTarget != address(nestedRecords) &&
-            _swapTarget != address(reserve) &&
-            !supportedReserves[_swapTarget];
+    /// @dev Calculates the discount for a VIP user
+    /// @param _user User to check the VIP status of
+    /// @param _amount Amount to calculate the discount on
+    /// @return The discount amount
+    function _calculateDiscount(address _user, uint256 _amount) private view returns (uint256) {
+        // give a discount to VIP users
+        if (_isVIP(_user)) {
+            return (_amount * vipDiscount) / 1000;
+        } else {
+            return 0;
+        }
+    }
+
+    /// @dev Checks if a user is a VIP.
+    /// User needs to have at least vipMinAmount of NST staked
+    /// @param _account User address
+    /// @return Boolean indicating if user is VIP
+    function _isVIP(address _account) private view returns (bool) {
+        if (address(smartChef) == address(0)) {
+            return false;
+        }
+        uint256 stakedNst = smartChef.userInfo(_account).amount;
+        return stakedNst >= vipMinAmount;
+    }
+
+    /// @dev Decrease the amount of a NFT holding
+    /// @param _nftId The NFT id
+    /// @param _inputToken The token holding
+    /// @param _amount The amount to subtract from the actual holding amount
+    function _decreaseHoldingAmount(
+        uint256 _nftId,
+        address _inputToken,
+        uint256 _amount
+    ) private {
+        NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, _inputToken);
+        nestedRecords.updateHoldingAmount(_nftId, _inputToken, holding.amount - _amount);
+    }
+
+    /// @dev Transfer a token amount from the factory to the recipient.
+    ///      The token is unwrapped if WETH.
+    /// @param _token The token to transfer
+    /// @param _amount The amount to transfer
+    /// @param _dest The address receiving the funds
+    function _safeTransferAndUnwrap(
+        IERC20 _token,
+        uint256 _amount,
+        address _dest
+    ) private {
+        // if buy token is WETH, unwrap it instead of transferring it to the sender
+        if (address(_token) == address(weth)) {
+            IWETH(weth).withdraw(_amount);
+            (bool success, ) = _dest.call{ value: _amount }("");
+            require(success, "ETH_TRANSFER_ERROR");
+        } else {
+            _token.safeTransfer(_dest, _amount);
+        }
+    }
+
+    /// @dev Transfer from factory and collect fees (without royalties)
+    /// @param _token The token to transfer
+    /// @param _amount The amount (with fees) to transfer
+    /// @param _dest The address receiving the funds
+    function _safeTransferWithFees(
+        IERC20 _token,
+        uint256 _amount,
+        address _dest
+    ) private {
+        uint256 feeAmount = _calculateFees(_dest, _amount);
+        _transferFee(feeAmount, _token);
+        _token.safeTransfer(_dest, _amount - feeAmount);
     }
 }

@@ -6,10 +6,11 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "../NestedFactory.sol";
 import "../libraries/NestedStructs.sol";
 import "../libraries/ExchangeHelpers.sol";
+import "../interfaces/INestedFactory.sol";
 
 contract DummyRouter is IERC721Receiver {
     address payable public factory;
-    NestedStructs.TokenOrder[] attackOrders;
+    INestedFactory.Order[] attackOrders;
     IWETH public weth;
 
     receive() external payable {}
@@ -31,14 +32,14 @@ contract DummyRouter is IERC721Receiver {
     }
 
     function reentrancyAttackForDestroy(uint256 nftId) external {
-        NestedFactory(factory).destroyForERC20(nftId, IERC20(address(weth)), payable(address(this)), attackOrders);
+        NestedFactory(factory).destroy(nftId, IERC20(address(weth)), attackOrders);
     }
 
     function prepareAttack(
         address payable _factory,
         IWETH _weth,
-        NestedStructs.TokenOrder[] calldata _tokenOrders,
-        NestedStructs.TokenOrder[] calldata _attackOrders
+        INestedFactory.Order[] calldata _tokenOrders,
+        INestedFactory.Order[] calldata _attackOrders
     ) external payable {
         factory = _factory;
         weth = _weth;
@@ -47,13 +48,7 @@ contract DummyRouter is IERC721Receiver {
         weth.approve(_factory, amountIn);
         attackOrders.push(_attackOrders[0]);
         attackOrders.push(_attackOrders[1]);
-        NestedFactory(_factory).create(
-            0,
-            IERC20(address(_weth)),
-            amountIn - amountIn / 98,
-            payable(address(this)),
-            _tokenOrders
-        );
+        NestedFactory(_factory).create(0, IERC20(address(_weth)), amountIn - amountIn / 98, _tokenOrders);
     }
 
     function setMaxAllowance(IERC20 _token, address _spender) external {
