@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.4;
 
-import "./ZeroExStorage.sol";
-import "../../libraries/ExchangeHelpers.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Create2.sol";
 import "./IZeroExOperator.sol";
+import "./ZeroExStorage.sol";
+import "../../libraries/ExchangeHelpers.sol";
 import "../../interfaces/IOperatorSelector.sol";
 
-/// @notice The 0x protocol operator to execute swap with the aggregator
+/// @title The 0x protocol operator to execute swap with the aggregator
 contract ZeroExOperator is IZeroExOperator, IOperatorSelector {
 
     /// @dev Deploy with the swapTarget to store in storage contract

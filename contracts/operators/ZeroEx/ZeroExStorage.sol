@@ -3,7 +3,7 @@ pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-/// @notice ZeroExOperator storage contract
+/// @title ZeroExOperator storage contract
 contract ZeroExStorage is Ownable {
     address private _swapTarget;
 
