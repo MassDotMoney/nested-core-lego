@@ -4,16 +4,16 @@ pragma solidity 0.8.4;
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./libraries/ExchangeHelpers.sol";
+import "./interfaces/external/IWETH.sol";
+import "./interfaces/external/MinimalSmartChef.sol";
 import "./interfaces/INestedFactory.sol";
 import "./interfaces/IOperatorSelector.sol";
-import "./libraries/ExchangeHelpers.sol";
-import "./NestedAsset.sol";
-import "./interfaces/IWETH.sol";
+import "./FeeSplitter.sol";
 import "./MixinOperatorResolver.sol";
 import "./NestedReserve.sol";
-import "./interfaces/MinimalSmartChef.sol";
+import "./NestedAsset.sol";
 import "./NestedRecords.sol";
-import "./FeeSplitter.sol";
 
 /// @title Creates, updates and destroys NestedAssets.
 /// @notice Responsible for the business logic of the protocol and interaction with operators
@@ -73,47 +73,38 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         return operators;
     }
 
-    /// @notice Add an operator (name) for building cache
-    /// @param operator The operator name to add
-    function addOperator(bytes32 operator) external onlyOwner {
+    /// @inheritdoc INestedFactory
+    function addOperator(bytes32 operator) external override onlyOwner {
         operators.push(operator);
     }
 
-    /// @notice Update the SmartChef contract address
-    /// @param _smartChef New SmartChef address
-    function updateSmartChef(address _smartChef) external onlyOwner {
+    /// @inheritdoc INestedFactory
+    function updateSmartChef(address _smartChef) external override onlyOwner {
         require(_smartChef != address(0), "NestedFactory::updateSmartChef: Invalid smartchef address");
         smartChef = MinimalSmartChef(_smartChef);
         emit SmartChefUpdated(_smartChef);
     }
 
-    /// @notice Sets the reserve where the funds are stored
-    /// @param _reserve the address of the new reserve
-    function setReserve(NestedReserve _reserve) external onlyOwner {
+    /// @inheritdoc INestedFactory
+    function setReserve(NestedReserve _reserve) external override onlyOwner {
         require(address(reserve) == address(0), "NestedFactory::setReserve: Reserve is immutable");
         reserve = _reserve;
     }
 
-    /// @notice Update the VIP discount and min staked amount to be a VIP
-    /// @param _vipDiscount [uint256] the fee discount to apply to a VIP user
-    /// @param _vipMinAmount [uint256] min amount that needs to be staked to be a VIP
-    function updateVipDiscount(uint256 _vipDiscount, uint256 _vipMinAmount) external onlyOwner {
+    /// @inheritdoc INestedFactory
+    function updateVipDiscount(uint256 _vipDiscount, uint256 _vipMinAmount) external override onlyOwner {
         require(_vipDiscount < 1000, "NestedFactory::updateVipDiscount: Discount too high");
         (vipDiscount, vipMinAmount) = (_vipDiscount, _vipMinAmount);
         emit VipDiscountUpdated(vipDiscount, vipMinAmount);
     }
 
-    /// @notice Create a portfolio and store the underlying assets from the positions
-    /// @param _originalTokenId The id of the NFT replicated, 0 if not replicating
-    /// @param _sellToken Token used to make the orders
-    /// @param _sellTokenAmount Amount of sell tokens to use
-    /// @param _orders Orders calldata
+    /// @inheritdoc INestedFactory
     function create(
         uint256 _originalTokenId,
         IERC20 _sellToken,
         uint256 _sellTokenAmount,
         Order[] calldata _orders
-    ) external payable nonReentrant {
+    ) external payable override nonReentrant {
         require(_orders.length > 0, "NestedFactory::create: Missing orders");
 
         uint256 nftId = nestedAsset.mint(msg.sender, _originalTokenId);
@@ -123,17 +114,13 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         emit NftCreated(nftId, _originalTokenId);
     }
 
-    /// @notice Add or increase one position (or more) and update the NFT
-    /// @param _nftId The id of the NFT to update
-    /// @param _sellToken Token used to make the orders
-    /// @param _sellTokenAmount Amount of sell tokens to use
-    /// @param _orders Orders calldata
+    /// @inheritdoc INestedFactory
     function addTokens(
         uint256 _nftId,
         IERC20 _sellToken,
         uint256 _sellTokenAmount,
         Order[] calldata _orders
-    ) external payable nonReentrant onlyTokenOwner(_nftId) {
+    ) external payable override nonReentrant onlyTokenOwner(_nftId) {
         require(_orders.length > 0, "NestedFactory::addTokens: Missing orders");
 
         (uint256 fees, IERC20 tokenSold) = _submitInOrders(_nftId, _sellToken, _sellTokenAmount, _orders, true, false);
@@ -141,18 +128,13 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         emit NftUpdated(_nftId);
     }
 
-    /// @notice Use the output token of an existing position from
-    /// the NFT for one or more positions.
-    /// @param _nftId The id of the NFT to update
-    /// @param _sellToken Token used to make the orders
-    /// @param _sellTokenAmount Amount of sell tokens to use
-    /// @param _orders Orders calldata
+    /// @inheritdoc INestedFactory
     function swapTokenForTokens(
         uint256 _nftId,
         IERC20 _sellToken,
         uint256 _sellTokenAmount,
         Order[] calldata _orders
-    ) external payable nonReentrant onlyTokenOwner(_nftId) {
+    ) external payable override nonReentrant onlyTokenOwner(_nftId) {
         require(_orders.length > 0, "NestedFactory::swapTokenForTokens: Missing orders");
         require(
             nestedRecords.getAssetReserve(_nftId) == address(reserve),
@@ -165,17 +147,13 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         emit NftUpdated(_nftId);
     }
 
-    /// @notice Use one or more existing tokens from the NFT for one position.
-    /// @param _nftId The id of the NFT to update
-    /// @param _buyToken The output token
-    /// @param _sellTokensAmount The amount of sell tokens to use
-    /// @param _orders Orders calldata
+    /// @inheritdoc INestedFactory
     function sellTokensToNft(
         uint256 _nftId,
         IERC20 _buyToken,
         uint256[] memory _sellTokensAmount,
         Order[] calldata _orders
-    ) external payable nonReentrant onlyTokenOwner(_nftId) {
+    ) external payable override nonReentrant onlyTokenOwner(_nftId) {
         require(_orders.length > 0, "NestedFactory::sellTokensToNft: Missing orders");
         require(_sellTokensAmount.length == _orders.length, "NestedFactory::sellTokensToNft: Input lengths must match");
         require(
@@ -189,17 +167,13 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         emit NftUpdated(_nftId);
     }
 
-    /// @notice Liquidate one or more holdings and transfer the sale amount to the user
-    /// @param _nftId The id of the NFT to update
-    /// @param _buyToken The output token
-    /// @param _sellTokensAmount The amount of sell tokens to use
-    /// @param _orders Orders calldata
+    /// @inheritdoc INestedFactory
     function sellTokensToWallet(
         uint256 _nftId,
         IERC20 _buyToken,
         uint256[] memory _sellTokensAmount,
         Order[] calldata _orders
-    ) external payable nonReentrant onlyTokenOwner(_nftId) {
+    ) external payable override nonReentrant onlyTokenOwner(_nftId) {
         require(_orders.length > 0, "NestedFactory::sellTokensToWallet: Missing orders");
         require(
             _sellTokensAmount.length == _orders.length,
@@ -213,16 +187,12 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         emit NftUpdated(_nftId);
     }
 
-    /// @notice Burn NFT and Sell all tokens for a specific ERC20 then send it back to the user
-    /// @dev Will unwrap WETH output to ETH
-    /// @param _nftId The id of the NFT to destroy
-    /// @param _buyToken The output token
-    /// @param _orders Orders calldata
+    /// @inheritdoc INestedFactory
     function destroy(
         uint256 _nftId,
         IERC20 _buyToken,
         Order[] calldata _orders
-    ) external onlyTokenOwner(_nftId) {
+    ) external override nonReentrant onlyTokenOwner(_nftId) {
         address[] memory tokens = nestedRecords.getAssetTokens(_nftId);
         require(_orders.length > 0, "NestedFactory::sellTokensToWallet: Missing orders");
         require(tokens.length == _orders.length, "NestedFactory::sellTokensToWallet: Missing sell args");
@@ -256,15 +226,12 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         emit NftBurned(_nftId);
     }
 
-    /// @notice Withdraw a token from the reserve and transfer it to the owner without exchanging it
-    /// @param _nftId NFT token ID
-    /// @param _tokenIndex Index in array of tokens for this NFT and holding.
-    /// @param _token Token address for the holding. Used to make sure previous index param is valid
+    /// @inheritdoc INestedFactory
     function withdraw(
         uint256 _nftId,
         uint256 _tokenIndex,
         IERC20 _token
-    ) external nonReentrant onlyTokenOwner(_nftId) {
+    ) external override nonReentrant onlyTokenOwner(_nftId) {
         uint256 assetTokensLength = nestedRecords.getAssetTokensLength(_nftId);
         require(
             assetTokensLength > _tokenIndex && nestedRecords.getAssetTokens(_nftId)[_tokenIndex] == address(_token),

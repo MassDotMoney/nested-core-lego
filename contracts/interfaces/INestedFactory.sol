@@ -2,6 +2,7 @@
 pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../NestedReserve.sol";
 
 /// @title NestedFactory interface
 interface INestedFactory {
@@ -39,5 +40,102 @@ interface INestedFactory {
         bool commit;
     }
 
-    // TODO functions
+    /// @notice Add an operator (name) for building cache
+    /// @param operator The operator name to add
+    function addOperator(bytes32 operator) external;
+
+    /// @notice Update the SmartChef contract address
+    /// @param _smartChef New SmartChef address
+    function updateSmartChef(address _smartChef) external;
+
+    /// @notice Sets the reserve where the funds are stored
+    /// @param _reserve the address of the new reserve
+    function setReserve(NestedReserve _reserve) external;
+
+    /// @notice Update the VIP discount and min staked amount to be a VIP
+    /// @param _vipDiscount The fee discount to apply to a VIP user
+    /// @param _vipMinAmount Min amount that needs to be staked to be a VIP
+    function updateVipDiscount(uint256 _vipDiscount, uint256 _vipMinAmount) external;
+
+    /// @notice Create a portfolio and store the underlying assets from the positions
+    /// @param _originalTokenId The id of the NFT replicated, 0 if not replicating
+    /// @param _sellToken Token used to make the orders
+    /// @param _sellTokenAmount Amount of sell tokens to use
+    /// @param _orders Orders calldata
+    function create(
+        uint256 _originalTokenId,
+        IERC20 _sellToken,
+        uint256 _sellTokenAmount,
+        Order[] calldata _orders
+    ) external payable;
+
+    /// @notice Add or increase one position (or more) and update the NFT
+    /// @param _nftId The id of the NFT to update
+    /// @param _sellToken Token used to make the orders
+    /// @param _sellTokenAmount Amount of sell tokens to use
+    /// @param _orders Orders calldata
+    function addTokens(
+        uint256 _nftId,
+        IERC20 _sellToken,
+        uint256 _sellTokenAmount,
+        Order[] calldata _orders
+    ) external payable;
+
+    /// @notice Use the output token of an existing position from
+    /// the NFT for one or more positions.
+    /// @param _nftId The id of the NFT to update
+    /// @param _sellToken Token used to make the orders
+    /// @param _sellTokenAmount Amount of sell tokens to use
+    /// @param _orders Orders calldata
+    function swapTokenForTokens(
+        uint256 _nftId,
+        IERC20 _sellToken,
+        uint256 _sellTokenAmount,
+        Order[] calldata _orders
+    ) external payable;
+
+    /// @notice Use one or more existing tokens from the NFT for one position.
+    /// @param _nftId The id of the NFT to update
+    /// @param _buyToken The output token
+    /// @param _sellTokensAmount The amount of sell tokens to use
+    /// @param _orders Orders calldata
+    function sellTokensToNft(
+        uint256 _nftId,
+        IERC20 _buyToken,
+        uint256[] memory _sellTokensAmount,
+        Order[] calldata _orders
+    ) external payable;
+
+    /// @notice Liquidate one or more holdings and transfer the sale amount to the user
+    /// @param _nftId The id of the NFT to update
+    /// @param _buyToken The output token
+    /// @param _sellTokensAmount The amount of sell tokens to use
+    /// @param _orders Orders calldata
+    function sellTokensToWallet(
+        uint256 _nftId,
+        IERC20 _buyToken,
+        uint256[] memory _sellTokensAmount,
+        Order[] calldata _orders
+    ) external payable;
+
+    /// @notice Burn NFT and Sell all tokens for a specific ERC20 then send it back to the user
+    /// @dev Will unwrap WETH output to ETH
+    /// @param _nftId The id of the NFT to destroy
+    /// @param _buyToken The output token
+    /// @param _orders Orders calldata
+    function destroy(
+        uint256 _nftId,
+        IERC20 _buyToken,
+        Order[] calldata _orders
+    ) external;
+
+    /// @notice Withdraw a token from the reserve and transfer it to the owner without exchanging it
+    /// @param _nftId NFT token ID
+    /// @param _tokenIndex Index in array of tokens for this NFT and holding.
+    /// @param _token Token address for the holding. Used to make sure previous index param is valid
+    function withdraw(
+        uint256 _nftId,
+        uint256 _tokenIndex,
+        IERC20 _token
+    ) external;
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.4;
 
-import "../interfaces/MinimalSmartChef.sol";
+import "../interfaces/external/MinimalSmartChef.sol";
 
 /**
  * Mocks the behavior of the real SmartChef contract

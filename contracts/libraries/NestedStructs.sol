@@ -16,10 +16,4 @@ library NestedStructs {
         address[] tokens;
         address reserve;
     }
-
-    /// @dev Data required for swapping a token
-    struct TokenOrder {
-        address token;
-        bytes callData;
-    }
 }

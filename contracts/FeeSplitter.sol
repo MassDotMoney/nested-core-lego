@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "./interfaces/IWETH.sol";
-import "./interfaces/MinimalSmartChef.sol";
+import "./interfaces/external/IWETH.sol";
+import "./interfaces/external/MinimalSmartChef.sol";
 
 /**
  * @title Receives fees collected by the NestedFactory, and splits the income among

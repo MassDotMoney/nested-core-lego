@@ -4,7 +4,7 @@ pragma solidity 0.8.4;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import "./interfaces/INestedToken.sol";
+import "./interfaces/external/INestedToken.sol";
 import "./FeeSplitter.sol";
 import "./libraries/ExchangeHelpers.sol";
 
