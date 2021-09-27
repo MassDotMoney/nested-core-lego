@@ -27,6 +27,9 @@ contract SynthetixOperator is ISynthetixOperator, IOperatorSelector {
         uint sourceAmount,
         bytes32 destinationCurrencyKey
     ) external override returns (uint256[] memory amounts, address[] memory tokens) {
+        amounts = new uint[](1);
+        tokens = new address[](1);
+
         IAddressResolver addressResolver = IAddressResolver(SynthetixStorage(storageAddress(own)).synthetixResolver());
         ISynthetix synthetix = ISynthetix(addressResolver.getAddress("Synthetix"));
 
@@ -46,7 +49,7 @@ contract SynthetixOperator is ISynthetixOperator, IOperatorSelector {
 
     /// @notice Return the operator storage address
     /// @param own the operator address to build the storage address in delegatecall
-    function storageAddress(address own) public view returns (address) {
+    function storageAddress(address own) public pure returns (address) {
         bytes32 _data =
         keccak256(
             abi.encodePacked(bytes1(0xff), own, bytes32("nested.synthetix.operator"), keccak256(type(SynthetixStorage).creationCode))

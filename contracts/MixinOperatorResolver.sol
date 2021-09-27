@@ -17,7 +17,7 @@ abstract contract MixinOperatorResolver {
     /// @dev Cache operators map of the name and address
     mapping(bytes32 => address) private addressCache;
 
-    constructor(address _resolver) internal {
+    constructor(address _resolver) {
         resolver = OperatorResolver(_resolver);
     }
 

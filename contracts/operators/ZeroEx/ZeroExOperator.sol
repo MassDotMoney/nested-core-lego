@@ -41,7 +41,7 @@ contract ZeroExOperator is IZeroExOperator, IOperatorSelector {
 
     /// @notice Return the operator storage address
     /// @param own the operator address to build the storage address in delegatecall
-    function storageAddress(address own) public view returns (address) {
+    function storageAddress(address own) public pure returns (address) {
         bytes32 _data =
         keccak256(
             abi.encodePacked(bytes1(0xff), own, bytes32("nested.zeroex.operator"), keccak256(type(ZeroExStorage).creationCode))

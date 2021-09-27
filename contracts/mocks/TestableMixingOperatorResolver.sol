@@ -10,7 +10,7 @@ contract TestableMixinResolver is MixinOperatorResolver {
 
     bytes32[24] private addressesToCache = [CONTRACT_EXAMPLE_1, CONTRACT_EXAMPLE_2, CONTRACT_EXAMPLE_3];
 
-    constructor(address _resolver) public MixinOperatorResolver(_resolver) {}
+    constructor(address _resolver) MixinOperatorResolver(_resolver) {}
 
     function resolverAddressesRequired() public view override returns (bytes32[] memory addresses) {
         addresses = new bytes32[](3);

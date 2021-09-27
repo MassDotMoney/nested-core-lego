@@ -189,7 +189,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             "NestedFactory::sellTokensToWallet: Input lengths must match"
         );
 
-        (uint256 feesAmount, uint256 amountBought) =
+        (, uint256 amountBought) =
             _submitOutOrders(_nftId, _buyToken, _sellTokensAmount, _orders, false, true);
         _safeTransferAndUnwrap(_buyToken, amountBought, msg.sender);
 
