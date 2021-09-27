@@ -28,4 +28,24 @@ contract TestableOperatorCaller {
         require(success, "TestableOperatorCaller::zeroExCommitAndRevert: Error");
         return true;
     }
+
+    function synthetixCommitAndRevert(
+        address own,
+        bytes32 sourceCurrencyKey,
+        uint256 sourceAmount,
+        bytes32 destinationCurrencyKey
+    ) external returns (bool) {
+        (bool success, bytes memory data) =
+            operator.delegatecall(
+                abi.encodeWithSignature(
+                    "commitAndRevert(address,address,address,bytes)",
+                    own,
+                    sourceCurrencyKey,
+                    sourceAmount,
+                    destinationCurrencyKey
+                )
+            );
+        require(success, "TestableOperatorCaller::synthetixCommitAndRevert: Error");
+        return true;
+    }
 }

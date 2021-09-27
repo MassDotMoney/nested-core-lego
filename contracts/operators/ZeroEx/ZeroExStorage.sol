@@ -7,12 +7,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract ZeroExStorage is Ownable {
     address private _swapTarget;
 
-    /// @dev Returns the address of 0x swaptarget
+    /// @notice Returns the address of 0x swaptarget
     function swapTarget() external view returns (address) {
         return _swapTarget;
     }
 
-    /// @dev Update the address of 0x swaptarget
+    /// @notice Update the address of 0x swaptarget
     function updatesSwapTarget(address swapTargetValue) external onlyOwner {
         _swapTarget = swapTargetValue;
     }

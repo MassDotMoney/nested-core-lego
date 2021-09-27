@@ -11,7 +11,7 @@ import "../../interfaces/IOperatorSelector.sol";
 /// @title The 0x protocol operator to execute swap with the aggregator
 contract ZeroExOperator is IZeroExOperator, IOperatorSelector {
 
-    /// @dev Deploy with the swapTarget to store in storage contract
+    /// @dev Deploy with the storage contract
     constructor(address swapTarget) {
         address zeroxExStorage = Create2.deploy(0, bytes32("nested.zeroex.operator"), type(ZeroExStorage).creationCode);
         ZeroExStorage(zeroxExStorage).updatesSwapTarget(swapTarget);

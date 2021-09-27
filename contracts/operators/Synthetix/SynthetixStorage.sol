@@ -8,13 +8,13 @@ import "synthetix/contracts/interfaces/IAddressResolver.sol";
 contract SynthetixStorage is Ownable {
     IAddressResolver private _synthetixResolver;
 
-    /// @dev Returns the address of the Synthetix address resolver
+    /// @notice Returns the address of the Synthetix address resolver
     function synthetixResolver() external view returns (IAddressResolver) {
         return _synthetixResolver;
     }
 
-    /// @dev Update the address of the Synthetix address resolver
-    function updatesSynthetixResolver(IAddressResolver _synthetixResolverValue) external onlyOwner {
+    /// @notice Update the address of the Synthetix address resolver
+    function updateSynthetixResolver(IAddressResolver _synthetixResolverValue) external onlyOwner {
         _synthetixResolver = _synthetixResolverValue;
     }
 }
