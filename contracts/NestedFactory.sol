@@ -62,7 +62,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     }
 
     /// @dev Reverts the transaction if the caller is not the token owner
-    /// @param _nftId uint256 the NFT Id
+    /// @param _nftId The NFT Id
     modifier onlyTokenOwner(uint256 _nftId) {
         require(nestedAsset.ownerOf(_nftId) == msg.sender, "NestedFactory: Not the token owner");
         _;
