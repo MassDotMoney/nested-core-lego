@@ -2,7 +2,6 @@
 pragma solidity 0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./libraries/NestedStructs.sol";
 
 /// @title Tracks data for underlying assets of NestedNFTs
 contract NestedRecords is Ownable {
@@ -14,12 +13,26 @@ contract NestedRecords is Ownable {
     /// @param maxHoldingsCount The new value
     event MaxHoldingsChanges(uint256 maxHoldingsCount);
 
+    /// @dev Info about assets stored in reserves
+    struct Holding {
+        address token;
+        uint256 amount;
+        bool isActive;
+    }
+
+    /// @dev Store user asset informations
+    struct NftRecord {
+        mapping(address => Holding) holdings;
+        address[] tokens;
+        address reserve;
+    }
+
     /// @dev List of supported factories.
     /// This information is used across the protocol
     mapping(address => bool) public supportedFactories;
 
     /// @dev stores for each NFT ID an asset record
-    mapping(uint256 => NestedStructs.NftRecord) public records;
+    mapping(uint256 => NftRecord) public records;
 
     /// @dev The maximum number of holdings for an NFT record
     uint256 public maxHoldingsCount;
@@ -51,10 +64,10 @@ contract NestedRecords is Ownable {
             "NestedRecords: INVALID_RESERVE"
         );
 
-        NestedStructs.Holding memory holding = records[_nftId].holdings[_token];
+        Holding memory holding = records[_nftId].holdings[_token];
         require(!holding.isActive, "NestedRecords: HOLDING_EXISTS");
 
-        records[_nftId].holdings[_token] = NestedStructs.Holding({ token: _token, amount: _amount, isActive: true });
+        records[_nftId].holdings[_token] = Holding({ token: _token, amount: _amount, isActive: true });
         records[_nftId].tokens.push(_token);
         records[_nftId].reserve = _reserve;
     }
@@ -93,7 +106,7 @@ contract NestedRecords is Ownable {
         uint256 _amount,
         address _reserve
     ) external onlyFactory {
-        NestedStructs.Holding memory holding = records[_nftId].holdings[_token];
+        Holding memory holding = records[_nftId].holdings[_token];
         if (holding.isActive) {
             require(records[_nftId].reserve == _reserve, "NestedRecords: RESERVE_MISMATCH");
             updateHoldingAmount(_nftId, _token, holding.amount + _amount);
@@ -105,7 +118,7 @@ contract NestedRecords is Ownable {
     /// @notice Get holding object for this NFT ID
     /// @param _nftId The id of the NFT
     /// @param _token The address of the token
-    function getAssetHolding(uint256 _nftId, address _token) public view returns (NestedStructs.Holding memory) {
+    function getAssetHolding(uint256 _nftId, address _token) public view returns (Holding memory) {
         return records[_nftId].holdings[_token];
     }
 
@@ -180,7 +193,7 @@ contract NestedRecords is Ownable {
     function deleteAsset(uint256 _nftId, uint256 _tokenIndex) public onlyFactory {
         address[] storage tokens = records[_nftId].tokens;
         address token = tokens[_tokenIndex];
-        NestedStructs.Holding memory holding = records[_nftId].holdings[token];
+        Holding memory holding = records[_nftId].holdings[token];
 
         require(holding.isActive, "NestedRecords: HOLDING_INACTIVE");
 
@@ -199,7 +212,7 @@ contract NestedRecords is Ownable {
         address _token,
         uint256 _amountSold
     ) external onlyFactory {
-        NestedStructs.Holding memory holding = records[_nftId].holdings[_token];
+        Holding memory holding = records[_nftId].holdings[_token];
         require(holding.isActive, "ALREADY_SOLD");
         uint256 remainingAmount = holding.amount - _amountSold;
 

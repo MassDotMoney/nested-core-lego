@@ -213,7 +213,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         uint256 buyTokenInitialBalance = _buyToken.balanceOf(address(this));
 
         for (uint256 i = 0; i < tokens.length; i++) {
-            NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
+            NestedRecords.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
             reserve.withdraw(IERC20(holding.token), holding.amount);
 
             _submitOrder(IERC20(tokens[i]), address(_buyToken), _nftId, _orders[i], false);
@@ -249,7 +249,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         // Use destroy instead if NFT has a single holding
         require(assetTokensLength > 1, "NestedFactory::withdraw: Can't withdraw the last asset");
 
-        NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_token));
+        NestedRecords.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_token));
         reserve.withdraw(IERC20(holding.token), holding.amount);
         _safeTransferWithFees(IERC20(holding.token), holding.amount, msg.sender);
 
@@ -391,7 +391,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         bool _fromReserve
     ) private returns (IERC20 tokenUsed) {
         if (_fromReserve) {
-            NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_inputToken));
+            NestedRecords.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_inputToken));
             require(holding.amount >= _inputTokenAmount, "NestedFactory:_transferInputTokens: Insufficient amount");
 
             // Get input from reserve
@@ -476,7 +476,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         address _inputToken,
         uint256 _amount
     ) private {
-        NestedStructs.Holding memory holding = nestedRecords.getAssetHolding(_nftId, _inputToken);
+        NestedRecords.Holding memory holding = nestedRecords.getAssetHolding(_nftId, _inputToken);
         nestedRecords.updateHoldingAmount(_nftId, _inputToken, holding.amount - _amount);
     }
 
