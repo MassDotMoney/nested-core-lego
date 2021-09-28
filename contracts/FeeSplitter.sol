@@ -15,6 +15,8 @@ import "./interfaces/external/MinimalSmartChef.sol";
 contract FeeSplitter is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
+    address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
     /// @dev Emitted when a payment is released
     /// @param to The address receiving the payment
     /// @param token The token transfered
@@ -134,7 +136,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         IWETH(weth).withdraw(amount);
         (bool success, ) = msg.sender.call{ value: amount }("");
         require(success, "FeeSplitter: ETH_TRANFER_ERROR");
-        emit PaymentReleased(msg.sender, 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE, amount);
+        emit PaymentReleased(msg.sender, ETH, amount);
     }
 
     /// @notice Sends a fee to this contract for splitting, as an ERC20 token. No royalties are expected.
