@@ -143,4 +143,9 @@ interface INestedFactory {
         uint256 _tokenIndex,
         IERC20 _token
     ) external;
+
+    /// @notice Increase the lock timestamp of an NFT record.
+    /// @param _nftId The NFT id to get the record
+    /// @param _timestamp The new timestamp.
+    function increaseLockTimestamp(uint256 _nftId, uint256 _timestamp) external;
 }

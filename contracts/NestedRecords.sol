@@ -25,6 +25,7 @@ contract NestedRecords is Ownable {
         mapping(address => Holding) holdings;
         address[] tokens;
         address reserve;
+        uint256 lockTimestamp;
     }
 
     /// @dev List of supported factories.
@@ -95,6 +96,19 @@ contract NestedRecords is Ownable {
         }
     }
 
+    /// @notice Get content of assetTokens mapping
+    /// @param _nftId The id of the NFT>
+    function getAssetTokens(uint256 _nftId) public view returns (address[] memory) {
+        return records[_nftId].tokens;
+    }
+
+    /// @notice Delete a holding item in holding mapping. Does not remove token in NftRecord.tokens array
+    /// @param _nftId NFT's identifier
+    /// @param _token Token address for holding to remove
+    function freeHolding(uint256 _nftId, address _token) public onlyFactory {
+        delete records[_nftId].holdings[_token];
+    }
+
     /// @notice Helper function that creates a record or add the holding if record already exists
     /// @param _nftId The NFT's identifier
     /// @param _token The token/holding address
@@ -118,21 +132,8 @@ contract NestedRecords is Ownable {
     /// @notice Get holding object for this NFT ID
     /// @param _nftId The id of the NFT
     /// @param _token The address of the token
-    function getAssetHolding(uint256 _nftId, address _token) public view returns (Holding memory) {
+    function getAssetHolding(uint256 _nftId, address _token) external view returns (Holding memory) {
         return records[_nftId].holdings[_token];
-    }
-
-    /// @notice Get content of assetTokens mapping
-    /// @param _nftId The id of the NFT>
-    function getAssetTokens(uint256 _nftId) public view returns (address[] memory) {
-        return records[_nftId].tokens;
-    }
-
-    /// @notice Delete a holding item in holding mapping. Does not remove token in NftRecord.tokens array
-    /// @param _nftId NFT's identifier
-    /// @param _token Token address for holding to remove
-    function freeHolding(uint256 _nftId, address _token) public onlyFactory {
-        delete records[_nftId].holdings[_token];
     }
 
     /// @notice Sets the factory for Nested records
@@ -141,6 +142,16 @@ contract NestedRecords is Ownable {
         require(_factory != address(0), "NestedRecords: INVALID_ADDRESS");
         supportedFactories[_factory] = true;
         emit FactoryAdded(_factory);
+    }
+
+    /// @notice The factory can update the lock timestamp of a NFT record
+    /// The new timestamp must be greater than the block.timestamp
+    //  if block.timestamp > actual lock timestamp
+    /// @param _nftId The NFT id to get the record
+    /// @param _timestamp The new timestamp
+    function updateLockTimestamp(uint256 _nftId, uint256 _timestamp) external onlyFactory {
+        require(_timestamp > records[_nftId].lockTimestamp, "NestedRecords::increaseLockTimestamp: Can't decrease timestamp");
+        records[_nftId].lockTimestamp = _timestamp;
     }
 
     /// @notice Sets the maximum number of holdings for an NFT record
@@ -163,6 +174,13 @@ contract NestedRecords is Ownable {
     /// @return The array length
     function getAssetTokensLength(uint256 _nftId) external view returns (uint256) {
         return records[_nftId].tokens.length;
+    }
+
+    /// @notice Get the lock timestamp of a portfolio/NFT
+    /// @param _nftId The NFT ID
+    /// @return The lock timestamp from the NftRecord
+    function getLockTimestamp(uint256 _nftId) external view returns (uint256) {
+        return records[_nftId].lockTimestamp;
     }
 
     /// @notice Set the reserve where assets are stored

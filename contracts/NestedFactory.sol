@@ -68,6 +68,14 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         _;
     }
 
+    /// @dev Reverts the transaction if the nft is locked (hold by design).
+    /// The block.timestamp must be greater than NFT record lock timestamp
+    /// @param _nftId The NFT Id
+    modifier isUnlocked(uint256 _nftId) {
+        require(block.timestamp > nestedRecords.getLockTimestamp(_nftId), "NestedFactory: The NFT is currently locked");
+        _;
+    }
+
     /// @dev Receive function
     receive() external payable {}
 
@@ -143,7 +151,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         IERC20 _sellToken,
         uint256 _sellTokenAmount,
         Order[] calldata _orders
-    ) external payable override nonReentrant onlyTokenOwner(_nftId) {
+    ) external payable override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
         require(_orders.length > 0, "NestedFactory::swapTokenForTokens: Missing orders");
         require(
             nestedRecords.getAssetReserve(_nftId) == address(reserve),
@@ -162,7 +170,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         IERC20 _buyToken,
         uint256[] memory _sellTokensAmount,
         Order[] calldata _orders
-    ) external payable override nonReentrant onlyTokenOwner(_nftId) {
+    ) external payable override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
         require(_orders.length > 0, "NestedFactory::sellTokensToNft: Missing orders");
         require(_sellTokensAmount.length == _orders.length, "NestedFactory::sellTokensToNft: Input lengths must match");
         require(
@@ -182,7 +190,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         IERC20 _buyToken,
         uint256[] memory _sellTokensAmount,
         Order[] calldata _orders
-    ) external payable override nonReentrant onlyTokenOwner(_nftId) {
+    ) external payable override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
         require(_orders.length > 0, "NestedFactory::sellTokensToWallet: Missing orders");
         require(
             _sellTokensAmount.length == _orders.length,
@@ -201,7 +209,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         uint256 _nftId,
         IERC20 _buyToken,
         Order[] calldata _orders
-    ) external override nonReentrant onlyTokenOwner(_nftId) {
+    ) external override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
         address[] memory tokens = nestedRecords.getAssetTokens(_nftId);
         require(_orders.length > 0, "NestedFactory::sellTokensToWallet: Missing orders");
         require(tokens.length == _orders.length, "NestedFactory::sellTokensToWallet: Missing sell args");
@@ -240,7 +248,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         uint256 _nftId,
         uint256 _tokenIndex,
         IERC20 _token
-    ) external override nonReentrant onlyTokenOwner(_nftId) {
+    ) external override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
         uint256 assetTokensLength = nestedRecords.getAssetTokensLength(_nftId);
         require(
             assetTokensLength > _tokenIndex && nestedRecords.getAssetTokens(_nftId)[_tokenIndex] == address(_token),
@@ -256,6 +264,11 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         nestedRecords.deleteAsset(_nftId, _tokenIndex);
 
         emit NftUpdated(_nftId);
+    }
+
+    /// @inheritdoc INestedFactory
+    function increaseLockTimestamp(uint256 _nftId, uint256 _timestamp) external override onlyTokenOwner(_nftId) {
+        nestedRecords.updateLockTimestamp(_nftId, _timestamp);
     }
 
     /// @dev For every orders, call the operator with the calldata
