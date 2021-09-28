@@ -368,13 +368,25 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         require(tokens[0] == _outputToken, "NestedFactory::_submitOrder: Wrong output token in calldata");
 
         if (_reserved) {
-            // Send output to reserve
-            IERC20(_outputToken).safeTransfer(address(reserve), amounts[0]);
-
-            // Store position
-            nestedRecords.store(_nftId, _outputToken, amounts[0], address(reserve));
+            _transferToReserveAndStore(_outputToken, amounts[0], _nftId);
         }
         amountSpent = balanceBeforePurchase - _inputToken.balanceOf(address(this));
+    }
+
+    /// @dev Transfer tokens to the reserve, and compute the amount received to store
+    /// in the records. We need to know the amount received in case of deflationary tokens.
+    /// @param _token The token address
+    /// @param _amount The amount to send to the reserve
+    /// @param _nftId The Token ID to store the assets
+    function _transferToReserveAndStore(address _token, uint256 _amount, uint256 _nftId) private {
+        uint256 balanceReserveBefore = IERC20(_token).balanceOf(address(reserve));
+
+        // Send output to reserve
+        IERC20(_token).safeTransfer(address(reserve), _amount);
+
+        uint256 balanceReserveAfter = IERC20(_token).balanceOf(address(reserve));
+
+        nestedRecords.store(_nftId, _token, balanceReserveAfter - balanceReserveBefore, address(reserve));
     }
 
     /// @dev Choose between ERC20 (safeTransfer) and ETH (deposit), to transfer from the Reserve
@@ -432,41 +444,6 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         feeSplitter.sendFees(_token, _amount);
     }
 
-    /// @dev Calculate the fees for a specific user and amount
-    /// @param _user The user address
-    /// @param _amount The amount
-    /// @return The fees amount
-    function _calculateFees(address _user, uint256 _amount) private view returns (uint256) {
-        uint256 baseFee = _amount / 100;
-        uint256 feeWithDiscount = baseFee - _calculateDiscount(_user, baseFee);
-        return feeWithDiscount;
-    }
-
-    /// @dev Calculates the discount for a VIP user
-    /// @param _user User to check the VIP status of
-    /// @param _amount Amount to calculate the discount on
-    /// @return The discount amount
-    function _calculateDiscount(address _user, uint256 _amount) private view returns (uint256) {
-        // give a discount to VIP users
-        if (_isVIP(_user)) {
-            return (_amount * vipDiscount) / 1000;
-        } else {
-            return 0;
-        }
-    }
-
-    /// @dev Checks if a user is a VIP.
-    /// User needs to have at least vipMinAmount of NST staked
-    /// @param _account User address
-    /// @return Boolean indicating if user is VIP
-    function _isVIP(address _account) private view returns (bool) {
-        if (address(smartChef) == address(0)) {
-            return false;
-        }
-        uint256 stakedNst = smartChef.userInfo(_account).amount;
-        return stakedNst >= vipMinAmount;
-    }
-
     /// @dev Decrease the amount of a NFT holding
     /// @param _nftId The NFT id
     /// @param _inputToken The token holding
@@ -512,5 +489,40 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         uint256 feeAmount = _calculateFees(_dest, _amount);
         _transferFee(feeAmount, _token);
         _token.safeTransfer(_dest, _amount - feeAmount);
+    }
+
+    /// @dev Calculate the fees for a specific user and amount
+    /// @param _user The user address
+    /// @param _amount The amount
+    /// @return The fees amount
+    function _calculateFees(address _user, uint256 _amount) private view returns (uint256) {
+        uint256 baseFee = _amount / 100;
+        uint256 feeWithDiscount = baseFee - _calculateDiscount(_user, baseFee);
+        return feeWithDiscount;
+    }
+
+    /// @dev Calculates the discount for a VIP user
+    /// @param _user User to check the VIP status of
+    /// @param _amount Amount to calculate the discount on
+    /// @return The discount amount
+    function _calculateDiscount(address _user, uint256 _amount) private view returns (uint256) {
+        // give a discount to VIP users
+        if (_isVIP(_user)) {
+            return (_amount * vipDiscount) / 1000;
+        } else {
+            return 0;
+        }
+    }
+
+    /// @dev Checks if a user is a VIP.
+    /// User needs to have at least vipMinAmount of NST staked
+    /// @param _account User address
+    /// @return Boolean indicating if user is VIP
+    function _isVIP(address _account) private view returns (bool) {
+        if (address(smartChef) == address(0)) {
+            return false;
+        }
+        uint256 stakedNst = smartChef.userInfo(_account).amount;
+        return stakedNst >= vipMinAmount;
     }
 }
