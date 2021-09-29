@@ -16,6 +16,14 @@ interface INestedFactory {
     /// @param vipMinAmount The new minimum amount
     event VipDiscountUpdated(uint256 vipDiscount, uint256 vipMinAmount);
 
+    /// @dev Emitted when the feeSplitter is updated
+    /// @param feeSplitter The new feeSplitter address
+    event FeeSplitterUpdated(address feeSplitter);
+
+    /// @dev Emitted when the reserve is updated
+    /// @param reserve The new reserve address
+    event ReserveUpdated(address reserve);
+
     /// @dev Emitted when a NFT (portfolio) is created
     /// @param nftId The NFT token Id
     /// @param originalNftId If replicated, the original NFT token Id

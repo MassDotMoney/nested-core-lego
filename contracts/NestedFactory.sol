@@ -100,12 +100,14 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     function setReserve(NestedReserve _reserve) external override onlyOwner {
         require(address(reserve) == address(0), "NestedFactory::setReserve: Reserve is immutable");
         reserve = _reserve;
+        emit ReserveUpdated(address(_reserve));
     }
 
     /// @inheritdoc INestedFactory
     function setFeeSplitter(FeeSplitter _feeSplitter) external override onlyOwner {
         require(address(_feeSplitter) != address(0), "NestedFactory::setFeeSplitter: Invalid feeSplitter address");
         feeSplitter = _feeSplitter;
+        emit FeeSplitterUpdated(address(_feeSplitter));
     }
 
     /// @inheritdoc INestedFactory

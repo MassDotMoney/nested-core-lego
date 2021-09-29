@@ -18,4 +18,8 @@ contract MockSmartChef is MinimalSmartChef {
         _address = address(0); // silence compiler warning for unused _address
         return MinimalSmartChef.UserInfo(userAmount, userAmount);
     }
+
+    function updateUserAmount(uint256 _userAmount) external {
+        userAmount = _userAmount;
+    }
 }
