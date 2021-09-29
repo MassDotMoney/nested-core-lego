@@ -372,7 +372,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             selector = IOperatorSelector(operator).getRevertSelector();
         }
 
-        bytes memory safeCalldata = bytes.concat(selector, abi.encodePacked(operator), _order.callData);
+        bytes memory safeCalldata = bytes.concat(selector, abi.encode(operator), _order.callData);
 
         (bool success, bytes memory data) = operator.delegatecall(safeCalldata);
         require(success, "NestedFactory::_submitOrder: Operator call failed");
