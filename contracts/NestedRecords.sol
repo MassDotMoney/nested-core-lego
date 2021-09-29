@@ -150,7 +150,10 @@ contract NestedRecords is Ownable {
     /// @param _nftId The NFT id to get the record
     /// @param _timestamp The new timestamp
     function updateLockTimestamp(uint256 _nftId, uint256 _timestamp) external onlyFactory {
-        require(_timestamp > records[_nftId].lockTimestamp, "NestedRecords::increaseLockTimestamp: Can't decrease timestamp");
+        require(
+            _timestamp > records[_nftId].lockTimestamp,
+            "NestedRecords::increaseLockTimestamp: Can't decrease timestamp"
+        );
         records[_nftId].lockTimestamp = _timestamp;
     }
 

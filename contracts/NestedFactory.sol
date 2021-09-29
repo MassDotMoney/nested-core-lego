@@ -197,8 +197,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             "NestedFactory::sellTokensToWallet: Input lengths must match"
         );
 
-        (, uint256 amountBought) =
-            _submitOutOrders(_nftId, _buyToken, _sellTokensAmount, _orders, false, true);
+        (, uint256 amountBought) = _submitOutOrders(_nftId, _buyToken, _sellTokensAmount, _orders, false, true);
         _safeTransferAndUnwrap(_buyToken, amountBought, msg.sender);
 
         emit NftUpdated(_nftId);
@@ -391,7 +390,11 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     /// @param _token The token address
     /// @param _amount The amount to send to the reserve
     /// @param _nftId The Token ID to store the assets
-    function _transferToReserveAndStore(address _token, uint256 _amount, uint256 _nftId) private {
+    function _transferToReserveAndStore(
+        address _token,
+        uint256 _amount,
+        uint256 _nftId
+    ) private {
         uint256 balanceReserveBefore = IERC20(_token).balanceOf(address(reserve));
 
         // Send output to reserve

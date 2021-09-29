@@ -7,6 +7,9 @@ export const WALLET_USER_INDEXES = {
     OWNABLE_OPERATOR_OWNER: 3,
     ZERO_EX_OPERATOR_OWNER: 4,
     SYNTHETIX_OPERATOR_OWNER: 5,
+    MASTER_DEPLOYER: 6,
+    SHAREHOLDER_1: 7,
+    SHAREHOLDER_2: 8,
 };
 
 export class ActorFixture {
@@ -36,6 +39,23 @@ export class ActorFixture {
 
     synthetixOperatorOwner() {
         return this._getActor(WALLET_USER_INDEXES.SYNTHETIX_OPERATOR_OWNER);
+    }
+
+    /*
+     * The master deployer, is responsible to deploy all the contracts (in one fixture)
+     * Instead of different deployers/owners for every contracts. Usefull for the Factory
+     * unit tests and integration tests.
+     */
+    masterDeployer() {
+        return this._getActor(WALLET_USER_INDEXES.MASTER_DEPLOYER);
+    }
+
+    shareHolder1() {
+        return this._getActor(WALLET_USER_INDEXES.SHAREHOLDER_1);
+    }
+
+    shareHolder2() {
+        return this._getActor(WALLET_USER_INDEXES.SHAREHOLDER_2);
     }
 
     private _getActor(index: number): Wallet {
