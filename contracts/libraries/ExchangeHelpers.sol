@@ -18,7 +18,7 @@ library ExchangeHelpers {
     function fillQuote(
         IERC20 _sellToken,
         address _swapTarget,
-        bytes calldata _swapCallData
+        bytes memory _swapCallData
     ) internal returns (bool) {
         setMaxAllowance(_sellToken, _swapTarget);
         // solhint-disable-next-line avoid-low-level-calls

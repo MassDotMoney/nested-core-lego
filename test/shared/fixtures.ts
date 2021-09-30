@@ -92,7 +92,9 @@ export const zeroExOperatorFixture: Fixture<ZeroExOperatorFixture> = async (wall
 
     const mockERC20Factory = await ethers.getContractFactory("MockERC20");
     const mockUNI = await mockERC20Factory.deploy("Mocked UNI", "UNI", appendDecimals(3000000));
+    await mockUNI.deployed();
     const mockDAI = await mockERC20Factory.deploy("Mocked DAI", "DAI", appendDecimals(3000000));
+    await mockDAI.deployed();
 
     await mockUNI.transfer(dummyRouter.address, appendDecimals(1000));
     await mockDAI.transfer(dummyRouter.address, appendDecimals(1000));
@@ -283,6 +285,11 @@ export const factoryAndZeroExFixture: Fixture<FactoryAndZeroExFixture> = async (
     await mockUNI.connect(masterDeployer).transfer(user1.address, baseAmount);
     await mockKNC.connect(masterDeployer).transfer(user1.address, baseAmount);
     await mockDAI.connect(masterDeployer).transfer(user1.address, baseAmount);
+
+    // User1 approves factory to spend all his tokens (UNI, KNC, and DAI)
+    await mockUNI.connect(user1).approve(nestedFactory.address, baseAmount);
+    await mockKNC.connect(user1).approve(nestedFactory.address, baseAmount);
+    await mockDAI.connect(user1).approve(nestedFactory.address, baseAmount);
 
     return {
         WETH,
