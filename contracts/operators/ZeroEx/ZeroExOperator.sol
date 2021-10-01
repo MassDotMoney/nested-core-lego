@@ -23,14 +23,15 @@ contract ZeroExOperator is IZeroExOperator, IOperatorSelector {
         address own,
         IERC20 sellToken,
         IERC20 buyToken,
+        bytes4 swapSelector,
         bytes calldata swapCallData
-    ) external override returns (uint256[] memory amounts, address[] memory tokens) {
+    ) external payable override returns (uint256[] memory amounts, address[] memory tokens) {
         amounts = new uint[](1);
         tokens = new address[](1);
         address swapTarget = ZeroExStorage(storageAddress(own)).swapTarget();
         uint256 balanceBeforePurchase = buyToken.balanceOf(address(this));
 
-        bool success = ExchangeHelpers.fillQuote(sellToken, swapTarget, swapCallData);
+        bool success = ExchangeHelpers.fillQuote(sellToken, swapTarget, bytes.concat(swapSelector, swapCallData[32:]));
         require(success, "ZeroExOperator::commitAndRevert: 0x swap failed");
 
         uint256 amountBought = buyToken.balanceOf(address(this)) - balanceBeforePurchase;

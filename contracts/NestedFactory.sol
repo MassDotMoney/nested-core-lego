@@ -291,12 +291,11 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         bool _fromReserve
     ) private returns (uint256 feesAmount, IERC20 tokenSold) {
         _inputToken = _transferInputTokens(_nftId, _inputToken, _inputTokenAmount, _fromReserve);
-
         uint256 amountSpent;
         for (uint256 i = 0; i < _orders.length; i++) {
             amountSpent += _submitOrder(_inputToken, _orders[i].token, _nftId, _orders[i], _reserved);
         }
-        uint256 fees = _calculateFees(msg.sender, _inputTokenAmount);
+        uint256 fees = _calculateFees(msg.sender, amountSpent);
         assert(amountSpent <= _inputTokenAmount - fees); // overspent
 
         // If input is from the reserve, update the records
