@@ -4,7 +4,7 @@ import { ethers } from "hardhat";
 import { appendDecimals, BIG_NUMBER_ZERO, UINT256_MAX } from "../helpers";
 import { DummyRouter, MockERC20 } from "../../typechain";
 
-describe.skip("ExchangeHelpers", () => {
+describe("ExchangeHelpers", () => {
     let dummyRouter: DummyRouter, mockERC20: MockERC20;
     let bob: SignerWithAddress, randomContract: SignerWithAddress;
 
