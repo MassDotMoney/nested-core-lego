@@ -153,6 +153,7 @@ export type FactoryAndZeroExFixture = {
     mockUNI: MockERC20;
     mockKNC: MockERC20;
     mockDAI: MockERC20;
+    mockUSDC: MockERC20;
     shareholder1: Wallet;
     shareholder2: Wallet;
     feeSplitter: FeeSplitter;
@@ -188,6 +189,10 @@ export const factoryAndZeroExFixture: Fixture<FactoryAndZeroExFixture> = async (
     await mockKNC.deployed();
     const mockDAI = await mockERC20Factory.connect(masterDeployer).deploy("Mocked DAI", "DAI", appendDecimals(3000000));
     await mockDAI.deployed();
+    const mockUSDC = await mockERC20Factory
+        .connect(masterDeployer)
+        .deploy("Mocked USDC", "USDC", appendDecimals(3000000));
+    await mockUSDC.deployed();
 
     // Get the Fee shareholders (two actors)
     const shareholder1 = new ActorFixture(wallets as Wallet[], provider).shareHolder1();
@@ -282,20 +287,24 @@ export const factoryAndZeroExFixture: Fixture<FactoryAndZeroExFixture> = async (
     await mockUNI.connect(masterDeployer).transfer(dummyRouter.address, baseAmount);
     await mockKNC.connect(masterDeployer).transfer(dummyRouter.address, baseAmount);
     await mockDAI.connect(masterDeployer).transfer(dummyRouter.address, baseAmount);
+    await mockUSDC.connect(masterDeployer).transfer(dummyRouter.address, baseAmount);
     await mockUNI.connect(masterDeployer).transfer(user1.address, baseAmount);
     await mockKNC.connect(masterDeployer).transfer(user1.address, baseAmount);
     await mockDAI.connect(masterDeployer).transfer(user1.address, baseAmount);
+    await mockUSDC.connect(masterDeployer).transfer(user1.address, baseAmount);
 
     // User1 approves factory to spend all his tokens (UNI, KNC, and DAI)
     await mockUNI.connect(user1).approve(nestedFactory.address, baseAmount);
     await mockKNC.connect(user1).approve(nestedFactory.address, baseAmount);
     await mockDAI.connect(user1).approve(nestedFactory.address, baseAmount);
+    await mockUSDC.connect(user1).approve(nestedFactory.address, baseAmount);
 
     return {
         WETH,
         mockUNI,
         mockKNC,
         mockDAI,
+        mockUSDC,
         shareholder1,
         shareholder2,
         feeSplitter,
