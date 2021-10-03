@@ -199,8 +199,10 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             "NestedFactory::sellTokensToWallet: Input lengths must match"
         );
 
-        (, uint256 amountBought) = _submitOutOrders(_nftId, _buyToken, _sellTokensAmount, _orders, false, true);
-        _safeTransferAndUnwrap(_buyToken, amountBought, msg.sender);
+        (uint256 feesAmount, uint256 amountBought) =
+            _submitOutOrders(_nftId, _buyToken, _sellTokensAmount, _orders, false, true);
+        _transferFeeWithRoyalty(feesAmount, _buyToken, _nftId);
+        _safeTransferAndUnwrap(_buyToken, amountBought - feesAmount, msg.sender);
 
         emit NftUpdated(_nftId);
     }
@@ -332,15 +334,26 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
                 _transferInputTokens(_nftId, IERC20(_orders[i].token), _inputTokenAmounts[i], _fromReserve);
 
             // Submit order and update holding of spent token
-            uint256 amountSpent = _submitOrder(_inputToken, address(_outputToken), _nftId, _orders[i], _reserved);
+            uint256 amountSpent = _submitOrder(_inputToken, address(_outputToken), _nftId, _orders[i], false);
+            assert(amountSpent <= _inputTokenAmounts[i]);
 
             if (_fromReserve) {
-                _decreaseHoldingAmount(_nftId, address(_inputToken), amountSpent);
+                _decreaseHoldingAmount(_nftId, address(_inputToken), _inputTokenAmounts[i]);
+            }
+
+            // Under spent input amount send to msg.sender (with fees)
+            uint256 underSpentAmount = _inputTokenAmounts[i] - amountSpent;
+            if (underSpentAmount > 0) {
+                _safeTransferWithFees(_inputToken, underSpentAmount, msg.sender);
             }
         }
 
         amountBought = _outputToken.balanceOf(address(this)) - _outputTokenInitialBalance;
         feesAmount = _calculateFees(msg.sender, amountBought);
+
+        if (_reserved) {
+            _transferToReserveAndStore(address(_outputToken), amountBought - feesAmount, _nftId);
+        }
     }
 
     /// @dev Call the operator to submit the order (commit/revert) and add the output

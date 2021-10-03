@@ -257,6 +257,25 @@ describe("NestedFactory", () => {
             // Orders for UNI and KNC
             let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
 
+            // Revert because not enough funds to swap, the order amounts > totalToSpend
+            await expect(
+                context.nestedFactory.connect(context.user1).create(0, context.mockDAI.address, totalToSpend, orders),
+            ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+        });
+
+        it("reverts if not enough to pay fees", async () => {
+            /*
+             * All the amounts for this test :
+             * - Buy 6 UNI and 4 KNC
+             * - The user needs 10 DAI (+ fees) but will spend 10 DAI => without the fees
+             */
+            const uniBought = appendDecimals(6);
+            const kncBought = appendDecimals(4);
+            const totalToSpend = appendDecimals(10);
+
+            // Orders for UNI and KNC
+            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
+
             // Should revert with "assert" (no message)
             await expect(
                 context.nestedFactory.connect(context.user1).create(0, context.mockDAI.address, totalToSpend, orders),
@@ -844,7 +863,6 @@ describe("NestedFactory", () => {
                 context.mockUSDC.address,
             );
 
-            // Should revert with "assert" (no message)
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
@@ -971,6 +989,277 @@ describe("NestedFactory", () => {
         });
     });
 
+    describe("sellTokensToNft()", () => {
+        // Amount already in the portfolio
+        let baseUniBought = appendDecimals(6);
+        let baseKncBought = appendDecimals(4);
+        let baseTotalToBought = baseUniBought.add(baseKncBought);
+        let baseExpectedFee = getExpectedFees(baseTotalToBought);
+        let baseTotalToSpend = baseTotalToBought.add(baseExpectedFee);
+
+        beforeEach("Set reserve and create NFT (id 1)", async () => {
+            // set reserve
+            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
+
+            // create nft 1 with UNI and KNC from DAI (use the base amounts)
+            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
+            await context.nestedFactory
+                .connect(context.user1)
+                .create(0, context.mockDAI.address, baseTotalToSpend, orders);
+        });
+
+        it("reverts if Orders list is empty", async () => {
+            let orders: ZeroExOrder[] = [];
+            await expect(
+                context.nestedFactory.connect(context.user1).sellTokensToNft(1, context.mockDAI.address, [], orders),
+            ).to.be.revertedWith("NestedFactory::sellTokensToNft: Missing orders");
+        });
+
+        it("reverts if bad calldatas", async () => {
+            // 6 UNI in the portfolio, the user sell 3 UNI for 3 UDC
+            const uniSold = appendDecimals(3);
+
+            // Orders to swap UNI from the portfolio but the sellToken param (ZeroExOperator) is removed
+            const orders: ZeroExOrder[] = [
+                {
+                    operator: toBytes32("ZeroEx"),
+                    token: context.mockUNI.address,
+                    callData: abiCoder.encode(
+                        ["address", "bytes4", "bytes"],
+                        [
+                            context.mockUSDC.address,
+                            dummyRouterSelector,
+                            abiCoder.encode(
+                                ["address", "address", "uint"],
+                                [context.mockUNI.address, context.mockUSDC.address, uniSold],
+                            ),
+                        ],
+                    ),
+                    commit: true,
+                },
+            ];
+
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .sellTokensToNft(1, context.mockUSDC.address, [uniSold], orders),
+            ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+        });
+
+        it("cant swap tokens from nonexistent portfolio", async () => {
+            // 6 UNI and 4 KNC in the portfolio, the user sell 3 UNI and 3 KNC for 6 USCC
+            const uniSold = appendDecimals(3);
+            const kncSold = appendDecimals(3);
+
+            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+
+            // NFT with id = 2 shouldn't exist
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .sellTokensToNft(2, context.mockUSDC.address, [uniSold, kncSold], orders),
+            ).to.be.revertedWith("ERC721: owner query for nonexistent token");
+        });
+
+        it("cant swap tokens from another user portfolio", async () => {
+            // 6 UNI and 4 KNC in the portfolio, the user sell 3 UNI and 3 KNC for 6 USCC
+            const uniSold = appendDecimals(3);
+            const kncSold = appendDecimals(3);
+
+            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+
+            // Master Deployer is not the owner of NFT 1
+            await expect(
+                context.nestedFactory
+                    .connect(context.masterDeployer)
+                    .sellTokensToNft(1, context.mockUSDC.address, [uniSold, kncSold], orders),
+            ).to.be.revertedWith("NestedFactory: Not the token owner");
+        });
+
+        it("cant swap tokens if orders dont match sell amounts (array size)", async () => {
+            // 6 UNI and 4 KNC in the portfolio, the user sell 3 UNI and 3 KNC for 6 USCC
+            const uniSold = appendDecimals(3);
+            const kncSold = appendDecimals(3);
+
+            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .sellTokensToNft(1, context.mockUSDC.address, [uniSold], orders),
+            ).to.be.revertedWith("NestedFactory::sellTokensToNft: Input lengths must match");
+        });
+
+        it("revert if spend more UNI than in reserve", async () => {
+            // 6 UNI and 4 KNC in the portfolio, the user sell 7 UNI and 3 KNC for 6 USCC
+            const uniSold = appendDecimals(7);
+            const kncSold = appendDecimals(3);
+
+            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .sellTokensToNft(1, context.mockUSDC.address, [uniSold, kncSold], orders),
+            ).to.be.revertedWith("NestedFactory:_transferInputTokens: Insufficient amount");
+        });
+
+        it("revert if try to sell more KNC than sell amount", async () => {
+            // 6 UNI and 4 KNC in the portfolio, the user sell 3 UNI and 3 KNC for 6 USCC
+            const uniSold = appendDecimals(3);
+            const kncSold = appendDecimals(3);
+
+            // The amount in the order is more than sell amount
+            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold.add(appendDecimals(1)));
+
+            // Error in operator cant transfer more than in factory balance
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .sellTokensToNft(1, context.mockUSDC.address, [uniSold, kncSold], orders),
+            ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+        });
+
+        it("reverts if wrong output token in calldata", async () => {
+            // 6 UNI and 4 KNC in the portfolio, the user sell 3 UNI and 3 KNC for 6 USCC
+            const uniSold = appendDecimals(3);
+            const kncSold = appendDecimals(3);
+
+            // The amount in the order is more than sell amount
+            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+
+            // Instead of USDC as output token, use DAI
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .sellTokensToNft(1, context.mockDAI.address, [uniSold, kncSold], orders),
+            ).to.be.revertedWith("NestedFactory::_submitOrder: Wrong output token in calldata");
+        });
+
+        it("swap KNC and UNI for USDC (ZeroExOperator) with right amounts", async () => {
+            // 6 UNI and 4 KNC in the portfolio, the user sell 3 UNI and 4 KNC for 7 USCC
+            const uniSold = appendDecimals(3);
+            const kncSold = appendDecimals(4);
+            const usdcBought = kncSold.add(uniSold);
+            const expectedUsdcFees = getExpectedFees(usdcBought);
+
+            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .sellTokensToNft(1, context.mockUSDC.address, [uniSold, kncSold], orders),
+            )
+                .to.emit(context.nestedFactory, "NftUpdated")
+                .withArgs(1);
+
+            // 3 UNI must be in the reserve
+            expect(await context.mockUNI.balanceOf(context.nestedReserve.address)).to.be.equal(
+                baseUniBought.sub(uniSold),
+            );
+            // 0 KNC must be in the reserve
+            expect(await context.mockKNC.balanceOf(context.nestedReserve.address)).to.be.equal(
+                baseKncBought.sub(kncSold),
+            );
+            // 7 USDC - fees must be in the reserve
+            expect(await context.mockUSDC.balanceOf(context.nestedReserve.address)).to.be.equal(
+                usdcBought.sub(expectedUsdcFees),
+            );
+
+            // The FeeSplitter must receive the right fee amount (in USDC)
+            expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(expectedUsdcFees);
+
+            // Must store UNI, and USDC in the records of the NFT
+            expect(await context.nestedRecords.getAssetTokens(1).then(value => value.toString())).to.be.equal(
+                [context.mockUNI.address, context.mockUSDC.address].toString(),
+            );
+
+            // Must have the right amount in the holdings
+            const holdingsUNI = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
+            expect(holdingsUNI.token).to.be.equal(context.mockUNI.address);
+            expect(holdingsUNI.amount).to.be.equal(baseUniBought.sub(uniSold));
+
+            // Must have the right amount in the holdings
+            const holdingsUSDC = await context.nestedRecords.getAssetHolding(1, context.mockUSDC.address);
+            expect(holdingsUSDC.token).to.be.equal(context.mockUSDC.address);
+            expect(holdingsUSDC.amount).to.be.equal(usdcBought.sub(expectedUsdcFees));
+        });
+
+        it("swap KNC and UNI for USDC (ZeroExOperator) with more than needed", async () => {
+            // 6 UNI and 4 KNC in the portfolio, the user sell 3 UNI and 4 KNC for 7 USCC
+            const uniSold = appendDecimals(3);
+            const kncSold = appendDecimals(4);
+            const usdcBought = kncSold.add(uniSold);
+
+            // The amount in the order is less than sell amount. Only 5 USDC will be bought
+            const uniSoldOrder = uniSold.sub(appendDecimals(1));
+            const kncSoldOrder = kncSold.sub(appendDecimals(1));
+            const usdcBoughtOrder = uniSoldOrder.add(kncSoldOrder);
+            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSoldOrder, kncSoldOrder);
+            const orderExpectedFee = getExpectedFees(uniSoldOrder.add(kncSoldOrder));
+
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .sellTokensToNft(1, context.mockUSDC.address, [uniSold, kncSold], orders),
+            )
+                .to.emit(context.nestedFactory, "NftUpdated")
+                .withArgs(1);
+
+            // 3 UNI must be in the reserve
+            expect(await context.mockUNI.balanceOf(context.nestedReserve.address)).to.be.equal(
+                baseUniBought.sub(uniSold),
+            );
+            // 0 KNC must be in the reserve
+            expect(await context.mockKNC.balanceOf(context.nestedReserve.address)).to.be.equal(
+                baseKncBought.sub(kncSold),
+            );
+            // 5 USDC - fees must be in the reserve
+            expect(await context.mockUSDC.balanceOf(context.nestedReserve.address)).to.be.equal(
+                usdcBoughtOrder.sub(orderExpectedFee),
+            );
+
+            // The FeeSplitter must receive the right fee amount (in USDC)
+            expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(orderExpectedFee);
+
+            // The FeeSplitter must receive fees on excess UNI
+            expect(await context.mockUNI.balanceOf(context.feeSplitter.address)).to.be.equal(
+                getExpectedFees(uniSold.sub(uniSoldOrder)),
+            );
+
+            // The FeeSplitter must receive fees on excess KNC
+            expect(await context.mockKNC.balanceOf(context.feeSplitter.address)).to.be.equal(
+                getExpectedFees(kncSold.sub(kncSoldOrder)),
+            );
+
+            // The user received the excess UNI
+            expect(await context.mockUNI.balanceOf(context.user1.address)).to.be.equal(
+                context.baseAmount
+                    .add(uniSold.sub(uniSoldOrder).sub(getExpectedFees(uniSold.sub(uniSoldOrder)))),
+            );
+
+            // The user received the excess KNC
+            expect(await context.mockKNC.balanceOf(context.user1.address)).to.be.equal(
+                context.baseAmount
+                    .add(kncSold.sub(kncSoldOrder).sub(getExpectedFees(kncSold.sub(kncSoldOrder)))),
+            );
+
+            // Must store UNI, and USDC in the records of the NFT
+            expect(await context.nestedRecords.getAssetTokens(1).then(value => value.toString())).to.be.equal(
+                [context.mockUNI.address, context.mockUSDC.address].toString(),
+            );
+
+            // Must have the right amount in the holdings
+            const holdingsUNI = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
+            expect(holdingsUNI.token).to.be.equal(context.mockUNI.address);
+            expect(holdingsUNI.amount).to.be.equal(baseUniBought.sub(uniSold));
+
+            const holdingsUSDC = await context.nestedRecords.getAssetHolding(1, context.mockUSDC.address);
+            expect(holdingsUSDC.token).to.be.equal(context.mockUSDC.address);
+            expect(holdingsUSDC.amount).to.be.equal(usdcBoughtOrder.sub(orderExpectedFee));
+        });
+    });
+
     // Create the Orders to buy KNC and UNI with DAI
     function getUniAndKncWithDaiOrders(uniBought: BigNumber, kncBought: BigNumber) {
         return [
@@ -1064,6 +1353,46 @@ describe("NestedFactory", () => {
                         tokenB,
                         dummyRouterSelector,
                         abiCoder.encode(["address", "address", "uint"], [tokenA, tokenB, amount]),
+                    ],
+                ),
+                commit: true,
+            },
+        ];
+    }
+
+    // Create the Orders to buy KNC and UNI with DAI
+    function getUsdcWithUniAndKncOrders(uniSold: BigNumber, kncSold: BigNumber) {
+        return [
+            {
+                operator: toBytes32("ZeroEx"),
+                token: context.mockUNI.address,
+                callData: abiCoder.encode(
+                    ["address", "address", "bytes4", "bytes"],
+                    [
+                        context.mockUNI.address,
+                        context.mockUSDC.address,
+                        dummyRouterSelector,
+                        abiCoder.encode(
+                            ["address", "address", "uint"],
+                            [context.mockUNI.address, context.mockUSDC.address, uniSold],
+                        ),
+                    ],
+                ),
+                commit: true,
+            },
+            {
+                operator: toBytes32("ZeroEx"),
+                token: context.mockKNC.address,
+                callData: abiCoder.encode(
+                    ["address", "address", "bytes4", "bytes"],
+                    [
+                        context.mockKNC.address,
+                        context.mockUSDC.address,
+                        dummyRouterSelector,
+                        abiCoder.encode(
+                            ["address", "address", "uint"],
+                            [context.mockKNC.address, context.mockUSDC.address, kncSold],
+                        ),
                     ],
                 ),
                 commit: true,
