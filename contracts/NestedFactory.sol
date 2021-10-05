@@ -143,7 +143,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         require(_orders.length > 0, "NestedFactory::addTokens: Missing orders");
 
         (uint256 fees, IERC20 tokenSold) = _submitInOrders(_nftId, _sellToken, _sellTokenAmount, _orders, true, false);
-        _transferFee(fees, tokenSold);
+        _transferFeeWithRoyalty(fees, tokenSold, _nftId);
         emit NftUpdated(_nftId);
     }
 
@@ -161,7 +161,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         );
 
         (uint256 fees, IERC20 tokenSold) = _submitInOrders(_nftId, _sellToken, _sellTokenAmount, _orders, true, true);
-        _transferFee(fees, tokenSold);
+        _transferFeeWithRoyalty(fees, tokenSold, _nftId);
 
         emit NftUpdated(_nftId);
     }
@@ -231,10 +231,9 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
 
             nestedRecords.freeHolding(_nftId, tokens[i]);
 
-            // Under spent input amount send to msg.sender (with fees)
-            uint256 underSpentAmount = holding.amount - amountSpent;
-            if (underSpentAmount > 0) {
-                _safeTransferWithFees(IERC20(tokens[i]), underSpentAmount, msg.sender);
+            // Under spent input amount send to fee splitter
+            if (holding.amount - amountSpent > 0) {
+                _transferFeeWithRoyalty(holding.amount - amountSpent, IERC20(tokens[i]), _nftId);
             }
         }
 
@@ -268,7 +267,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
 
         NestedRecords.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_token));
         reserve.withdraw(IERC20(holding.token), holding.amount);
-        _safeTransferWithFees(IERC20(holding.token), holding.amount, msg.sender);
+        _safeTransferWithFees(IERC20(holding.token), holding.amount, msg.sender, _nftId);
 
         nestedRecords.deleteAsset(_nftId, _tokenIndex);
 
@@ -347,10 +346,9 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
                 _decreaseHoldingAmount(_nftId, address(_inputToken), _inputTokenAmounts[i]);
             }
 
-            // Under spent input amount send to msg.sender (with fees)
-            uint256 underSpentAmount = _inputTokenAmounts[i] - amountSpent;
-            if (underSpentAmount > 0) {
-                _safeTransferWithFees(_inputToken, underSpentAmount, msg.sender);
+            // Under spent input amount send to fee splitter
+            if (_inputTokenAmounts[i] - amountSpent > 0) {
+                _transferFeeWithRoyalty(_inputTokenAmounts[i] - amountSpent, _inputToken, _nftId);
             }
         }
 
@@ -472,14 +470,6 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         }
     }
 
-    /// @dev Send a fee to the FeeSplitter
-    /// @param _amount Amount to send
-    /// @param _token Token to send
-    function _transferFee(uint256 _amount, IERC20 _token) private {
-        ExchangeHelpers.setMaxAllowance(_token, address(feeSplitter));
-        feeSplitter.sendFees(_token, _amount);
-    }
-
     /// @dev Decrease the amount of a NFT holding
     /// @param _nftId The NFT id
     /// @param _inputToken The token holding
@@ -520,10 +510,11 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     function _safeTransferWithFees(
         IERC20 _token,
         uint256 _amount,
-        address _dest
+        address _dest,
+        uint256 _nftId
     ) private {
         uint256 feeAmount = _calculateFees(_dest, _amount);
-        _transferFee(feeAmount, _token);
+        _transferFeeWithRoyalty(feeAmount, _token, _nftId);
         _token.safeTransfer(_dest, _amount - feeAmount);
     }
 

@@ -1189,7 +1189,6 @@ describe("NestedFactory", () => {
             // 6 UNI and 4 KNC in the portfolio, the user sell 3 UNI and 4 KNC for 7 USCC
             const uniSold = appendDecimals(3);
             const kncSold = appendDecimals(4);
-            const usdcBought = kncSold.add(uniSold);
 
             // The amount in the order is less than sell amount. Only 5 USDC will be bought
             const uniSoldOrder = uniSold.sub(appendDecimals(1));
@@ -1222,24 +1221,14 @@ describe("NestedFactory", () => {
             // The FeeSplitter must receive the right fee amount (in USDC)
             expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(orderExpectedFee);
 
-            // The FeeSplitter must receive fees on excess UNI
+            // The FeeSplitter must receive excess UNI
             expect(await context.mockUNI.balanceOf(context.feeSplitter.address)).to.be.equal(
-                getExpectedFees(uniSold.sub(uniSoldOrder)),
+                uniSold.sub(uniSoldOrder),
             );
 
-            // The FeeSplitter must receive fees on excess KNC
+            // The FeeSplitter must receive excess KNC
             expect(await context.mockKNC.balanceOf(context.feeSplitter.address)).to.be.equal(
-                getExpectedFees(kncSold.sub(kncSoldOrder)),
-            );
-
-            // The user received the excess UNI
-            expect(await context.mockUNI.balanceOf(context.user1.address)).to.be.equal(
-                context.baseAmount.add(uniSold.sub(uniSoldOrder).sub(getExpectedFees(uniSold.sub(uniSoldOrder)))),
-            );
-
-            // The user received the excess KNC
-            expect(await context.mockKNC.balanceOf(context.user1.address)).to.be.equal(
-                context.baseAmount.add(kncSold.sub(kncSoldOrder).sub(getExpectedFees(kncSold.sub(kncSoldOrder)))),
+                kncSold.sub(kncSoldOrder),
             );
 
             // Must store UNI, and USDC in the records of the NFT
@@ -1456,12 +1445,10 @@ describe("NestedFactory", () => {
             // 6 UNI and 4 KNC in the portfolio, the user sell 3 UNI and 4 KNC for 7 USCC
             const uniSold = appendDecimals(3);
             const kncSold = appendDecimals(4);
-            const usdcBought = kncSold.add(uniSold);
 
             // The amount in the order is less than sell amount. Only 5 USDC will be bought
             const uniSoldOrder = uniSold.sub(appendDecimals(1));
             const kncSoldOrder = kncSold.sub(appendDecimals(1));
-            const usdcBoughtOrder = uniSoldOrder.add(kncSoldOrder);
             let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSoldOrder, kncSoldOrder);
             const orderExpectedFee = getExpectedFees(uniSoldOrder.add(kncSoldOrder));
 
@@ -1487,29 +1474,14 @@ describe("NestedFactory", () => {
             // The FeeSplitter must receive the right fee amount (in USDC)
             expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(orderExpectedFee);
 
-            // The FeeSplitter must receive fees on excess UNI
+            // The FeeSplitter must receive excess UNI
             expect(await context.mockUNI.balanceOf(context.feeSplitter.address)).to.be.equal(
-                getExpectedFees(uniSold.sub(uniSoldOrder)),
+                uniSold.sub(uniSoldOrder),
             );
 
-            // The FeeSplitter must receive fees on excess KNC
+            // The FeeSplitter must receive excess KNC
             expect(await context.mockKNC.balanceOf(context.feeSplitter.address)).to.be.equal(
-                getExpectedFees(kncSold.sub(kncSoldOrder)),
-            );
-
-            // The user received the excess UNI
-            expect(await context.mockUNI.balanceOf(context.user1.address)).to.be.equal(
-                context.baseAmount.add(uniSold.sub(uniSoldOrder).sub(getExpectedFees(uniSold.sub(uniSoldOrder)))),
-            );
-
-            // The user received the excess KNC
-            expect(await context.mockKNC.balanceOf(context.user1.address)).to.be.equal(
-                context.baseAmount.add(kncSold.sub(kncSoldOrder).sub(getExpectedFees(kncSold.sub(kncSoldOrder)))),
-            );
-
-            // The user received the USDC
-            expect(await context.mockUSDC.balanceOf(context.user1.address)).to.be.equal(
-                context.baseAmount.add(usdcBoughtOrder.sub(getExpectedFees(usdcBoughtOrder))),
+                kncSold.sub(kncSoldOrder),
             );
 
             // Must store UNI, and USDC in the records of the NFT
@@ -1764,7 +1736,6 @@ describe("NestedFactory", () => {
 
         it("delete nft for USDC with UNI leftovers", async () => {
             // 6 UNI and 4 KNC in the portfolio, sell everything for 10 USDC
-            const uniSold = appendDecimals(6); // But 2 UNI leftovers
             const kncSold = appendDecimals(4);
             const uniSoldOrder = appendDecimals(4);
             const usdcBought = uniSoldOrder.add(kncSold);
@@ -1787,11 +1758,6 @@ describe("NestedFactory", () => {
             // The NFT is burned
             await expect(context.nestedAsset.ownerOf(1)).to.be.revertedWith(
                 "ERC721: owner query for nonexistent token",
-            );
-
-            // User receive the leftovers UNI - fees
-            expect(await context.mockUNI.balanceOf(context.user1.address)).to.be.equal(
-                context.baseAmount.add(uniSold.sub(uniSoldOrder)).sub(getExpectedFees(uniSold.sub(uniSoldOrder))),
             );
         });
     });
