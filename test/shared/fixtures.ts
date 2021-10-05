@@ -299,6 +299,10 @@ export const factoryAndZeroExFixture: Fixture<FactoryAndZeroExFixture> = async (
     await mockDAI.connect(user1).approve(nestedFactory.address, baseAmount);
     await mockUSDC.connect(user1).approve(nestedFactory.address, baseAmount);
 
+    // Wrap some ETH and send them to the dummy router
+    await WETH.connect(masterDeployer).deposit({ value: appendDecimals(100) });
+    await WETH.connect(masterDeployer).transfer(dummyRouter.address, appendDecimals(100));
+
     return {
         WETH,
         mockUNI,

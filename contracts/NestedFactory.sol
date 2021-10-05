@@ -214,11 +214,11 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         Order[] calldata _orders
     ) external override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
         address[] memory tokens = nestedRecords.getAssetTokens(_nftId);
-        require(_orders.length > 0, "NestedFactory::sellTokensToWallet: Missing orders");
-        require(tokens.length == _orders.length, "NestedFactory::sellTokensToWallet: Missing sell args");
+        require(_orders.length > 0, "NestedFactory::destroy: Missing orders");
+        require(tokens.length == _orders.length, "NestedFactory::destroy: Missing sell args");
         require(
             nestedRecords.getAssetReserve(_nftId) == address(reserve),
-            "NestedFactory::sellTokensToWallet: Assets in different reserve"
+            "NestedFactory::destroy: Assets in different reserve"
         );
 
         uint256 buyTokenInitialBalance = _buyToken.balanceOf(address(this));
@@ -227,9 +227,15 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             NestedRecords.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
             reserve.withdraw(IERC20(holding.token), holding.amount);
 
-            _submitOrder(IERC20(tokens[i]), address(_buyToken), _nftId, _orders[i], false);
+            uint256 amountSpent = _submitOrder(IERC20(tokens[i]), address(_buyToken), _nftId, _orders[i], false);
 
             nestedRecords.freeHolding(_nftId, tokens[i]);
+
+            // Under spent input amount send to msg.sender (with fees)
+            uint256 underSpentAmount = holding.amount - amountSpent;
+            if (underSpentAmount > 0) {
+                _safeTransferWithFees(IERC20(tokens[i]), underSpentAmount, msg.sender);
+            }
         }
 
         // Amount calculation to send fees and tokens
