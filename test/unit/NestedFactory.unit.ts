@@ -1222,14 +1222,10 @@ describe("NestedFactory", () => {
             expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(orderExpectedFee);
 
             // The FeeSplitter must receive excess UNI
-            expect(await context.mockUNI.balanceOf(context.feeSplitter.address)).to.be.equal(
-                uniSold.sub(uniSoldOrder),
-            );
+            expect(await context.mockUNI.balanceOf(context.feeSplitter.address)).to.be.equal(uniSold.sub(uniSoldOrder));
 
             // The FeeSplitter must receive excess KNC
-            expect(await context.mockKNC.balanceOf(context.feeSplitter.address)).to.be.equal(
-                kncSold.sub(kncSoldOrder),
-            );
+            expect(await context.mockKNC.balanceOf(context.feeSplitter.address)).to.be.equal(kncSold.sub(kncSoldOrder));
 
             // Must store UNI, and USDC in the records of the NFT
             expect(await context.nestedRecords.getAssetTokens(1).then(value => value.toString())).to.be.equal(
@@ -1475,14 +1471,10 @@ describe("NestedFactory", () => {
             expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(orderExpectedFee);
 
             // The FeeSplitter must receive excess UNI
-            expect(await context.mockUNI.balanceOf(context.feeSplitter.address)).to.be.equal(
-                uniSold.sub(uniSoldOrder),
-            );
+            expect(await context.mockUNI.balanceOf(context.feeSplitter.address)).to.be.equal(uniSold.sub(uniSoldOrder));
 
             // The FeeSplitter must receive excess KNC
-            expect(await context.mockKNC.balanceOf(context.feeSplitter.address)).to.be.equal(
-                kncSold.sub(kncSoldOrder),
-            );
+            expect(await context.mockKNC.balanceOf(context.feeSplitter.address)).to.be.equal(kncSold.sub(kncSoldOrder));
 
             // Must store UNI, and USDC in the records of the NFT
             expect(await context.nestedRecords.getAssetTokens(1).then(value => value.toString())).to.be.equal(
