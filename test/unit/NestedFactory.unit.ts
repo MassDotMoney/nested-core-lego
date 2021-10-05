@@ -3,7 +3,7 @@ import { factoryAndZeroExFixture, FactoryAndZeroExFixture } from "../shared/fixt
 import { createFixtureLoader, expect, provider } from "../shared/provider";
 import { BigNumber, Wallet } from "ethers";
 import { appendDecimals, toBytes32 } from "../helpers";
-import { ethers } from "hardhat";
+import { ethers, network } from "hardhat";
 
 let loadFixture: LoadFixtureFunction;
 
@@ -1861,6 +1861,71 @@ describe("NestedFactory", () => {
             await expect(
                 context.nestedFactory.connect(context.user1).withdraw(1, 0, context.mockUNI.address),
             ).to.be.revertedWith("NestedFactory::withdraw: Can't withdraw the last asset");
+        });
+    });
+
+    describe("increaseLockTimestamp()", () => {
+        // Amount already in the portfolio
+        let baseUniBought = appendDecimals(6);
+        let baseKncBought = appendDecimals(4);
+        let baseTotalToBought = baseUniBought.add(baseKncBought);
+        let baseExpectedFee = getExpectedFees(baseTotalToBought);
+        let baseTotalToSpend = baseTotalToBought.add(baseExpectedFee);
+
+        beforeEach("Set reserve and create NFT (id 1)", async () => {
+            // set reserve
+            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
+
+            // create nft 1 with UNI and KNC from DAI (use the base amounts)
+            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
+            await context.nestedFactory
+                .connect(context.user1)
+                .create(0, context.mockDAI.address, baseTotalToSpend, orders);
+        });
+
+        it("cant increase if another user portfolio", async () => {
+            await expect(
+                context.nestedFactory.connect(context.masterDeployer).increaseLockTimestamp(1, Date.now()),
+            ).to.be.revertedWith("NestedFactory: Not the token owner");
+        });
+
+        it("cant increase nonexistent portfolio", async () => {
+            await expect(
+                context.nestedFactory.connect(context.user1).increaseLockTimestamp(2, Date.now()),
+            ).to.be.revertedWith("ERC721: owner query for nonexistent token");
+        });
+
+        it("cant decrease timestamp", async () => {
+            await context.nestedFactory.connect(context.user1).increaseLockTimestamp(1, Date.now());
+            await expect(
+                context.nestedFactory.connect(context.user1).increaseLockTimestamp(1, Date.now() - 1000),
+            ).to.be.revertedWith("NestedRecords::increaseLockTimestamp: Can't decrease timestamp");
+        });
+
+        /*
+         * We are testing with the "withdraw" function, but it's the same for
+         * all the functions implementing the "isUnlocked" modifier.
+         */
+        it("cant withdraw if locked", async () => {
+            await expect(context.nestedFactory.connect(context.user1).increaseLockTimestamp(1, Date.now() + 1000))
+                .to.emit(context.nestedRecords, "LockTimestampIncreased")
+                .withArgs(1, Date.now() + 1000);
+
+            await expect(
+                context.nestedFactory.connect(context.user1).withdraw(1, 0, context.mockUNI.address),
+            ).to.be.revertedWith("NestedFactory: The NFT is currently locked");
+        });
+
+        it("can withdraw after the waiting period", async () => {
+            await expect(context.nestedFactory.connect(context.user1).increaseLockTimestamp(1, Date.now() + 1000))
+                .to.emit(context.nestedRecords, "LockTimestampIncreased")
+                .withArgs(1, Date.now() + 1000);
+
+            await network.provider.send("evm_increaseTime", [Date.now()]);
+            await network.provider.send("evm_mine");
+
+            await expect(context.nestedFactory.connect(context.user1).withdraw(1, 0, context.mockUNI.address)).to.not.be
+                .reverted;
         });
     });
 

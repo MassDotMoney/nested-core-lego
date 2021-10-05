@@ -13,6 +13,11 @@ contract NestedRecords is Ownable {
     /// @param maxHoldingsCount The new value
     event MaxHoldingsChanges(uint256 maxHoldingsCount);
 
+    /// @dev Emitted when the lock timestamp of an NFT is increased
+    /// @param nftId The NFT ID
+    /// @param timestamp The new lock timestamp of the portfolio
+    event LockTimestampIncreased(uint256 nftId, uint256 timestamp);
+
     /// @dev Info about assets stored in reserves
     struct Holding {
         address token;
@@ -155,6 +160,7 @@ contract NestedRecords is Ownable {
             "NestedRecords::increaseLockTimestamp: Can't decrease timestamp"
         );
         records[_nftId].lockTimestamp = _timestamp;
+        emit LockTimestampIncreased(_nftId, _timestamp);
     }
 
     /// @notice Sets the maximum number of holdings for an NFT record
