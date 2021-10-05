@@ -48,6 +48,7 @@ contract NestedBuybacker is Ownable {
         address payable _feeSplitter,
         uint256 _burnPercentage
     ) {
+        require(_burnPercentage <= 1000, "NestedBuybacker::constructor: Burn part to high");
         burnPercentage = _burnPercentage;
         NST = INestedToken(_NST);
         feeSplitter = FeeSplitter(_feeSplitter);

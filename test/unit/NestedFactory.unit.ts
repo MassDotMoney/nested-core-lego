@@ -1875,9 +1875,10 @@ describe("NestedFactory", () => {
         });
 
         it("can withdraw after the waiting period", async () => {
-            await expect(context.nestedFactory.connect(context.user1).increaseLockTimestamp(1, Date.now() + 1000))
+            const timestampNow = Date.now();
+            await expect(context.nestedFactory.connect(context.user1).increaseLockTimestamp(1,timestampNow + 1000))
                 .to.emit(context.nestedRecords, "LockTimestampIncreased")
-                .withArgs(1, Date.now() + 1000);
+                .withArgs(1, timestampNow + 1000);
 
             await network.provider.send("evm_increaseTime", [Date.now()]);
             await network.provider.send("evm_mine");

@@ -5,7 +5,7 @@ import { ethers } from "hardhat";
 import { expect } from "chai";
 import { DummyRouter, FeeSplitter, MockERC20, NestedBuybacker, WETH9 } from "../../typechain";
 
-describe.skip("NestedBuybacker", () => {
+describe("NestedBuybacker", () => {
     let alice: SignerWithAddress, bob: SignerWithAddress, communityReserve: SignerWithAddress;
     let feeSplitter: FeeSplitter, mockWETH: WETH9;
     let mockNST: MockERC20, mockUSDT: MockERC20;
@@ -49,7 +49,7 @@ describe.skip("NestedBuybacker", () => {
         const NestedBuybackerFactory = await ethers.getContractFactory("NestedBuybacker");
         await expect(
             NestedBuybackerFactory.deploy(mockNST.address, communityReserve.address, feeSplitter.address, 1200),
-        ).to.be.revertedWith("NestedBuybacker: BURN_PART_TOO_HIGH");
+        ).to.be.revertedWith("NestedBuybacker::constructor: Burn part to high");
     });
 
     it("sets the nested reserve address", async () => {

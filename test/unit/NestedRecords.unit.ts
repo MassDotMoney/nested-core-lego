@@ -4,7 +4,7 @@ import { ethers } from "hardhat";
 import { expect } from "chai";
 import { NestedRecords, NestedRecords__factory } from "../../typechain";
 
-describe.skip("NestedRecords", () => {
+describe("NestedRecords", () => {
     let NestedRecords: NestedRecords__factory, nestedRecords: NestedRecords;
     let alice: SignerWithAddress, bob: SignerWithAddress;
 

@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { NestedAsset, NestedAsset__factory } from "../../typechain";
 
-describe.skip("NestedAsset", () => {
+describe("NestedAsset", () => {
     let NestedAsset: NestedAsset__factory, asset: NestedAsset;
     let factory: SignerWithAddress,
         otherFactory: SignerWithAddress,
