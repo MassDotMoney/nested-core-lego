@@ -1796,6 +1796,74 @@ describe("NestedFactory", () => {
         });
     });
 
+    describe("withdraw()", () => {
+        // Amount already in the portfolio
+        let baseUniBought = appendDecimals(6);
+        let baseKncBought = appendDecimals(4);
+        let baseTotalToBought = baseUniBought.add(baseKncBought);
+        let baseExpectedFee = getExpectedFees(baseTotalToBought);
+        let baseTotalToSpend = baseTotalToBought.add(baseExpectedFee);
+
+        beforeEach("Set reserve and create NFT (id 1)", async () => {
+            // set reserve
+            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
+
+            // create nft 1 with UNI and KNC from DAI (use the base amounts)
+            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
+            await context.nestedFactory
+                .connect(context.user1)
+                .create(0, context.mockDAI.address, baseTotalToSpend, orders);
+        });
+
+        it("cant withdraw from another user portfolio", async () => {
+            await expect(
+                context.nestedFactory.connect(context.masterDeployer).withdraw(1, 1, context.mockKNC.address),
+            ).to.be.revertedWith("NestedFactory: Not the token owner");
+        });
+
+        it("cant withdraw from nonexistent portfolio", async () => {
+            await expect(
+                context.nestedFactory.connect(context.user1).withdraw(2, 1, context.mockKNC.address),
+            ).to.be.revertedWith("ERC721: owner query for nonexistent token");
+        });
+
+        it("cant withdraw if wrong token index", async () => {
+            // KNC => Index 1
+            await expect(
+                context.nestedFactory.connect(context.user1).withdraw(1, 2, context.mockKNC.address),
+            ).to.be.revertedWith("NestedFactory::withdraw: Invalid token index");
+        });
+
+        it("remove token from holdings", async () => {
+            await expect(context.nestedFactory.connect(context.user1).withdraw(1, 1, context.mockKNC.address))
+                .to.emit(context.nestedFactory, "NftUpdated")
+                .withArgs(1);
+
+            // Must remove KNC from holdings
+            expect(await context.nestedRecords.getAssetTokens(1).then(value => value.toString())).to.be.equal(
+                [context.mockUNI.address].toString(),
+            );
+
+            // User and fee splitter receive funds
+            expect(await context.mockKNC.balanceOf(context.feeSplitter.address)).to.be.equal(
+                getExpectedFees(baseKncBought),
+            );
+            expect(await context.mockKNC.balanceOf(context.user1.address)).to.be.equal(
+                context.baseAmount.add(baseKncBought.sub(getExpectedFees(baseKncBought))),
+            );
+        });
+
+        it("cant withdraw the last token", async () => {
+            // Withdraw KNC first
+            await context.nestedFactory.connect(context.user1).withdraw(1, 1, context.mockKNC.address);
+
+            // Should not me able to withdraw UNI (the last token)
+            await expect(
+                context.nestedFactory.connect(context.user1).withdraw(1, 0, context.mockUNI.address),
+            ).to.be.revertedWith("NestedFactory::withdraw: Can't withdraw the last asset");
+        });
+    });
+
     // Create the Orders to buy KNC and UNI with DAI
     function getUniAndKncWithDaiOrders(uniBought: BigNumber, kncBought: BigNumber) {
         return [
