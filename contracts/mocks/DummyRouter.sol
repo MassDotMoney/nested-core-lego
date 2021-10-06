@@ -15,7 +15,7 @@ contract DummyRouter is IERC721Receiver {
     receive() external payable {}
 
     // send ETH, get the token
-    function dummyswapETH(IERC20 token) public payable {
+    function dummyswapETH(IERC20 token) external payable {
         // send 1ETH, you get 10 dummy tokens
         token.transfer(msg.sender, msg.value * 10);
     }

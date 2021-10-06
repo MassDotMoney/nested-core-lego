@@ -77,7 +77,7 @@ contract NestedBuybacker is Ownable {
 
     /// @notice Update parts deciding what amount is sent to reserve or burned
     /// @param _burnPercentage The new burn percentage
-    function setBurnPart(uint256 _burnPercentage) public onlyOwner {
+    function setBurnPart(uint256 _burnPercentage) external onlyOwner {
         require(_burnPercentage <= 1000, "NestedBuybacker::setBurnPart: Burn part to high");
         burnPercentage = _burnPercentage;
         emit BurnPartUpdated(burnPercentage);

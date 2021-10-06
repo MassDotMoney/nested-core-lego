@@ -110,7 +110,7 @@ contract NestedRecords is Ownable {
     /// @notice Delete a holding item in holding mapping. Does not remove token in NftRecord.tokens array
     /// @param _nftId NFT's identifier
     /// @param _token Token address for holding to remove
-    function freeHolding(uint256 _nftId, address _token) public onlyFactory {
+    function freeHolding(uint256 _nftId, address _token) external onlyFactory {
         delete records[_nftId].holdings[_token];
     }
 
