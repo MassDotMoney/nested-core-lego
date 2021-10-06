@@ -13,13 +13,18 @@ Smart Contracts:
 - NestedRecords: Tracks underlying assets of NestedNFTs. (Amount, NestedReserve)
 - FeeSplitter: Receives payment in ERC20 tokens from the factory when fees are taken. Allows each party to claim the amount they are due.
 - NestedBuyBacker: Pulls tokens from the FeeSplitter, buys back NST tokens on the market, and burn a part of it.
-
+- OperatorResolver: Allows the factory to identify which operator to interact with.
+- ZeroExoperator: Performs token swaps through 0x
 nb: NST token and staking pools contract can be found here: https://github.com/NestedFinance/nested-token
+
+Known issues:
+- Deflationnay tokens: Tokens with elastic supply and tokens which burn or transfer a part of each transaction are not supported by the protocol, as they can't be tracked over time by the NestedReserve and NestedRecords contract.  -> Those tokens are blacklisted in the frontend platform to protect users.
+- Centralization: Some functions of the protocol require admin rights. We want the users to feel safe while using this protocol -> First, we will use the famous TimelockController library from OpenZeppelin with a 7-days delay, to ensure that the commmmunity has time to review any change we make to the protocol. Second, the owner of the TimelockController will be a third-party multisig. During the next phase of the protocol, the ownership will be transfered to a fully decentralized DAO.
 
 3rd parties:
 - Nested Finance brings decentralized liquidity to the protocol through 0x. It's a protocol that creates off-chain orders, and settles on chain. This way, the NestedFactory expects to receive calldata to forwarded to 0x contracts. The route used to get such information follows this pattern: `https://api.0x.org/swap/v1/quote?buyToken=SNX&sellToken=LINK&buyAmount=7160000000000000000000`
 
-**Have a look at the `/demo/` folder. Scripts describe all use cases and usage of the smart contracts.**
+The following diagrams do not showcase the modular architecture of the protocol, i.e. the operators and operator resolver.
 
 Use case: creation of a NestedNFT
 ![image](https://user-images.githubusercontent.com/32484870/117845076-857c3580-b280-11eb-9bc7-8422b856ed92.png)
@@ -46,9 +51,6 @@ Update process:
 Start a local blockchain
 `yarn run`
 
-Start a local fork of ropsten (works with mainnet too)
-`npx hardhat node --network ropsten`
-
 Start a hardhat console
 `yarn console`
 
@@ -63,9 +65,6 @@ Run coverage
 
 Run gas profiler
 `yarn test:gas`
-
-# Local testing
-
 
 ## Create an NFT from Eth
 
