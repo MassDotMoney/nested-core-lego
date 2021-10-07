@@ -231,10 +231,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
 
             nestedRecords.freeHolding(_nftId, tokens[i]);
 
-            // Under spent input amount send to fee splitter
-            if (holding.amount - amountSpent > 0) {
-                _transferFeeWithRoyalty(holding.amount - amountSpent, IERC20(tokens[i]), _nftId);
-            }
+            _handleUnderSpending(holding.amount, amountSpent, IERC20(tokens[i]));
         }
 
         // Amount calculation to send fees and tokens
@@ -302,15 +299,16 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         for (uint256 i = 0; i < _orders.length; i++) {
             amountSpent += _submitOrder(_inputToken, _orders[i].token, _nftId, _orders[i], _reserved);
         }
-        uint256 fees = _calculateFees(msg.sender, amountSpent);
-        assert(amountSpent <= _inputTokenAmount - fees); // overspent
+        feesAmount = _calculateFees(msg.sender, amountSpent);
+        assert(amountSpent <= _inputTokenAmount - feesAmount); // overspent
 
         // If input is from the reserve, update the records
         if (_fromReserve) {
             _decreaseHoldingAmount(_nftId, address(_inputToken), _inputTokenAmount);
         }
 
-        feesAmount = _inputTokenAmount - amountSpent;
+        _handleUnderSpending(_inputTokenAmount - feesAmount, amountSpent, _inputToken);
+
         tokenSold = _inputToken;
     }
 
@@ -450,6 +448,19 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             _inputToken.safeTransferFrom(msg.sender, address(this), _inputTokenAmount);
         }
         tokenUsed = _inputToken;
+    }
+
+    /// @dev Send the under spent amount to the FeeSplitter without the royalties.
+    ///      The "under spent" amount is the positive difference between the amount supposed
+    ///      to be spent and the amount really spent.
+    /// @param _amountToSpent The amount supposed to be spent
+    /// @param _amountSpent The amount really spent
+    /// @param _token The amount-related token
+    function _handleUnderSpending(uint256 _amountToSpent, uint256 _amountSpent, IERC20 _token) private {
+        if (_amountToSpent - _amountSpent > 0) {
+            ExchangeHelpers.setMaxAllowance(_token, address(feeSplitter));
+            feeSplitter.sendFees(_token, _amountToSpent - _amountSpent);
+        }
     }
 
     /// @dev Send a fee to the FeeSplitter, royalties will be paid to the owner of the original asset
