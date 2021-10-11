@@ -456,7 +456,11 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     /// @param _amountToSpent The amount supposed to be spent
     /// @param _amountSpent The amount really spent
     /// @param _token The amount-related token
-    function _handleUnderSpending(uint256 _amountToSpent, uint256 _amountSpent, IERC20 _token) private {
+    function _handleUnderSpending(
+        uint256 _amountToSpent,
+        uint256 _amountSpent,
+        IERC20 _token
+    ) private {
         if (_amountToSpent - _amountSpent > 0) {
             ExchangeHelpers.setMaxAllowance(_token, address(feeSplitter));
             feeSplitter.sendFees(_token, _amountToSpent - _amountSpent);

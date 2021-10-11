@@ -378,6 +378,81 @@ describe("NestedFactory", () => {
             expect(await context.mockDAI.balanceOf(context.feeSplitter.address)).to.be.equal(
                 totalToSpend.sub(totalToBought),
             );
+
+            const totalWeigths = await context.feeSplitter.totalWeights();
+            const royaltiesWeight = await context.feeSplitter.royaltiesWeight();
+
+            // Shareholders DAI received
+            expect(
+                await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockDAI.address),
+            ).to.equal(totalToSpend.sub(totalToBought).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
+            expect(
+                await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockDAI.address),
+            ).to.equal(totalToSpend.sub(totalToBought).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
+        });
+
+        it("Replicates NFT from DAI with KNI and UNI inside (ZeroExOperator) with more than needed", async () => {
+            /*
+             * All the amounts for this test :
+             * - Buy 6 UNI and 4 KNC
+             * - The user needs 10 DAI (+ fees) but will spend 20 DAI (10 DAI in excess)
+             */
+            const uniBought = appendDecimals(6);
+            const kncBought = appendDecimals(4);
+            const totalToBought = uniBought.add(kncBought);
+            const totalToSpend = appendDecimals(20);
+
+            // Orders for UNI and KNC
+            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
+
+            // User1 creates the portfolio/NFT and emit event NftCreated (not more than needed)
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .create(0, context.mockDAI.address, appendDecimals(10).add(getExpectedFees(totalToBought)), orders),
+            )
+                .to.emit(context.nestedFactory, "NftCreated")
+                .withArgs(1, 0);
+
+            // User1 replicates the portfolio/NFT and emit event NftCreated (with the same amounts)
+            await expect(
+                context.nestedFactory.connect(context.user1).create(1, context.mockDAI.address, totalToSpend, orders),
+            )
+                .to.emit(context.nestedFactory, "NftCreated")
+                .withArgs(2, 1);
+
+            // The FeeSplitter must receive the DAI in excess
+            expect(await context.mockDAI.balanceOf(context.feeSplitter.address)).to.be.equal(
+                totalToSpend.sub(totalToBought).add(getExpectedFees(totalToBought)),
+            );
+
+            const totalWeigths = await context.feeSplitter.totalWeights();
+            const royaltiesWeight = await context.feeSplitter.royaltiesWeight();
+
+            expect(
+                await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockDAI.address),
+            ).to.equal(
+                totalToSpend
+                    .sub(totalToBought)
+                    .mul(1000)
+                    .div(totalWeigths.sub(royaltiesWeight))
+                    .add(getExpectedFees(totalToBought).mul(1000).div(totalWeigths))
+                    .add(1),
+            );
+
+            expect(
+                await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockDAI.address),
+            ).to.equal(
+                totalToSpend
+                    .sub(totalToBought)
+                    .mul(1700)
+                    .div(totalWeigths.sub(royaltiesWeight))
+                    .add(getExpectedFees(totalToBought).mul(1700).div(totalWeigths)),
+            );
+
+            expect(await context.feeSplitter.getAmountDue(context.user1.address, context.mockDAI.address)).to.equal(
+                getExpectedFees(totalToBought).mul(royaltiesWeight).div(totalWeigths),
+            );
         });
 
         it("Creates NFT from ETH with KNI and UNI inside (ZeroExOperator) with right amounts", async () => {
@@ -666,6 +741,32 @@ describe("NestedFactory", () => {
             expect(await context.mockDAI.balanceOf(context.feeSplitter.address)).to.be.equal(
                 totalToSpend.add(baseTotalToSpend).sub(totalToBought).sub(baseTotalToBought),
             );
+
+            const totalWeigths = await context.feeSplitter.totalWeights();
+            const royaltiesWeight = await context.feeSplitter.royaltiesWeight();
+            // add/sub one bc of solidity rounding
+            expect(
+                await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockDAI.address),
+            ).to.equal(
+                totalToSpend
+                    .add(baseTotalToSpend)
+                    .sub(totalToBought)
+                    .sub(baseTotalToBought)
+                    .mul(1000)
+                    .div(totalWeigths.sub(royaltiesWeight))
+                    .add(1),
+            );
+            expect(
+                await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockDAI.address),
+            ).to.equal(
+                totalToSpend
+                    .add(baseTotalToSpend)
+                    .sub(totalToBought)
+                    .sub(baseTotalToBought)
+                    .mul(1700)
+                    .div(totalWeigths.sub(royaltiesWeight))
+                    .sub(1),
+            );
         });
 
         it("add new token (DAI) from ETH", async () => {
@@ -944,6 +1045,15 @@ describe("NestedFactory", () => {
             expect(await context.mockKNC.balanceOf(context.feeSplitter.address)).to.be.equal(
                 totalToSpend.sub(uniBought),
             );
+
+            const totalWeigths = await context.feeSplitter.totalWeights();
+            const royaltiesWeight = await context.feeSplitter.royaltiesWeight();
+            expect(
+                await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockKNC.address),
+            ).to.equal(totalToSpend.sub(uniBought).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
+            expect(
+                await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockKNC.address),
+            ).to.equal(totalToSpend.sub(uniBought).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
         });
 
         it("swap UNI in portfolio for USDC (ZeroExOperator) with right amounts", async () => {
@@ -1227,6 +1337,33 @@ describe("NestedFactory", () => {
             // The FeeSplitter must receive excess KNC
             expect(await context.mockKNC.balanceOf(context.feeSplitter.address)).to.be.equal(kncSold.sub(kncSoldOrder));
 
+            const totalWeigths = await context.feeSplitter.totalWeights();
+            const royaltiesWeight = await context.feeSplitter.royaltiesWeight();
+
+            // Shareholders USDC received
+            expect(
+                await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockUSDC.address),
+            ).to.equal(orderExpectedFee.mul(1000).div(totalWeigths.sub(royaltiesWeight)));
+            expect(
+                await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockUSDC.address),
+            ).to.equal(orderExpectedFee.mul(1700).div(totalWeigths.sub(royaltiesWeight)));
+
+            // Shareholders UNI received
+            expect(
+                await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockUNI.address),
+            ).to.equal(uniSold.sub(uniSoldOrder).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
+            expect(
+                await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockUNI.address),
+            ).to.equal(uniSold.sub(uniSoldOrder).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
+
+            // Shareholders KNC received
+            expect(
+                await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockKNC.address),
+            ).to.equal(kncSold.sub(kncSoldOrder).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
+            expect(
+                await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockKNC.address),
+            ).to.equal(kncSold.sub(kncSoldOrder).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
+
             // Must store UNI, and USDC in the records of the NFT
             expect(await context.nestedRecords.getAssetTokens(1).then(value => value.toString())).to.be.equal(
                 [context.mockUNI.address, context.mockUSDC.address].toString(),
@@ -1475,6 +1612,33 @@ describe("NestedFactory", () => {
 
             // The FeeSplitter must receive excess KNC
             expect(await context.mockKNC.balanceOf(context.feeSplitter.address)).to.be.equal(kncSold.sub(kncSoldOrder));
+
+            const totalWeigths = await context.feeSplitter.totalWeights();
+            const royaltiesWeight = await context.feeSplitter.royaltiesWeight();
+
+            // Shareholders USDC received
+            expect(
+                await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockUSDC.address),
+            ).to.equal(orderExpectedFee.mul(1000).div(totalWeigths.sub(royaltiesWeight)));
+            expect(
+                await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockUSDC.address),
+            ).to.equal(orderExpectedFee.mul(1700).div(totalWeigths.sub(royaltiesWeight)));
+
+            // Shareholders UNI received
+            expect(
+                await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockUNI.address),
+            ).to.equal(uniSold.sub(uniSoldOrder).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
+            expect(
+                await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockUNI.address),
+            ).to.equal(uniSold.sub(uniSoldOrder).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
+
+            // Shareholders KNC received
+            expect(
+                await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockKNC.address),
+            ).to.equal(kncSold.sub(kncSoldOrder).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
+            expect(
+                await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockKNC.address),
+            ).to.equal(kncSold.sub(kncSoldOrder).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
 
             // Must store UNI, and USDC in the records of the NFT
             expect(await context.nestedRecords.getAssetTokens(1).then(value => value.toString())).to.be.equal(
@@ -1876,7 +2040,7 @@ describe("NestedFactory", () => {
 
         it("can withdraw after the waiting period", async () => {
             const timestampNow = Date.now();
-            await expect(context.nestedFactory.connect(context.user1).increaseLockTimestamp(1,timestampNow + 1000))
+            await expect(context.nestedFactory.connect(context.user1).increaseLockTimestamp(1, timestampNow + 1000))
                 .to.emit(context.nestedRecords, "LockTimestampIncreased")
                 .withArgs(1, timestampNow + 1000);
 
