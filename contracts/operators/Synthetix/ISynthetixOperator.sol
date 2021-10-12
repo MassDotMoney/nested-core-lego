@@ -15,7 +15,7 @@ interface ISynthetixOperator {
     function commitAndRevert(
         address own,
         bytes32 sourceCurrencyKey,
-        uint sourceAmount,
+        uint256 sourceAmount,
         bytes32 destinationCurrencyKey
     ) external returns (uint256[] memory amounts, address[] memory tokens);
 }
