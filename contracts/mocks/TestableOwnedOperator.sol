@@ -26,10 +26,9 @@ contract TestableOwnedOperator {
     }
 
     function ownableOperatorAddress(address own) internal view returns (address) {
-        bytes32 _data =
-            keccak256(
-                abi.encodePacked(bytes1(0xff), own, bytes32("salt"), keccak256(type(OwnableOperator).creationCode))
-            );
+        bytes32 _data = keccak256(
+            abi.encodePacked(bytes1(0xff), own, bytes32("salt"), keccak256(type(OwnableOperator).creationCode))
+        );
         return address(uint160(uint256(_data)));
     }
 }

@@ -84,10 +84,9 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         uint256 totalReceived = _tokenRecords.totalReleased;
         if (_tokenRecords.totalShares == 0) return 0;
         else totalReceived += _token.balanceOf(address(this));
-        uint256 amountDue =
-            (totalReceived * _tokenRecords.shares[_account]) /
-                _tokenRecords.totalShares -
-                _tokenRecords.released[_account];
+        uint256 amountDue = (totalReceived * _tokenRecords.shares[_account]) /
+            _tokenRecords.totalShares -
+            _tokenRecords.released[_account];
         return amountDue;
     }
 

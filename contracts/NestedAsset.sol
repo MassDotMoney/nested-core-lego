@@ -29,7 +29,7 @@ contract NestedAsset is ERC721Enumerable, Ownable {
     constructor() ERC721("NestedNFT", "NESTED") {}
 
     /// @dev Reverts the transaction if the caller is not the factory
-    modifier onlyFactory {
+    modifier onlyFactory() {
         require(supportedFactories[msg.sender], "NestedAsset: FORBIDDEN_NOT_FACTORY");
         _;
     }
