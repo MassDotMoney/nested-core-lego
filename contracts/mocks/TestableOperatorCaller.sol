@@ -15,16 +15,15 @@ contract TestableOperatorCaller {
         address buyToken,
         bytes calldata swapCallData
     ) external returns (bool) {
-        (bool success, bytes memory data) =
-            operator.delegatecall(
-                abi.encodeWithSignature(
-                    "commitAndRevert(address,address,address,bytes)",
-                    own,
-                    sellToken,
-                    buyToken,
-                    swapCallData
-                )
-            );
+        (bool success, bytes memory data) = operator.delegatecall(
+            abi.encodeWithSignature(
+                "commitAndRevert(address,address,address,bytes)",
+                own,
+                sellToken,
+                buyToken,
+                swapCallData
+            )
+        );
         require(success, "TestableOperatorCaller::zeroExCommitAndRevert: Error");
         return true;
     }
@@ -35,16 +34,15 @@ contract TestableOperatorCaller {
         uint256 sourceAmount,
         bytes32 destinationCurrencyKey
     ) external returns (bool) {
-        (bool success, bytes memory data) =
-            operator.delegatecall(
-                abi.encodeWithSignature(
-                    "commitAndRevert(address,address,address,bytes)",
-                    own,
-                    sourceCurrencyKey,
-                    sourceAmount,
-                    destinationCurrencyKey
-                )
-            );
+        (bool success, bytes memory data) = operator.delegatecall(
+            abi.encodeWithSignature(
+                "commitAndRevert(address,address,address,bytes)",
+                own,
+                sourceCurrencyKey,
+                sourceAmount,
+                destinationCurrencyKey
+            )
+        );
         require(success, "TestableOperatorCaller::synthetixCommitAndRevert: Error");
         return true;
     }

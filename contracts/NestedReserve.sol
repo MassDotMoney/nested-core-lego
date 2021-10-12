@@ -28,7 +28,7 @@ contract NestedReserve is Ownable {
     }
 
     /// @dev Reverts if the caller is not the factory
-    modifier onlyFactory {
+    modifier onlyFactory() {
         require(msg.sender == factory, "NestedReserve: UNAUTHORIZED");
         _;
     }

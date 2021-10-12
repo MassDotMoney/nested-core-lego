@@ -44,8 +44,8 @@ describe("TimelockController", () => {
     it("schedules and executes a transaction to set a new factory", async () => {
         const [alice] = await ethers.getSigners();
 
-        const TimelockControllerBytecode = require("@openzeppelin/contracts/build/contracts/TimelockController.json")
-            .bytecode;
+        const TimelockControllerBytecode =
+            require("@openzeppelin/contracts/build/contracts/TimelockController.json").bytecode;
         const TimelockControllerFactory = await ethers.getContractFactory(
             [
                 "function schedule(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt, uint256 delay) public",
