@@ -5,6 +5,7 @@ import { ActorFixture } from "./actors";
 import {
     DummyRouter,
     FeeSplitter,
+    FlatOperator,
     MockERC20,
     MockSmartChef,
     NestedAsset,
@@ -148,7 +149,7 @@ export const synthetixOperatorFixture: Fixture<SynthetixOperatorFixture> = async
     return { synthetix, synthetixOperator, testableOperatorCaller, mockUNI, mockDAI };
 };
 
-export type FactoryAndZeroExFixture = {
+export type FactoryAndOperatorsFixture = {
     WETH: WETH9;
     mockUNI: MockERC20;
     mockKNC: MockERC20;
@@ -165,6 +166,8 @@ export type FactoryAndZeroExFixture = {
     dummyRouter: DummyRouter;
     zeroExOperator: ZeroExOperator;
     zeroExOperatorNameBytes32: string;
+    flatOperator: FlatOperator;
+    flatOperatorNameBytes32: string;
     nestedFactory: NestedFactory;
     nestedReserve: NestedReserve;
     smartChef: MockSmartChef;
@@ -173,7 +176,7 @@ export type FactoryAndZeroExFixture = {
     baseAmount: BigNumber;
 };
 
-export const factoryAndZeroExFixture: Fixture<FactoryAndZeroExFixture> = async (wallets, provider) => {
+export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = async (wallets, provider) => {
     const masterDeployer = new ActorFixture(wallets as Wallet[], provider).masterDeployer();
 
     // Deploy WETH
@@ -236,6 +239,11 @@ export const factoryAndZeroExFixture: Fixture<FactoryAndZeroExFixture> = async (
     const zeroExOperator = await zeroExOperatorFactory.connect(masterDeployer).deploy(dummyRouter.address);
     await zeroExOperator.deployed();
 
+    // Deploy FlatOperator
+    const flatOperatorFactory = await ethers.getContractFactory("FlatOperator");
+    const flatOperator = await flatOperatorFactory.connect(masterDeployer).deploy();
+    await flatOperator.deployed();
+
     // Deploy NestedFactory
     const nestedFactoryFactory = await ethers.getContractFactory("NestedFactory");
     const nestedFactory = await nestedFactoryFactory.connect(masterDeployer).deploy(
@@ -269,14 +277,19 @@ export const factoryAndZeroExFixture: Fixture<FactoryAndZeroExFixture> = async (
     await nestedAsset.connect(masterDeployer).setFactory(nestedFactory.address);
     await nestedRecords.connect(masterDeployer).setFactory(nestedFactory.address);
 
-    // Add ZeroExOperator to OperatorResolver
+    // Add operators to OperatorResolver
     const zeroExOperatorNameBytes32 = toBytes32("ZeroEx");
+    const flatOperatorNameBytes32 = toBytes32("Flat");
     await operatorResolver
         .connect(masterDeployer)
-        .importOperators([zeroExOperatorNameBytes32], [zeroExOperator.address]);
+        .importOperators(
+            [zeroExOperatorNameBytes32, flatOperatorNameBytes32],
+            [zeroExOperator.address, flatOperator.address],
+        );
 
-    // Add ZeroExOperator to factory and rebuild cache
+    // Add operators to factory and rebuild cache
     await nestedFactory.connect(masterDeployer).addOperator(zeroExOperatorNameBytes32);
+    await nestedFactory.connect(masterDeployer).addOperator(flatOperatorNameBytes32);
     await nestedFactory.connect(masterDeployer).rebuildCache();
 
     // Define the base amount
@@ -318,6 +331,8 @@ export const factoryAndZeroExFixture: Fixture<FactoryAndZeroExFixture> = async (
         maxHoldingsCount,
         operatorResolver,
         zeroExOperatorNameBytes32,
+        flatOperator,
+        flatOperatorNameBytes32,
         dummyRouter,
         zeroExOperator,
         nestedFactory,

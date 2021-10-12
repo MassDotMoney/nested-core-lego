@@ -1,8 +1,8 @@
 import { LoadFixtureFunction } from "../types";
-import { factoryAndZeroExFixture, FactoryAndZeroExFixture } from "../shared/fixtures";
+import { factoryAndOperatorsFixture, FactoryAndOperatorsFixture } from "../shared/fixtures";
 import { createFixtureLoader, expect, provider } from "../shared/provider";
 import { BigNumber, Wallet } from "ethers";
-import { appendDecimals, toBytes32 } from "../helpers";
+import { appendDecimals, getExpectedFees, toBytes32 } from "../helpers";
 import { ethers, network } from "hardhat";
 
 let loadFixture: LoadFixtureFunction;
@@ -15,7 +15,7 @@ interface ZeroExOrder {
 }
 
 describe("NestedFactory", () => {
-    let context: FactoryAndZeroExFixture;
+    let context: FactoryAndOperatorsFixture;
     const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
     const abiCoder = new ethers.utils.AbiCoder();
 
@@ -27,7 +27,7 @@ describe("NestedFactory", () => {
     });
 
     beforeEach("create fixture loader", async () => {
-        context = await loadFixture(factoryAndZeroExFixture);
+        context = await loadFixture(factoryAndOperatorsFixture);
     });
 
     it("deploys and has an address", async () => {
@@ -58,9 +58,10 @@ describe("NestedFactory", () => {
             const operators = await context.nestedFactory.resolverAddressesRequired();
 
             // Must have 2 operators ("ZeroEx" from Fixture and "test")
-            expect(operators.length).to.be.equal(2);
-            expect(operators[0]).to.be.equal(toBytes32("ZeroEx"));
-            expect(operators[1]).to.be.equal(toBytes32("test"));
+            expect(operators.length).to.be.equal(3);
+            expect(operators[0]).to.be.equal(context.zeroExOperatorNameBytes32);
+            expect(operators[1]).to.be.equal(context.flatOperatorNameBytes32);
+            expect(operators[2]).to.be.equal(toBytes32("test"));
         });
     });
 
@@ -190,7 +191,7 @@ describe("NestedFactory", () => {
             // Orders to buy UNI but the sellToken param (ZeroExOperator) is removed
             const orders: ZeroExOrder[] = [
                 {
-                    operator: toBytes32("ZeroEx"),
+                    operator: context.zeroExOperatorNameBytes32,
                     token: context.mockUNI.address,
                     callData: abiCoder.encode(
                         ["address", "bytes4", "bytes"],
@@ -221,7 +222,7 @@ describe("NestedFactory", () => {
             // Orders to buy UNI but the sellToken param (ZeroExOperator) is removed
             const orders: ZeroExOrder[] = [
                 {
-                    operator: toBytes32("ZeroEx"),
+                    operator: context.zeroExOperatorNameBytes32,
                     token: context.mockUNI.address,
                     callData: abiCoder.encode(
                         ["address", "address", "bytes4", "bytes"],
@@ -530,7 +531,7 @@ describe("NestedFactory", () => {
             // Orders to buy UNI but the sellToken param (ZeroExOperator) is removed
             const orders: ZeroExOrder[] = [
                 {
-                    operator: toBytes32("ZeroEx"),
+                    operator: context.zeroExOperatorNameBytes32,
                     token: context.mockUNI.address,
                     callData: abiCoder.encode(
                         ["address", "bytes4", "bytes"],
@@ -597,7 +598,7 @@ describe("NestedFactory", () => {
             // Orders to buy UNI but the sellToken param (ZeroExOperator) is removed
             const orders: ZeroExOrder[] = [
                 {
-                    operator: toBytes32("ZeroEx"),
+                    operator: context.zeroExOperatorNameBytes32,
                     token: context.mockUNI.address,
                     callData: abiCoder.encode(
                         ["address", "address", "bytes4", "bytes"],
@@ -777,7 +778,7 @@ describe("NestedFactory", () => {
 
             let orders: ZeroExOrder[] = [
                 {
-                    operator: toBytes32("ZeroEx"),
+                    operator: context.zeroExOperatorNameBytes32,
                     token: context.mockDAI.address,
                     callData: abiCoder.encode(
                         ["address", "address", "bytes4", "bytes"],
@@ -861,7 +862,7 @@ describe("NestedFactory", () => {
                 // Orders to swap UNI from the portfolio but the sellToken param (ZeroExOperator) is removed
                 const orders: ZeroExOrder[] = [
                     {
-                        operator: toBytes32("ZeroEx"),
+                        operator: context.zeroExOperatorNameBytes32,
                         token: context.mockDAI.address,
                         callData: abiCoder.encode(
                             ["address", "bytes4", "bytes"],
@@ -1132,7 +1133,7 @@ describe("NestedFactory", () => {
             // Orders to swap UNI from the portfolio but the sellToken param (ZeroExOperator) is removed
             const orders: ZeroExOrder[] = [
                 {
-                    operator: toBytes32("ZeroEx"),
+                    operator: context.zeroExOperatorNameBytes32,
                     token: context.mockUNI.address,
                     callData: abiCoder.encode(
                         ["address", "bytes4", "bytes"],
@@ -1414,7 +1415,7 @@ describe("NestedFactory", () => {
             // Orders to swap UNI from the portfolio but the sellToken param (ZeroExOperator) is removed
             const orders: ZeroExOrder[] = [
                 {
-                    operator: toBytes32("ZeroEx"),
+                    operator: context.zeroExOperatorNameBytes32,
                     token: context.mockUNI.address,
                     callData: abiCoder.encode(
                         ["address", "bytes4", "bytes"],
@@ -1685,7 +1686,7 @@ describe("NestedFactory", () => {
             // The sellToken param (ZeroExOperator) is removed
             const orders: ZeroExOrder[] = [
                 {
-                    operator: toBytes32("ZeroEx"),
+                    operator: context.zeroExOperatorNameBytes32,
                     token: context.mockUNI.address,
                     callData: abiCoder.encode(
                         ["address", "bytes4", "bytes"],
@@ -1701,7 +1702,7 @@ describe("NestedFactory", () => {
                     commit: true,
                 },
                 {
-                    operator: toBytes32("ZeroEx"),
+                    operator: context.zeroExOperatorNameBytes32,
                     token: context.mockKNC.address,
                     callData: abiCoder.encode(
                         ["address", "bytes4", "bytes"],
@@ -1755,7 +1756,7 @@ describe("NestedFactory", () => {
 
             let orders: ZeroExOrder[] = [
                 {
-                    operator: toBytes32("ZeroEx"),
+                    operator: context.zeroExOperatorNameBytes32,
                     token: context.mockUNI.address,
                     callData: abiCoder.encode(
                         ["address", "address", "bytes4", "bytes"],
@@ -1798,7 +1799,7 @@ describe("NestedFactory", () => {
             // Change KNC for DAI
             let orders: ZeroExOrder[] = [
                 {
-                    operator: toBytes32("ZeroEx"),
+                    operator: context.zeroExOperatorNameBytes32,
                     token: context.mockUNI.address,
                     callData: abiCoder.encode(
                         ["address", "address", "bytes4", "bytes"],
@@ -1815,7 +1816,7 @@ describe("NestedFactory", () => {
                     commit: true,
                 },
                 {
-                    operator: toBytes32("ZeroEx"),
+                    operator: context.zeroExOperatorNameBytes32,
                     token: context.mockDAI.address,
                     callData: abiCoder.encode(
                         ["address", "address", "bytes4", "bytes"],
@@ -2056,7 +2057,7 @@ describe("NestedFactory", () => {
     function getUniAndKncWithDaiOrders(uniBought: BigNumber, kncBought: BigNumber) {
         return [
             {
-                operator: toBytes32("ZeroEx"),
+                operator: context.zeroExOperatorNameBytes32,
                 token: context.mockUNI.address,
                 callData: abiCoder.encode(
                     ["address", "address", "bytes4", "bytes"],
@@ -2073,7 +2074,7 @@ describe("NestedFactory", () => {
                 commit: true,
             },
             {
-                operator: toBytes32("ZeroEx"),
+                operator: context.zeroExOperatorNameBytes32,
                 token: context.mockKNC.address,
                 callData: abiCoder.encode(
                     ["address", "address", "bytes4", "bytes"],
@@ -2096,7 +2097,7 @@ describe("NestedFactory", () => {
     function getUniAndKncWithETHOrders(uniBought: BigNumber, kncBought: BigNumber) {
         return [
             {
-                operator: toBytes32("ZeroEx"),
+                operator: context.zeroExOperatorNameBytes32,
                 token: context.mockUNI.address,
                 callData: abiCoder.encode(
                     ["address", "address", "bytes4", "bytes"],
@@ -2113,7 +2114,7 @@ describe("NestedFactory", () => {
                 commit: true,
             },
             {
-                operator: toBytes32("ZeroEx"),
+                operator: context.zeroExOperatorNameBytes32,
                 token: context.mockKNC.address,
                 callData: abiCoder.encode(
                     ["address", "address", "bytes4", "bytes"],
@@ -2136,7 +2137,7 @@ describe("NestedFactory", () => {
     function getTokenBWithTokenAOrders(amount: BigNumber, tokenA: string, tokenB: string) {
         return [
             {
-                operator: toBytes32("ZeroEx"),
+                operator: context.zeroExOperatorNameBytes32,
                 token: tokenB,
                 callData: abiCoder.encode(
                     ["address", "address", "bytes4", "bytes"],
@@ -2156,7 +2157,7 @@ describe("NestedFactory", () => {
     function getUsdcWithUniAndKncOrders(uniSold: BigNumber, kncSold: BigNumber) {
         return [
             {
-                operator: toBytes32("ZeroEx"),
+                operator: context.zeroExOperatorNameBytes32,
                 token: context.mockUNI.address,
                 callData: abiCoder.encode(
                     ["address", "address", "bytes4", "bytes"],
@@ -2170,10 +2171,10 @@ describe("NestedFactory", () => {
                         ),
                     ],
                 ),
-                commit: true,
+                commit: false, // must work with revert too, because it's the same selector
             },
             {
-                operator: toBytes32("ZeroEx"),
+                operator: context.zeroExOperatorNameBytes32,
                 token: context.mockKNC.address,
                 callData: abiCoder.encode(
                     ["address", "address", "bytes4", "bytes"],
@@ -2196,7 +2197,7 @@ describe("NestedFactory", () => {
     function getWethWithUniAndKncOrders(uniSold: BigNumber, kncSold: BigNumber) {
         return [
             {
-                operator: toBytes32("ZeroEx"),
+                operator: context.zeroExOperatorNameBytes32,
                 token: context.mockUNI.address,
                 callData: abiCoder.encode(
                     ["address", "address", "bytes4", "bytes"],
@@ -2213,7 +2214,7 @@ describe("NestedFactory", () => {
                 commit: true,
             },
             {
-                operator: toBytes32("ZeroEx"),
+                operator: context.zeroExOperatorNameBytes32,
                 token: context.mockKNC.address,
                 callData: abiCoder.encode(
                     ["address", "address", "bytes4", "bytes"],
@@ -2230,9 +2231,5 @@ describe("NestedFactory", () => {
                 commit: true,
             },
         ];
-    }
-
-    function getExpectedFees(amount: BigNumber) {
-        return amount.div(100);
     }
 });

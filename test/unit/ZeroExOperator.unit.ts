@@ -6,6 +6,9 @@ import { BigNumber, Wallet } from "ethers";
 
 let loadFixture: LoadFixtureFunction;
 
+/*
+ * The operator's in-depth tests are in the factory tests.
+ */
 describe("ZeroExOperator", () => {
     let context: ZeroExOperatorFixture;
     const actors = new ActorFixture(provider.getWallets() as Wallet[], provider);
