@@ -16,7 +16,6 @@ contract FlatOperator is IFlatOperator, IOperatorSelector {
         uint256 amount
     ) external payable override returns (uint256[] memory amounts, address[] memory tokens) {
         require(amount > 0, "FlatOperator::commitAndRevert: Amount must be greater than zero");
-        require(amount <= IERC20(token).balanceOf(address(this)));
 
         amounts = new uint256[](2);
         tokens = new address[](2);
