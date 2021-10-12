@@ -22,3 +22,7 @@ export const UINT256_MAX = BigNumber.from(2).pow(256).sub(1);
 
 export const toBytes32 = (key: string) => w3utils.rightPad(w3utils.asciiToHex(key), 64);
 export const fromBytes32 = (key: string) => w3utils.hexToAscii(key);
+
+export function getExpectedFees(amount: BigNumber) {
+    return amount.div(100);
+}
