@@ -233,7 +233,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             NestedRecords.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
             reserve.withdraw(IERC20(holding.token), holding.amount);
 
-            uint256 amountSpent = _submitOrder(IERC20(tokens[i]), address(_buyToken), _nftId, _orders[i], false);
+            uint256 amountSpent = _submitOrder(tokens[i], address(_buyToken), _nftId, _orders[i], false);
 
             nestedRecords.freeHolding(_nftId, tokens[i]);
 
@@ -303,7 +303,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         _inputToken = _transferInputTokens(_nftId, _inputToken, _inputTokenAmount, _fromReserve);
         uint256 amountSpent;
         for (uint256 i = 0; i < _orders.length; i++) {
-            amountSpent += _submitOrder(_inputToken, _orders[i].token, _nftId, _orders[i], _reserved);
+            amountSpent += _submitOrder(address(_inputToken), _orders[i].token, _nftId, _orders[i], _reserved);
         }
         feesAmount = _calculateFees(msg.sender, amountSpent);
         assert(amountSpent <= _inputTokenAmount - feesAmount); // overspent
@@ -347,7 +347,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             );
 
             // Submit order and update holding of spent token
-            uint256 amountSpent = _submitOrder(_inputToken, address(_outputToken), _nftId, _orders[i], false);
+            uint256 amountSpent = _submitOrder(address(_inputToken), address(_outputToken), _nftId, _orders[i], false);
             assert(amountSpent <= _inputTokenAmounts[i]);
 
             if (_fromReserve) {
@@ -376,14 +376,13 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     /// @param _order The order calldata
     /// @param _reserved True if the output is store in the reserve/records, false if not.
     function _submitOrder(
-        IERC20 _inputToken,
+        address _inputToken,
         address _outputToken,
         uint256 _nftId,
         Order calldata _order,
         bool _reserved
     ) private returns (uint256 amountSpent) {
         address operator = requireAndGetAddress(_order.operator);
-        uint256 balanceBeforePurchase = _inputToken.balanceOf(address(this));
 
         // The operator address needs to be the first parameter of the operator delegatecall.
         // We assume that the calldata given by the user are only the params, without the signature.
@@ -404,11 +403,12 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         // Get amounts and tokens from operator call
         (uint256[] memory amounts, address[] memory tokens) = abi.decode(data, (uint256[], address[]));
         require(tokens[0] == _outputToken, "NestedFactory::_submitOrder: Wrong output token in calldata");
+        require(tokens[1] == _inputToken, "NestedFactory::_submitOrder: Wrong input token in calldata");
 
         if (_reserved) {
             _transferToReserveAndStore(_outputToken, amounts[0], _nftId);
         }
-        amountSpent = balanceBeforePurchase - _inputToken.balanceOf(address(this));
+        amountSpent = amounts[1];
     }
 
     /// @dev Transfer tokens to the reserve, and compute the amount received to store

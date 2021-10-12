@@ -10,7 +10,6 @@ import "../../interfaces/IOperatorSelector.sol";
 
 /// @title The 0x protocol operator to execute swap with the aggregator
 contract ZeroExOperator is IZeroExOperator, IOperatorSelector {
-
     /// @dev Deploy with the storage contract
     constructor(address swapTarget) {
         address zeroxExStorage = Create2.deploy(0, bytes32("nested.zeroex.operator"), type(ZeroExStorage).creationCode);
@@ -26,26 +25,41 @@ contract ZeroExOperator is IZeroExOperator, IOperatorSelector {
         bytes4 swapSelector,
         bytes calldata swapCallData
     ) external payable override returns (uint256[] memory amounts, address[] memory tokens) {
-        amounts = new uint[](1);
-        tokens = new address[](1);
-        address swapTarget = ZeroExStorage(storageAddress(own)).swapTarget();
-        uint256 balanceBeforePurchase = buyToken.balanceOf(address(this));
+        amounts = new uint256[](2);
+        tokens = new address[](2);
+        uint256 buyBalanceBeforePurchase = buyToken.balanceOf(address(this));
+        uint256 sellBalanceBeforePurchase = sellToken.balanceOf(address(this));
 
-        bool success = ExchangeHelpers.fillQuote(sellToken, swapTarget, bytes.concat(swapSelector, swapCallData[32:]));
+        bool success = ExchangeHelpers.fillQuote(
+            sellToken,
+            ZeroExStorage(storageAddress(own)).swapTarget(),
+            bytes.concat(swapSelector, swapCallData[32:])
+        );
         require(success, "ZeroExOperator::commitAndRevert: 0x swap failed");
 
-        uint256 amountBought = buyToken.balanceOf(address(this)) - balanceBeforePurchase;
+        uint256 amountBought = buyToken.balanceOf(address(this)) - buyBalanceBeforePurchase;
+        uint256 amountSold = sellBalanceBeforePurchase - sellToken.balanceOf(address(this));
         assert(amountBought > 0);
-        amounts[0] = amountBought; // Output amount
-        tokens[0] = address(buyToken); // Output token
+        assert(amountSold > 0);
+
+        // Output amounts
+        amounts[0] = amountBought;
+        amounts[1] = amountSold;
+        // Output token
+        tokens[0] = address(buyToken);
+        tokens[1] = address(sellToken);
     }
 
     /// @notice Return the operator storage address
     /// @param own the operator address to build the storage address in delegatecall
     function storageAddress(address own) public pure returns (address) {
-        bytes32 _data =
-        keccak256(
-            abi.encodePacked(bytes1(0xff), own, bytes32("nested.zeroex.operator"), keccak256(type(ZeroExStorage).creationCode))
+        bytes32 _data = keccak256(
+            abi.encodePacked(
+                bytes1(0xff),
+                own,
+                bytes32("nested.zeroex.operator"),
+                keccak256(type(ZeroExStorage).creationCode)
+            )
         );
         return address(uint160(uint256(_data)));
     }
