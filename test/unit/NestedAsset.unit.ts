@@ -2,6 +2,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { NestedAsset, NestedAsset__factory } from "../../typechain";
+import { BigNumber } from "ethers";
 
 describe("NestedAsset", () => {
     let NestedAsset: NestedAsset__factory, asset: NestedAsset;
@@ -54,6 +55,15 @@ describe("NestedAsset", () => {
                 expect(await asset.originalAsset(1)).to.equal(0);
                 expect(await asset.originalAsset(2)).to.equal(1);
                 expect(await asset.originalAsset(3)).to.equal(1);
+            });
+
+            it("should revert if replicate id doesnt exist", async () => {
+                await expect(asset.mint(alice.address, 1)).to.be.revertedWith(
+                    "NestedAsset::mint: Invalid replicated token ID",
+                );
+                await expect(asset.mint(alice.address, 10)).to.be.revertedWith(
+                    "NestedAsset::mint: Invalid replicated token ID",
+                );
             });
         });
 
