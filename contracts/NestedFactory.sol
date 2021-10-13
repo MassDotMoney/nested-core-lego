@@ -153,7 +153,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         IERC20 _sellToken,
         uint256 _sellTokenAmount,
         Order[] calldata _orders
-    ) external payable override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
+    ) external override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
         require(_orders.length > 0, "NestedFactory::swapTokenForTokens: Missing orders");
         require(
             nestedRecords.getAssetReserve(_nftId) == address(reserve),
@@ -172,7 +172,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         IERC20 _buyToken,
         uint256[] memory _sellTokensAmount,
         Order[] calldata _orders
-    ) external payable override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
+    ) external override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
         require(_orders.length > 0, "NestedFactory::sellTokensToNft: Missing orders");
         require(_sellTokensAmount.length == _orders.length, "NestedFactory::sellTokensToNft: Input lengths must match");
         require(
@@ -192,15 +192,21 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         IERC20 _buyToken,
         uint256[] memory _sellTokensAmount,
         Order[] calldata _orders
-    ) external payable override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
+    ) external override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
         require(_orders.length > 0, "NestedFactory::sellTokensToWallet: Missing orders");
         require(
             _sellTokensAmount.length == _orders.length,
             "NestedFactory::sellTokensToWallet: Input lengths must match"
         );
 
-        (uint256 feesAmount, uint256 amountBought) =
-            _submitOutOrders(_nftId, _buyToken, _sellTokensAmount, _orders, false, true);
+        (uint256 feesAmount, uint256 amountBought) = _submitOutOrders(
+            _nftId,
+            _buyToken,
+            _sellTokensAmount,
+            _orders,
+            false,
+            true
+        );
         _transferFeeWithRoyalty(feesAmount, _buyToken, _nftId);
         _safeTransferAndUnwrap(_buyToken, amountBought - feesAmount, msg.sender);
 
@@ -333,8 +339,12 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         uint256 _outputTokenInitialBalance = _outputToken.balanceOf(address(this));
 
         for (uint256 i = 0; i < _orders.length; i++) {
-            IERC20 _inputToken =
-                _transferInputTokens(_nftId, IERC20(_orders[i].token), _inputTokenAmounts[i], _fromReserve);
+            IERC20 _inputToken = _transferInputTokens(
+                _nftId,
+                IERC20(_orders[i].token),
+                _inputTokenAmounts[i],
+                _fromReserve
+            );
 
             // Submit order and update holding of spent token
             uint256 amountSpent = _submitOrder(_inputToken, address(_outputToken), _nftId, _orders[i], false);
@@ -518,7 +528,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         }
     }
 
-    /// @dev Transfer from factory and collect fees (without royalties)
+    /// @dev Transfer from factory and collect fees
     /// @param _token The token to transfer
     /// @param _amount The amount (with fees) to transfer
     /// @param _dest The address receiving the funds

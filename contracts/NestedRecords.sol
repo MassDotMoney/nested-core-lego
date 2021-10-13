@@ -44,7 +44,7 @@ contract NestedRecords is Ownable {
     uint256 public maxHoldingsCount;
 
     /// @dev Reverts the transaction if the caller is not the factory
-    modifier onlyFactory {
+    modifier onlyFactory() {
         require(supportedFactories[msg.sender], "NestedRecords: FORBIDDEN");
         _;
     }
@@ -199,15 +199,6 @@ contract NestedRecords is Ownable {
         records[_nftId].reserve = _nextReserve;
     }
 
-    /// @notice Remove a token from the array of tokens in assetTokens. Does not remove holding record
-    /// @param _nftId ID for the NFT
-    /// @param _tokenIndex Token index to delete in the array of tokens
-    function freeToken(uint256 _nftId, uint256 _tokenIndex) public onlyFactory {
-        address[] storage tokens = records[_nftId].tokens;
-        tokens[_tokenIndex] = tokens[tokens.length - 1];
-        tokens.pop();
-    }
-
     /// @notice Delete from mapping assetTokens
     /// @param _nftId The id of the NFT
     function removeNFT(uint256 _nftId) external onlyFactory {
@@ -228,29 +219,12 @@ contract NestedRecords is Ownable {
         freeToken(_nftId, _tokenIndex);
     }
 
-    /// @notice Update NFT data into our mappings
-    /// @param _nftId The id of the NFT
-    /// @param _tokenIndex The token index
-    /// @param _token The address of the token
-    /// @param _amountSold The amount of tokens sold
-    function update(
-        uint256 _nftId,
-        uint256 _tokenIndex,
-        address _token,
-        uint256 _amountSold
-    ) external onlyFactory {
-        Holding memory holding = records[_nftId].holdings[_token];
-        require(holding.isActive, "ALREADY_SOLD");
-        uint256 remainingAmount = holding.amount - _amountSold;
-
-        // update amount or delete if nothing remaining
-        if (remainingAmount > 0) {
-            records[_nftId].holdings[_token].amount = holding.amount - _amountSold;
-        } else {
-            delete records[_nftId].holdings[_token];
-            address[] storage tokens = records[_nftId].tokens;
-            tokens[_tokenIndex] = tokens[tokens.length - 1];
-            tokens.pop();
-        }
+    /// @dev Remove a token from the array of tokens in assetTokens. Does not remove holding record
+    /// @param _nftId ID for the NFT
+    /// @param _tokenIndex Token index to delete in the array of tokens
+    function freeToken(uint256 _nftId, uint256 _tokenIndex) private {
+        address[] storage tokens = records[_nftId].tokens;
+        tokens[_tokenIndex] = tokens[tokens.length - 1];
+        tokens.pop();
     }
 }
