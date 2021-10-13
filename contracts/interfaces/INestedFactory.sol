@@ -105,7 +105,7 @@ interface INestedFactory {
         IERC20 _sellToken,
         uint256 _sellTokenAmount,
         Order[] calldata _orders
-    ) external payable;
+    ) external;
 
     /// @notice Use one or more existing tokens from the NFT for one position.
     /// @param _nftId The id of the NFT to update
@@ -117,7 +117,7 @@ interface INestedFactory {
         IERC20 _buyToken,
         uint256[] memory _sellTokensAmount,
         Order[] calldata _orders
-    ) external payable;
+    ) external;
 
     /// @notice Liquidate one or more holdings and transfer the sale amount to the user
     /// @param _nftId The id of the NFT to update
@@ -129,7 +129,7 @@ interface INestedFactory {
         IERC20 _buyToken,
         uint256[] memory _sellTokensAmount,
         Order[] calldata _orders
-    ) external payable;
+    ) external;
 
     /// @notice Burn NFT and Sell all tokens for a specific ERC20 then send it back to the user
     /// @dev Will unwrap WETH output to ETH

@@ -97,7 +97,6 @@ contract NestedBuybacker is Ownable {
         }
 
         uint256 balance = _sellToken.balanceOf(address(this));
-        _sellToken.approve(_swapTarget, balance);
         ExchangeHelpers.fillQuote(_sellToken, _swapTarget, _swapCallData);
         trigger();
         emit BuybackTriggered(_sellToken);
