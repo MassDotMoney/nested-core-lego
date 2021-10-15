@@ -11,7 +11,7 @@ import "../../interfaces/IOperatorSelector.sol";
 contract FlatOperator is IFlatOperator, IOperatorSelector {
     /// @inheritdoc IFlatOperator
     function commitAndRevert(
-        address own,
+        address self,
         address token,
         uint256 amount
     ) external payable override returns (uint256[] memory amounts, address[] memory tokens) {
