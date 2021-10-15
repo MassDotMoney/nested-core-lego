@@ -19,7 +19,7 @@ contract ZeroExOperator is IZeroExOperator, IOperatorSelector {
 
     /// @inheritdoc IZeroExOperator
     function commitAndRevert(
-        address own,
+        address self,
         IERC20 sellToken,
         IERC20 buyToken,
         bytes4 swapSelector,
@@ -32,7 +32,7 @@ contract ZeroExOperator is IZeroExOperator, IOperatorSelector {
 
         bool success = ExchangeHelpers.fillQuote(
             sellToken,
-            ZeroExStorage(storageAddress(own)).swapTarget(),
+            ZeroExStorage(storageAddress(self)).swapTarget(),
             bytes.concat(swapSelector, swapCallData[32:])
         );
         require(success, "ZeroExOperator::commitAndRevert: 0x swap failed");
