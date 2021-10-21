@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/utils/Multicall.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./libraries/ExchangeHelpers.sol";
 import "./interfaces/external/IWETH.sol";
-import "./interfaces/external/MinimalSmartChef.sol";
 import "./interfaces/INestedFactory.sol";
 import "./interfaces/IOperatorSelector.sol";
 import "./FeeSplitter.sol";
@@ -22,17 +21,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     using SafeERC20 for IERC20;
     address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    /// @dev Amount of the fee discount (for VIP users)
-    uint256 public vipDiscount;
-
-    /// @dev Minimum of Nested Token staked to be a VIP user
-    uint256 public vipMinAmount;
-
     /// @dev Supported operators by the factory contract
     bytes32[] private operators;
-
-    /// @dev Yield farming contract
-    MinimalSmartChef public smartChef;
 
     /// @dev Current feeSplitter contract/address
     FeeSplitter public feeSplitter;
@@ -49,16 +39,12 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         NestedRecords _nestedRecords,
         FeeSplitter _feeSplitter,
         IWETH _weth,
-        address _operatorResolver,
-        uint256 _vipDiscount,
-        uint256 _vipMinAmount
+        address _operatorResolver
     ) MixinOperatorResolver(_operatorResolver) {
         nestedAsset = _nestedAsset;
         nestedRecords = _nestedRecords;
         feeSplitter = _feeSplitter;
         weth = _weth;
-        vipDiscount = _vipDiscount;
-        vipMinAmount = _vipMinAmount;
     }
 
     /// @dev Reverts the transaction if the caller is not the token owner
@@ -90,13 +76,6 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     }
 
     /// @inheritdoc INestedFactory
-    function updateSmartChef(address _smartChef) external override onlyOwner {
-        require(_smartChef != address(0), "NestedFactory::updateSmartChef: Invalid smartchef address");
-        smartChef = MinimalSmartChef(_smartChef);
-        emit SmartChefUpdated(_smartChef);
-    }
-
-    /// @inheritdoc INestedFactory
     function setReserve(NestedReserve _reserve) external override onlyOwner {
         require(address(reserve) == address(0), "NestedFactory::setReserve: Reserve is immutable");
         reserve = _reserve;
@@ -108,13 +87,6 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         require(address(_feeSplitter) != address(0), "NestedFactory::setFeeSplitter: Invalid feeSplitter address");
         feeSplitter = _feeSplitter;
         emit FeeSplitterUpdated(address(_feeSplitter));
-    }
-
-    /// @inheritdoc INestedFactory
-    function updateVipDiscount(uint256 _vipDiscount, uint256 _vipMinAmount) external override onlyOwner {
-        require(_vipDiscount < 1000, "NestedFactory::updateVipDiscount: Discount too high");
-        (vipDiscount, vipMinAmount) = (_vipDiscount, _vipMinAmount);
-        emit VipDiscountUpdated(vipDiscount, vipMinAmount);
     }
 
     /// @inheritdoc INestedFactory
@@ -543,38 +515,11 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         _token.safeTransfer(_dest, _amount - feeAmount);
     }
 
-    /// @dev Calculate the fees for a specific user and amount
+    /// @dev Calculate the fees for a specific user and amount (1%)
     /// @param _user The user address
     /// @param _amount The amount
     /// @return The fees amount
     function _calculateFees(address _user, uint256 _amount) private view returns (uint256) {
-        uint256 baseFee = _amount / 100;
-        uint256 feeWithDiscount = baseFee - _calculateDiscount(_user, baseFee);
-        return feeWithDiscount;
-    }
-
-    /// @dev Calculates the discount for a VIP user
-    /// @param _user User to check the VIP status of
-    /// @param _amount Amount to calculate the discount on
-    /// @return The discount amount
-    function _calculateDiscount(address _user, uint256 _amount) private view returns (uint256) {
-        // give a discount to VIP users
-        if (_isVIP(_user)) {
-            return (_amount * vipDiscount) / 1000;
-        } else {
-            return 0;
-        }
-    }
-
-    /// @dev Checks if a user is a VIP.
-    /// User needs to have at least vipMinAmount of NST staked
-    /// @param _account User address
-    /// @return Boolean indicating if user is VIP
-    function _isVIP(address _account) private view returns (bool) {
-        if (address(smartChef) == address(0)) {
-            return false;
-        }
-        uint256 stakedNst = smartChef.userInfo(_account).amount;
-        return stakedNst >= vipMinAmount;
+        return _amount / 100;
     }
 }

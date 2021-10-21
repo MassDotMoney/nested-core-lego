@@ -65,32 +65,6 @@ describe("NestedFactory", () => {
         });
     });
 
-    describe("updateSmartChef()", () => {
-        const newSmartChef = Wallet.createRandom().address;
-        it("cant be invoked by an user", async () => {
-            await expect(context.nestedFactory.connect(context.user1).updateSmartChef(newSmartChef)).to.be.revertedWith(
-                "Ownable: caller is not the owner",
-            );
-        });
-
-        it("cant set zero address", async () => {
-            await expect(
-                context.nestedFactory.connect(context.masterDeployer).updateSmartChef(ethers.constants.AddressZero),
-            ).to.be.revertedWith("NestedFactory::updateSmartChef: Invalid smartchef address");
-        });
-
-        it("set value", async () => {
-            await context.nestedFactory.connect(context.masterDeployer).updateSmartChef(newSmartChef);
-            expect(await context.nestedFactory.smartChef()).to.be.equal(newSmartChef);
-        });
-
-        it("emit SmartChefUpdated event", async () => {
-            await expect(context.nestedFactory.connect(context.masterDeployer).updateSmartChef(newSmartChef))
-                .to.emit(context.nestedFactory, "SmartChefUpdated")
-                .withArgs(newSmartChef);
-        });
-    });
-
     describe("setReserve()", () => {
         const newReserve = Wallet.createRandom().address;
         it("cant be invoked by an user", async () => {
@@ -141,32 +115,6 @@ describe("NestedFactory", () => {
             await expect(context.nestedFactory.connect(context.masterDeployer).setFeeSplitter(newFeeSplitter))
                 .to.emit(context.nestedFactory, "FeeSplitterUpdated")
                 .withArgs(newFeeSplitter);
-        });
-    });
-
-    describe("updateVipDiscount()", () => {
-        it("cant be invoked by an user", async () => {
-            await expect(context.nestedFactory.connect(context.user1).updateVipDiscount(0, 0)).to.be.revertedWith(
-                "Ownable: caller is not the owner",
-            );
-        });
-
-        it("cant set vipDiscount greater than 999", async () => {
-            await expect(
-                context.nestedFactory.connect(context.masterDeployer).updateVipDiscount(1001, 0),
-            ).to.be.revertedWith("NestedFactory::updateVipDiscount: Discount too high");
-        });
-
-        it("set values", async () => {
-            await context.nestedFactory.connect(context.masterDeployer).updateVipDiscount(200, 100);
-            expect(await context.nestedFactory.vipDiscount()).to.be.equal(200);
-            expect(await context.nestedFactory.vipMinAmount()).to.be.equal(100);
-        });
-
-        it("emit VipDiscountUpdated event", async () => {
-            await expect(context.nestedFactory.connect(context.masterDeployer).updateVipDiscount(200, 100))
-                .to.emit(context.nestedFactory, "VipDiscountUpdated")
-                .withArgs(200, 100);
         });
     });
 
