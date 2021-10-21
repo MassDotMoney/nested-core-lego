@@ -1679,7 +1679,7 @@ describe("NestedFactory", () => {
             ).to.be.revertedWith("NestedFactory::destroy: Missing orders");
         });
 
-        it("reverts if bad calldatas", async () => {
+        it("doesnt revert if bad calldatas (safe destroy)", async () => {
             const uniSold = appendDecimals(6);
             const kncSold = appendDecimals(4);
 
@@ -1719,9 +1719,8 @@ describe("NestedFactory", () => {
                 },
             ];
 
-            await expect(
-                context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders),
-            ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+            await expect(context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders)).to
+                .not.be.reverted;
         });
 
         it("cant swap tokens from nonexistent portfolio", async () => {
@@ -1779,7 +1778,7 @@ describe("NestedFactory", () => {
             ).to.be.revertedWith("NestedFactory::destroy: Missing sell args");
         });
 
-        it("revert if spend more UNI than in reserve", async () => {
+        it("doesnt revert if spend more UNI than in reserve and withdraw (safe destroy)", async () => {
             // 6 UNI and 4 KNC in the portfolio, sell 7 UNI
             const uniSold = appendDecimals(7);
             const kncSold = appendDecimals(4);
@@ -1788,55 +1787,36 @@ describe("NestedFactory", () => {
 
             await expect(
                 context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders),
-            ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
-        });
+            ).to.emit(context.nestedFactory, "NftBurned")
+                .withArgs(1);
 
-        it("reverts if wrong input token in calldata (different from holding)", async () => {
-            // 6 UNI and 4 KNC in the portfolio, sell 7 UNI
-            const uniSold = appendDecimals(6);
-            const kncSold = appendDecimals(4);
+            expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(
+                getExpectedFees(kncSold),
+            );
 
-            // Change KNC for DAI
-            let orders: ZeroExOrder[] = [
-                {
-                    operator: context.zeroExOperatorNameBytes32,
-                    token: context.mockUNI.address,
-                    callData: abiCoder.encode(
-                        ["address", "address", "bytes4", "bytes"],
-                        [
-                            context.mockUNI.address,
-                            context.mockUSDC.address,
-                            dummyRouterSelector,
-                            abiCoder.encode(
-                                ["address", "address", "uint"],
-                                [context.mockUNI.address, context.mockUSDC.address, uniSold],
-                            ),
-                        ],
-                    ),
-                    commit: true,
-                },
-                {
-                    operator: context.zeroExOperatorNameBytes32,
-                    token: context.mockDAI.address,
-                    callData: abiCoder.encode(
-                        ["address", "address", "bytes4", "bytes"],
-                        [
-                            context.mockDAI.address,
-                            context.mockUSDC.address,
-                            dummyRouterSelector,
-                            abiCoder.encode(
-                                ["address", "address", "uint"],
-                                [context.mockDAI.address, context.mockUSDC.address, kncSold],
-                            ),
-                        ],
-                    ),
-                    commit: true,
-                },
-            ];
+            expect(await context.mockUNI.balanceOf(context.feeSplitter.address)).to.be.equal(
+                getExpectedFees(baseUniBought),
+            );
 
-            await expect(
-                context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders),
-            ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+            // Uni tokens in the portfolio (- fees) are in the user wallet
+            expect(await context.mockUNI.balanceOf(context.user1.address)).to.be.equal(
+                context.baseAmount.add(baseUniBought.sub(getExpectedFees(baseUniBought))),
+            );
+
+            // USDC bought with KNC in the portfolio (- fees) are in the user wallet
+            expect(await context.mockUSDC.balanceOf(context.user1.address)).to.be.equal(
+                context.baseAmount.add(baseKncBought.sub(getExpectedFees(baseKncBought))), // Sub 1 (rounding)
+            );
+
+            // No holdings for NFT 1
+            expect(await context.nestedRecords.getAssetTokens(1).then(value => value.toString())).to.be.equal(
+                [].toString(),
+            );
+
+            // The NFT is burned
+            await expect(context.nestedAsset.ownerOf(1)).to.be.revertedWith(
+                "ERC721: owner query for nonexistent token",
+            );
         });
 
         it("delete nft for USDC with right amounts", async () => {
