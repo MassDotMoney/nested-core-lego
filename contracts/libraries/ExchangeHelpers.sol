@@ -36,7 +36,9 @@ library ExchangeHelpers {
         if (_currentAllowance == 0) {
             _token.safeApprove(_spender, type(uint256).max);
         } else if (_currentAllowance != type(uint256).max) {
-            _token.safeIncreaseAllowance(_spender, type(uint256).max - _currentAllowance);
+            // Approve 0 first for tokens mitigating the race condition
+            _token.safeApprove(_spender, 0);
+            _token.safeApprove(_spender, type(uint256).max);
         }
     }
 
