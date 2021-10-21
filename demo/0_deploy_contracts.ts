@@ -37,7 +37,7 @@ export async function main(timelockMinDelay: number, saveAddresses = false) {
     const records = await NestedRecords.deploy(maxHoldingsCount);
     await records.deployed();
 
-    const factory = await NestedFactory.deploy(asset.address, records.address, feeSplitter.address, ethers.constants.AddressZero, weth, 0, 0);
+    const factory = await NestedFactory.deploy(asset.address, records.address, feeSplitter.address, ethers.constants.AddressZero, weth);
     await factory.deployed();
     const tx0 = await asset.setFactory(factory.address);
     await tx0.wait();

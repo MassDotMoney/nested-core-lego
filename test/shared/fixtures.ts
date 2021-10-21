@@ -7,7 +7,6 @@ import {
     FeeSplitter,
     FlatOperator,
     MockERC20,
-    MockSmartChef,
     NestedAsset,
     NestedFactory,
     NestedRecords,
@@ -170,7 +169,6 @@ export type FactoryAndOperatorsFixture = {
     flatOperatorNameBytes32: string;
     nestedFactory: NestedFactory;
     nestedReserve: NestedReserve;
-    smartChef: MockSmartChef;
     masterDeployer: Wallet;
     user1: Wallet;
     baseAmount: BigNumber;
@@ -252,8 +250,6 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
         feeSplitter.address,
         WETH.address,
         operatorResolver.address,
-        100, // 10% VIP Discount
-        appendDecimals(500), // If 500 NST staked
     );
     await nestedFactory.deployed();
 
@@ -261,14 +257,6 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
     const nestedReserveFactory = await ethers.getContractFactory("NestedReserve");
     const nestedReserve = await nestedReserveFactory.connect(masterDeployer).deploy(nestedFactory.address);
     await nestedReserve.deployed();
-
-    // Deploy smartchef
-    const smartChefFactory = await ethers.getContractFactory("MockSmartChef");
-    const smartChef = await smartChefFactory.connect(masterDeployer).deploy(0);
-    await smartChef.deployed();
-
-    // Set smartChef to factory
-    await nestedFactory.connect(masterDeployer).updateSmartChef(smartChef.address);
 
     // Get the user1 actor
     const user1 = new ActorFixture(wallets as Wallet[], provider).user1();
@@ -337,7 +325,6 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
         zeroExOperator,
         nestedFactory,
         nestedReserve,
-        smartChef,
         masterDeployer,
         user1,
         baseAmount,

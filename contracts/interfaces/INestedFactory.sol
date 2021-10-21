@@ -7,15 +7,6 @@ import "../FeeSplitter.sol";
 
 /// @title NestedFactory interface
 interface INestedFactory {
-    /// @dev Emitted when the smartChef address is updated
-    /// @param nextSmartChef The new smartChef address
-    event SmartChefUpdated(address nextSmartChef);
-
-    /// @dev Emitted when the VIP discound is updated
-    /// @param vipDiscount The new discount amount
-    /// @param vipMinAmount The new minimum amount
-    event VipDiscountUpdated(uint256 vipDiscount, uint256 vipMinAmount);
-
     /// @dev Emitted when the feeSplitter is updated
     /// @param feeSplitter The new feeSplitter address
     event FeeSplitterUpdated(address feeSplitter);
@@ -53,10 +44,6 @@ interface INestedFactory {
     /// @param operator The operator name to add
     function addOperator(bytes32 operator) external;
 
-    /// @notice Update the SmartChef contract address
-    /// @param _smartChef New SmartChef address
-    function updateSmartChef(address _smartChef) external;
-
     /// @notice Sets the reserve where the funds are stored
     /// @param _reserve the address of the new reserve
     function setReserve(NestedReserve _reserve) external;
@@ -64,11 +51,6 @@ interface INestedFactory {
     /// @notice Sets the address receiving the fees
     /// @param _feeSplitter The address of the receiver
     function setFeeSplitter(FeeSplitter _feeSplitter) external;
-
-    /// @notice Update the VIP discount and min staked amount to be a VIP
-    /// @param _vipDiscount The fee discount to apply to a VIP user
-    /// @param _vipMinAmount Min amount that needs to be staked to be a VIP
-    function updateVipDiscount(uint256 _vipDiscount, uint256 _vipMinAmount) external;
 
     /// @notice Create a portfolio and store the underlying assets from the positions
     /// @param _originalTokenId The id of the NFT replicated, 0 if not replicating
