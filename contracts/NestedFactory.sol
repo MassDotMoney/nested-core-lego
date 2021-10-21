@@ -170,6 +170,10 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             _sellTokensAmount.length == _orders.length,
             "NestedFactory::sellTokensToWallet: Input lengths must match"
         );
+        require(
+            nestedRecords.getAssetReserve(_nftId) == address(reserve),
+            "NestedFactory::sellTokensToWallet: Assets in different reserve"
+        );
 
         (uint256 feesAmount, uint256 amountBought) = _submitOutOrders(
             _nftId,
