@@ -150,7 +150,7 @@ contract NestedRecords is Ownable {
     }
 
     /// @notice The factory can update the lock timestamp of a NFT record
-    /// The new timestamp must be greater than the block.timestamp
+    /// The new timestamp must be greater than the records lockTimestamp
     //  if block.timestamp > actual lock timestamp
     /// @param _nftId The NFT id to get the record
     /// @param _timestamp The new timestamp
