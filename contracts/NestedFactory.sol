@@ -6,10 +6,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Multicall.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./libraries/ExchangeHelpers.sol";
+import "./libraries/OperatorHelpers.sol";
 import "./interfaces/external/IWETH.sol";
 import "./interfaces/external/MinimalSmartChef.sol";
 import "./interfaces/INestedFactory.sol";
-import "./interfaces/IOperatorSelector.sol";
 import "./FeeSplitter.sol";
 import "./MixinOperatorResolver.sol";
 import "./NestedReserve.sol";
@@ -233,11 +233,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             NestedRecords.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
             reserve.withdraw(IERC20(holding.token), holding.amount);
 
-            uint256 amountSpent = _submitOrder(tokens[i], address(_buyToken), _nftId, _orders[i], false);
-
+            _safeSubmitOrder(tokens[i], address(_buyToken), holding.amount, _nftId, _orders[i]);
             nestedRecords.freeHolding(_nftId, tokens[i]);
-
-            _handleUnderSpending(holding.amount, amountSpent, IERC20(tokens[i]));
         }
 
         // Amount calculation to send fees and tokens
@@ -384,20 +381,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     ) private returns (uint256 amountSpent) {
         address operator = requireAndGetAddress(_order.operator);
 
-        // The operator address needs to be the first parameter of the operator delegatecall.
-        // We assume that the calldata given by the user are only the params, without the signature.
-        // Parameters are concatenated and padded to 32 bytes.
-        // We are concatenating the selector + operator address + given params
-        bytes4 selector;
-        if (_order.commit) {
-            selector = IOperatorSelector(operator).getCommitSelector();
-        } else {
-            selector = IOperatorSelector(operator).getRevertSelector();
-        }
-
-        bytes memory safeCalldata = bytes.concat(selector, abi.encode(operator), _order.callData);
-
-        (bool success, bytes memory data) = operator.delegatecall(safeCalldata);
+        (bool success, bytes memory data) = OperatorHelpers.callOperator(operator, _order.commit, _order.callData);
         require(success, "NestedFactory::_submitOrder: Operator call failed");
 
         // Get amounts and tokens from operator call
@@ -409,6 +393,37 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             _transferToReserveAndStore(_outputToken, amounts[0], _nftId);
         }
         amountSpent = amounts[1];
+    }
+
+    /// @dev Call the operator to submit the order (commit/revert) but dont stop if
+    /// the call to the operator fail. It will send the input token back to the msg.sender.
+    /// Note : The _reserved Boolean has been removed (compare to _submitOrder) since it was
+    ///        useless for the only use case (destroy).
+    /// @param _inputToken Token used to make the orders
+    /// @param _outputToken Expected output token
+    /// @param _amountToSpend The input amount available (to spend)
+    /// @param _nftId The nftId
+    /// @param _order The order calldata
+    function _safeSubmitOrder(
+        address _inputToken,
+        address _outputToken,
+        uint256 _amountToSpend,
+        uint256 _nftId,
+        Order calldata _order
+    ) private {
+        address operator = requireAndGetAddress(_order.operator);
+        (bool success, bytes memory data) = OperatorHelpers.callOperator(operator, _order.commit, _order.callData);
+
+        if (success) {
+            // Get amounts and tokens from operator call
+            (uint256[] memory amounts, address[] memory tokens) = abi.decode(data, (uint256[], address[]));
+            require(tokens[0] == _outputToken, "NestedFactory::_submitOrder: Wrong output token in calldata");
+            require(tokens[1] == _inputToken, "NestedFactory::_submitOrder: Wrong input token in calldata");
+
+            _handleUnderSpending(_amountToSpend, amounts[1], IERC20(_inputToken));
+        } else {
+            _safeTransferWithFees(IERC20(_inputToken), _amountToSpend, msg.sender, _nftId);
+        }
     }
 
     /// @dev Transfer tokens to the reserve, and compute the amount received to store
