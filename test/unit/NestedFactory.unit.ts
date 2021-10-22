@@ -1785,14 +1785,11 @@ describe("NestedFactory", () => {
 
             let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
-            await expect(
-                context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders),
-            ).to.emit(context.nestedFactory, "NftBurned")
+            await expect(context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders))
+                .to.emit(context.nestedFactory, "NftBurned")
                 .withArgs(1);
 
-            expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(
-                getExpectedFees(kncSold),
-            );
+            expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(getExpectedFees(kncSold));
 
             expect(await context.mockUNI.balanceOf(context.feeSplitter.address)).to.be.equal(
                 getExpectedFees(baseUniBought),

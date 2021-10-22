@@ -42,7 +42,11 @@ library OperatorHelpers {
     /// @return tokens The tokens used and received from the execution
     ///         - tokens[0] : The output token from the operator execution
     ///         - tokens[1] : The token used as an input
-    function decodeDataAndRequire(bytes memory _data, address _inputToken, address _outputToken) internal returns (uint256[] memory amounts, address[] memory tokens) {
+    function decodeDataAndRequire(
+        bytes memory _data,
+        address _inputToken,
+        address _outputToken
+    ) internal returns (uint256[] memory amounts, address[] memory tokens) {
         (amounts, tokens) = abi.decode(_data, (uint256[], address[]));
         require(tokens[0] == _outputToken, "OperatorHelpers::getDecodeDataAndRequire: Wrong output token");
         require(tokens[1] == _inputToken, "OperatorHelpers::getDecodeDataAndRequire: Wrong input token");
