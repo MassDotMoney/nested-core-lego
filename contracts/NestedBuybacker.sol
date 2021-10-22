@@ -13,6 +13,7 @@ import "./libraries/ExchangeHelpers.sol";
 ///      to the NST ecosystem and community.
 contract NestedBuybacker is Ownable {
     using SafeERC20 for IERC20;
+    using SafeERC20 for INestedToken;
 
     /// @dev Emitted when the reserve address is updated
     /// @param newReserve The new reserve address
@@ -108,7 +109,7 @@ contract NestedBuybacker is Ownable {
         uint256 toBurn = (balance * burnPercentage) / 1000;
         uint256 toSendToReserve = balance - toBurn;
         _burnNST(toBurn);
-        NST.transfer(nstReserve, toSendToReserve);
+        NST.safeTransfer(nstReserve, toSendToReserve);
     }
 
     /// @dev Burn NST token from the smart contract
