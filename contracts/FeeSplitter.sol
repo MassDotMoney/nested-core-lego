@@ -73,7 +73,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
 
     /// @dev Receive ether after a WETH withdraw call
     receive() external payable {
-        require(msg.sender == weth, "FeeSplitter: ETH_SENDER_NOT_WETH");
+        require(_msgSender() == weth, "FeeSplitter: ETH_SENDER_NOT_WETH");
     }
 
     /// @notice Returns the amount due to an account. Call releaseToken to withdraw the amount.
@@ -116,9 +116,9 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// the amount of shares they own and their previous withdrawals.
     /// @param _token Payment token address
     function releaseToken(IERC20 _token) public nonReentrant {
-        uint256 amount = _releaseToken(msg.sender, _token);
-        _token.safeTransfer(msg.sender, amount);
-        emit PaymentReleased(msg.sender, address(_token), amount);
+        uint256 amount = _releaseToken(_msgSender(), _token);
+        _token.safeTransfer(_msgSender(), amount);
+        emit PaymentReleased(_msgSender(), address(_token), amount);
     }
 
     /// @notice Call releaseToken() for multiple tokens
@@ -132,11 +132,11 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// @dev Triggers a transfer to `msg.sender` of the amount of Ether they are owed, according to
     /// the amount of shares they own and their previous withdrawals.
     function releaseETH() external nonReentrant {
-        uint256 amount = _releaseToken(msg.sender, IERC20(weth));
+        uint256 amount = _releaseToken(_msgSender(), IERC20(weth));
         IWETH(weth).withdraw(amount);
-        (bool success, ) = msg.sender.call{ value: amount }("");
+        (bool success, ) = _msgSender().call{ value: amount }("");
         require(success, "FeeSplitter: ETH_TRANFER_ERROR");
-        emit PaymentReleased(msg.sender, ETH, amount);
+        emit PaymentReleased(_msgSender(), ETH, amount);
     }
 
     /// @notice Sends a fee to this contract for splitting, as an ERC20 token. No royalties are expected.
@@ -224,7 +224,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         uint256 _amount,
         uint256 _totalWeights
     ) private {
-        IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
+        IERC20(_token).safeTransferFrom(_msgSender(), address(this), _amount);
 
         for (uint256 i = 0; i < shareholders.length; i++) {
             _addShares(
@@ -233,7 +233,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
                 address(_token)
             );
         }
-        emit PaymentReceived(msg.sender, address(_token), _amount);
+        emit PaymentReceived(_msgSender(), address(_token), _amount);
     }
 
     /// @dev Increase the shares of a shareholder

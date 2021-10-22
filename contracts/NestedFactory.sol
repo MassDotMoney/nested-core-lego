@@ -50,7 +50,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     /// @dev Reverts the transaction if the caller is not the token owner
     /// @param _nftId The NFT Id
     modifier onlyTokenOwner(uint256 _nftId) {
-        require(nestedAsset.ownerOf(_nftId) == msg.sender, "NestedFactory: Not the token owner");
+        require(nestedAsset.ownerOf(_nftId) == _msgSender(), "NestedFactory: Not the token owner");
         _;
     }
 
@@ -98,7 +98,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     ) external payable override nonReentrant {
         require(_orders.length > 0, "NestedFactory::create: Missing orders");
 
-        uint256 nftId = nestedAsset.mint(msg.sender, _originalTokenId);
+        uint256 nftId = nestedAsset.mint(_msgSender(), _originalTokenId);
         (uint256 fees, IERC20 tokenSold) = _submitInOrders(nftId, _sellToken, _sellTokenAmount, _orders, true, false);
 
         _transferFeeWithRoyalty(fees, tokenSold, nftId);
@@ -184,7 +184,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             true
         );
         _transferFeeWithRoyalty(feesAmount, _buyToken, _nftId);
-        _safeTransferAndUnwrap(_buyToken, amountBought - feesAmount, msg.sender);
+        _safeTransferAndUnwrap(_buyToken, amountBought - feesAmount, _msgSender());
 
         emit NftUpdated(_nftId);
     }
@@ -215,15 +215,15 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
 
         // Amount calculation to send fees and tokens
         uint256 amountBought = _buyToken.balanceOf(address(this)) - buyTokenInitialBalance;
-        uint256 amountFees = _calculateFees(msg.sender, amountBought);
+        uint256 amountFees = _calculateFees(_msgSender(), amountBought);
         amountBought = amountBought - amountFees;
 
         _transferFeeWithRoyalty(amountFees, _buyToken, _nftId);
-        _safeTransferAndUnwrap(_buyToken, amountBought, msg.sender);
+        _safeTransferAndUnwrap(_buyToken, amountBought, _msgSender());
 
         // Burn NFT
         nestedRecords.removeNFT(_nftId);
-        nestedAsset.burn(msg.sender, _nftId);
+        nestedAsset.burn(_msgSender(), _nftId);
         emit NftBurned(_nftId);
     }
 
@@ -243,7 +243,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
 
         NestedRecords.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_token));
         reserve.withdraw(IERC20(holding.token), holding.amount);
-        _safeTransferWithFees(IERC20(holding.token), holding.amount, msg.sender, _nftId);
+        _safeTransferWithFees(IERC20(holding.token), holding.amount, _msgSender(), _nftId);
 
         nestedRecords.deleteAsset(_nftId, _tokenIndex);
 
@@ -278,7 +278,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         for (uint256 i = 0; i < _orders.length; i++) {
             amountSpent += _submitOrder(address(_inputToken), _orders[i].token, _nftId, _orders[i], _reserved);
         }
-        feesAmount = _calculateFees(msg.sender, amountSpent);
+        feesAmount = _calculateFees(_msgSender(), amountSpent);
         assert(amountSpent <= _inputTokenAmount - feesAmount); // overspent
 
         // If input is from the reserve, update the records
@@ -334,7 +334,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         }
 
         amountBought = _outputToken.balanceOf(address(this)) - _outputTokenInitialBalance;
-        feesAmount = _calculateFees(msg.sender, amountBought);
+        feesAmount = _calculateFees(_msgSender(), amountBought);
 
         if (_reserved) {
             _transferToReserveAndStore(address(_outputToken), amountBought - feesAmount, _nftId);
@@ -445,7 +445,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             weth.deposit{ value: msg.value }();
             _inputToken = IERC20(address(weth));
         } else {
-            _inputToken.safeTransferFrom(msg.sender, address(this), _inputTokenAmount);
+            _inputToken.safeTransferFrom(_msgSender(), address(this), _inputTokenAmount);
         }
         tokenUsed = _inputToken;
     }
