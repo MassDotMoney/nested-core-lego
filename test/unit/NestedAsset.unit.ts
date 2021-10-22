@@ -172,7 +172,9 @@ describe("NestedAsset", () => {
 
     describe("#setFactory", () => {
         it("sets the new factory", async () => {
-            await asset.setFactory(otherFactory.address);
+            await expect(asset.setFactory(otherFactory.address))
+                .to.emit(asset, "FactoryAdded")
+                .withArgs(otherFactory.address);
             expect(await asset.supportedFactories(otherFactory.address)).to.equal(true);
         });
 
@@ -188,6 +190,35 @@ describe("NestedAsset", () => {
                 "NestedAsset: INVALID_ADDRESS",
             );
             expect(await asset.supportedFactories(otherFactory.address)).to.equal(false);
+        });
+    });
+
+    describe("#removeFactory", () => {
+        it("remove a factory", async () => {
+            await asset.setFactory(otherFactory.address);
+            expect(await asset.supportedFactories(otherFactory.address)).to.equal(true);
+            await expect(asset.removeFactory(otherFactory.address))
+                .to.emit(asset, "FactoryRemoved")
+                .withArgs(otherFactory.address);
+            expect(await asset.supportedFactories(otherFactory.address)).to.equal(false);
+        });
+
+        it("reverts if unauthorized", async () => {
+            await asset.setFactory(otherFactory.address);
+            await expect(asset.connect(alice).removeFactory(otherFactory.address)).to.be.revertedWith(
+                "Ownable: caller is not the owner",
+            );
+            expect(await asset.supportedFactories(otherFactory.address)).to.equal(true);
+        });
+
+        it("reverts if already not supported", async () => {
+            await expect(asset.removeFactory(otherFactory.address)).to.be.revertedWith(
+                "NestedAsset: ALREADY_NOT_SUPPORTED",
+            );
+
+            await expect(asset.removeFactory(ethers.constants.AddressZero)).to.be.revertedWith(
+                "NestedAsset: ALREADY_NOT_SUPPORTED",
+            );
         });
     });
 });
