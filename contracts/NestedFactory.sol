@@ -380,14 +380,10 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         bool _reserved
     ) private returns (uint256 amountSpent) {
         address operator = requireAndGetAddress(_order.operator);
-
         (bool success, bytes memory data) = OperatorHelpers.callOperator(operator, _order.commit, _order.callData);
         require(success, "NestedFactory::_submitOrder: Operator call failed");
 
-        // Get amounts and tokens from operator call
-        (uint256[] memory amounts, address[] memory tokens) = abi.decode(data, (uint256[], address[]));
-        require(tokens[0] == _outputToken, "NestedFactory::_submitOrder: Wrong output token in calldata");
-        require(tokens[1] == _inputToken, "NestedFactory::_submitOrder: Wrong input token in calldata");
+        (uint256[] memory amounts, address[] memory tokens) = OperatorHelpers.decodeDataAndRequire(data, _inputToken, _outputToken);
 
         if (_reserved) {
             _transferToReserveAndStore(_outputToken, amounts[0], _nftId);
@@ -413,16 +409,11 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     ) private {
         address operator = requireAndGetAddress(_order.operator);
         (bool success, bytes memory data) = OperatorHelpers.callOperator(operator, _order.commit, _order.callData);
-
         if (success) {
-            // Get amounts and tokens from operator call
-            (uint256[] memory amounts, address[] memory tokens) = abi.decode(data, (uint256[], address[]));
-            require(tokens[0] == _outputToken, "NestedFactory::_submitOrder: Wrong output token in calldata");
-            require(tokens[1] == _inputToken, "NestedFactory::_submitOrder: Wrong input token in calldata");
-
+            (uint256[] memory amounts, address[] memory tokens) = OperatorHelpers.decodeDataAndRequire(data, _inputToken, _outputToken);
             _handleUnderSpending(_amountToSpend, amounts[1], IERC20(_inputToken));
         } else {
-            _safeTransferWithFees(IERC20(_inputToken), _amountToSpend, msg.sender, _nftId);
+            _safeTransferWithFees(IERC20(_inputToken), _amountToSpend, _msgSender(), _nftId);
         }
     }
 
