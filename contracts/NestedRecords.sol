@@ -45,7 +45,7 @@ contract NestedRecords is Ownable {
 
     /// @dev Reverts the transaction if the caller is not the factory
     modifier onlyFactory() {
-        require(supportedFactories[msg.sender], "NestedRecords: FORBIDDEN");
+        require(supportedFactories[_msgSender()], "NestedRecords: FORBIDDEN");
         _;
     }
 
