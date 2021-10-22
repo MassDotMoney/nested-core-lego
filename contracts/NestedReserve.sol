@@ -62,6 +62,7 @@ contract NestedReserve is Ownable {
     /// @notice Update the factory address
     /// @param _newFactory The new factory address
     function updateFactory(address _newFactory) external onlyOwner {
+        require(_newFactory != address(0), "NestedReserve: INVALID_ADDRESS");
         factory = _newFactory;
         emit FactoryUpdated(_newFactory);
     }
