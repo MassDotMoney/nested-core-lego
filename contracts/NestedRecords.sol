@@ -92,10 +92,12 @@ contract NestedRecords is Ownable {
             uint256 tokenIndex = 0;
             address[] memory tokens = getAssetTokens(_nftId);
             while (tokenIndex < tokens.length) {
-                if (tokens[tokenIndex] == _token) break;
+                if (tokens[tokenIndex] == _token) {
+                    deleteAsset(_nftId, tokenIndex);
+                    break;
+                }
                 tokenIndex++;
             }
-            deleteAsset(_nftId, tokenIndex);
         } else {
             records[_nftId].holdings[_token].amount = _amount;
         }
