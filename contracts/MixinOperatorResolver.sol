@@ -54,23 +54,6 @@ abstract contract MixinOperatorResolver {
         return true;
     }
 
-    /// @dev Helper to combine two arrays
-    function combineArrays(bytes32[] memory first, bytes32[] memory second)
-        internal
-        pure
-        returns (bytes32[] memory combination)
-    {
-        combination = new bytes32[](first.length + second.length);
-
-        for (uint256 i = 0; i < first.length; i++) {
-            combination[i] = first[i];
-        }
-
-        for (uint256 j = 0; j < second.length; j++) {
-            combination[first.length + j] = second[j];
-        }
-    }
-
     /// @dev Get operator address in cache and require (if exists)
     /// @param name The operator name
     /// @return The operator address
