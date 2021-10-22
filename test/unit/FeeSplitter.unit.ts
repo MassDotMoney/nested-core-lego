@@ -153,6 +153,12 @@ describe("Fee Splitter", () => {
             );
         });
 
+        it("should revert if account index invalid", async () => {
+            await expect(feeSplitter.updateShareholder(10, 10)).to.be.revertedWith(
+                "FeeSplitter: INVALID_ACCOUNT_INDEX",
+            );
+        });
+
         it("updates the weights for fees distribution", async () => {
             await feeSplitter.setRoyaltiesWeight(3000);
             const bobIndex = await feeSplitter.findShareholder(bob.address);

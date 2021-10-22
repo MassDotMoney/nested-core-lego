@@ -44,6 +44,12 @@ describe("NestedReserve", () => {
                 "Ownable: caller is not the owner",
             );
         });
+
+        it("should revert if sets the factory with address zero", async () => {
+            await expect(reserve.updateFactory(ethers.constants.AddressZero)).to.be.revertedWith(
+                "NestedReserve: INVALID_ADDRESS",
+            );
+        });
     });
 
     describe("#transfer", async () => {
