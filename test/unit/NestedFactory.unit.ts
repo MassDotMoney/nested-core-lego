@@ -242,7 +242,7 @@ describe("NestedFactory", () => {
 
             await expect(
                 context.nestedFactory.connect(context.user1).create(0, context.mockDAI.address, totalToSpend, orders),
-            ).to.be.revertedWith("NestedFactory::_submitOrder: Wrong output token in calldata");
+            ).to.be.revertedWith("OperatorHelpers::getDecodeDataAndRequire: Wrong output token");
         });
 
         it("reverts if the DAI amount is less than total sum of DAI sales", async () => {
@@ -620,7 +620,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .addTokens(1, context.mockDAI.address, totalToSpend, orders),
-            ).to.be.revertedWith("NestedFactory::_submitOrder: Wrong output token in calldata");
+            ).to.be.revertedWith("OperatorHelpers::getDecodeDataAndRequire: Wrong output token");
         });
 
         it("reverts if the DAI amount is less than total sum of DAI sales", async () => {
@@ -1244,7 +1244,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToNft(1, context.mockDAI.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("NestedFactory::_submitOrder: Wrong output token in calldata");
+            ).to.be.revertedWith("OperatorHelpers::getDecodeDataAndRequire: Wrong output token");
         });
 
         it("swap KNC and UNI for USDC (ZeroExOperator) with right amounts", async () => {
@@ -1526,7 +1526,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToWallet(1, context.mockDAI.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("NestedFactory::_submitOrder: Wrong output token in calldata");
+            ).to.be.revertedWith("OperatorHelpers::getDecodeDataAndRequire: Wrong output token");
         });
 
         it("swap KNC and UNI for USDC (ZeroExOperator) with right amounts", async () => {
