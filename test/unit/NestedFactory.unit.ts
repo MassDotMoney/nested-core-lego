@@ -1865,25 +1865,25 @@ describe("NestedFactory", () => {
 
         it("cant withdraw from another user portfolio", async () => {
             await expect(
-                context.nestedFactory.connect(context.masterDeployer).withdraw(1, 1, context.mockKNC.address),
+                context.nestedFactory.connect(context.masterDeployer).withdraw(1, 1),
             ).to.be.revertedWith("NestedFactory: Not the token owner");
         });
 
         it("cant withdraw from nonexistent portfolio", async () => {
             await expect(
-                context.nestedFactory.connect(context.user1).withdraw(2, 1, context.mockKNC.address),
+                context.nestedFactory.connect(context.user1).withdraw(2, 1),
             ).to.be.revertedWith("ERC721: owner query for nonexistent token");
         });
 
         it("cant withdraw if wrong token index", async () => {
             // KNC => Index 1
             await expect(
-                context.nestedFactory.connect(context.user1).withdraw(1, 2, context.mockKNC.address),
+                context.nestedFactory.connect(context.user1).withdraw(1, 2),
             ).to.be.revertedWith("NestedFactory::withdraw: Invalid token index");
         });
 
         it("remove token from holdings", async () => {
-            await expect(context.nestedFactory.connect(context.user1).withdraw(1, 1, context.mockKNC.address))
+            await expect(context.nestedFactory.connect(context.user1).withdraw(1, 1))
                 .to.emit(context.nestedFactory, "NftUpdated")
                 .withArgs(1);
 
@@ -1903,11 +1903,11 @@ describe("NestedFactory", () => {
 
         it("cant withdraw the last token", async () => {
             // Withdraw KNC first
-            await context.nestedFactory.connect(context.user1).withdraw(1, 1, context.mockKNC.address);
+            await context.nestedFactory.connect(context.user1).withdraw(1, 1);
 
             // Should not me able to withdraw UNI (the last token)
             await expect(
-                context.nestedFactory.connect(context.user1).withdraw(1, 0, context.mockUNI.address),
+                context.nestedFactory.connect(context.user1).withdraw(1, 0),
             ).to.be.revertedWith("NestedFactory::withdraw: Can't withdraw the last asset");
         });
     });
@@ -1960,7 +1960,7 @@ describe("NestedFactory", () => {
                 .withArgs(1, Date.now() + 1000);
 
             await expect(
-                context.nestedFactory.connect(context.user1).withdraw(1, 0, context.mockUNI.address),
+                context.nestedFactory.connect(context.user1).withdraw(1, 0),
             ).to.be.revertedWith("NestedFactory: The NFT is currently locked");
         });
 
@@ -1973,7 +1973,7 @@ describe("NestedFactory", () => {
             await network.provider.send("evm_increaseTime", [Date.now()]);
             await network.provider.send("evm_mine");
 
-            await expect(context.nestedFactory.connect(context.user1).withdraw(1, 0, context.mockUNI.address)).to.not.be
+            await expect(context.nestedFactory.connect(context.user1).withdraw(1, 0)).to.not.be
                 .reverted;
         });
     });

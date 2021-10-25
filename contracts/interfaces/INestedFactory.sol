@@ -127,11 +127,9 @@ interface INestedFactory {
     /// @notice Withdraw a token from the reserve and transfer it to the owner without exchanging it
     /// @param _nftId NFT token ID
     /// @param _tokenIndex Index in array of tokens for this NFT and holding.
-    /// @param _token Token address for the holding. Used to make sure previous index param is valid
     function withdraw(
         uint256 _nftId,
-        uint256 _tokenIndex,
-        IERC20 _token
+        uint256 _tokenIndex
     ) external;
 
     /// @notice Increase the lock timestamp of an NFT record.
