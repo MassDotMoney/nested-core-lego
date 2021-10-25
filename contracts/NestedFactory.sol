@@ -228,20 +228,22 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     }
 
     /// @inheritdoc INestedFactory
-    function withdraw(
-        uint256 _nftId,
-        uint256 _tokenIndex,
-        IERC20 _token
-    ) external override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
+    function withdraw(uint256 _nftId, uint256 _tokenIndex)
+        external
+        override
+        nonReentrant
+        onlyTokenOwner(_nftId)
+        isUnlocked(_nftId)
+    {
         uint256 assetTokensLength = nestedRecords.getAssetTokensLength(_nftId);
-        require(
-            assetTokensLength > _tokenIndex && nestedRecords.getAssetTokens(_nftId)[_tokenIndex] == address(_token),
-            "NestedFactory::withdraw: Invalid token index"
-        );
+        require(assetTokensLength > _tokenIndex, "NestedFactory::withdraw: Invalid token index");
         // Use destroy instead if NFT has a single holding
         require(assetTokensLength > 1, "NestedFactory::withdraw: Can't withdraw the last asset");
 
-        NestedRecords.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_token));
+        NestedRecords.Holding memory holding = nestedRecords.getAssetHolding(
+            _nftId,
+            nestedRecords.getAssetTokens(_nftId)[_tokenIndex]
+        );
         reserve.withdraw(IERC20(holding.token), holding.amount);
         _safeTransferWithFees(IERC20(holding.token), holding.amount, _msgSender(), _nftId);
 

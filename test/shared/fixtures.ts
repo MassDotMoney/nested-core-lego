@@ -210,13 +210,15 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
 
     // Deploy NestedFactory
     const nestedFactoryFactory = await ethers.getContractFactory("NestedFactory");
-    const nestedFactory = await nestedFactoryFactory.connect(masterDeployer).deploy(
-        nestedAsset.address,
-        nestedRecords.address,
-        feeSplitter.address,
-        WETH.address,
-        operatorResolver.address,
-    );
+    const nestedFactory = await nestedFactoryFactory
+        .connect(masterDeployer)
+        .deploy(
+            nestedAsset.address,
+            nestedRecords.address,
+            feeSplitter.address,
+            WETH.address,
+            operatorResolver.address,
+        );
     await nestedFactory.deployed();
 
     // Deploy Reserve
