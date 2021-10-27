@@ -6,10 +6,9 @@ export const WALLET_USER_INDEXES = {
     USER_1: 2,
     OWNABLE_OPERATOR_OWNER: 3,
     ZERO_EX_OPERATOR_OWNER: 4,
-    SYNTHETIX_OPERATOR_OWNER: 5,
-    MASTER_DEPLOYER: 6,
-    SHAREHOLDER_1: 7,
-    SHAREHOLDER_2: 8,
+    MASTER_DEPLOYER: 5,
+    SHAREHOLDER_1: 6,
+    SHAREHOLDER_2: 7,
 };
 
 export class ActorFixture {
@@ -35,10 +34,6 @@ export class ActorFixture {
 
     zeroExOperatorOwner() {
         return this._getActor(WALLET_USER_INDEXES.ZERO_EX_OPERATOR_OWNER);
-    }
-
-    synthetixOperatorOwner() {
-        return this._getActor(WALLET_USER_INDEXES.SYNTHETIX_OPERATOR_OWNER);
     }
 
     /*
