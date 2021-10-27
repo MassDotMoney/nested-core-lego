@@ -257,6 +257,11 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         nestedRecords.updateLockTimestamp(_nftId, _timestamp);
     }
 
+    /// @inheritdoc INestedFactory
+    function unlockTokens(IERC20 _token) external override onlyOwner {
+        _token.transfer(owner(), _token.balanceOf(address(this)));
+    }
+
     /// @dev For every orders, call the operator with the calldata
     /// to submit buy orders (where the input is one asset).
     /// @param _nftId The id of the NFT impacted by the orders

@@ -1864,22 +1864,22 @@ describe("NestedFactory", () => {
         });
 
         it("cant withdraw from another user portfolio", async () => {
-            await expect(
-                context.nestedFactory.connect(context.masterDeployer).withdraw(1, 1),
-            ).to.be.revertedWith("NestedFactory: Not the token owner");
+            await expect(context.nestedFactory.connect(context.masterDeployer).withdraw(1, 1)).to.be.revertedWith(
+                "NestedFactory: Not the token owner",
+            );
         });
 
         it("cant withdraw from nonexistent portfolio", async () => {
-            await expect(
-                context.nestedFactory.connect(context.user1).withdraw(2, 1),
-            ).to.be.revertedWith("ERC721: owner query for nonexistent token");
+            await expect(context.nestedFactory.connect(context.user1).withdraw(2, 1)).to.be.revertedWith(
+                "ERC721: owner query for nonexistent token",
+            );
         });
 
         it("cant withdraw if wrong token index", async () => {
             // KNC => Index 1
-            await expect(
-                context.nestedFactory.connect(context.user1).withdraw(1, 2),
-            ).to.be.revertedWith("NestedFactory::withdraw: Invalid token index");
+            await expect(context.nestedFactory.connect(context.user1).withdraw(1, 2)).to.be.revertedWith(
+                "NestedFactory::withdraw: Invalid token index",
+            );
         });
 
         it("remove token from holdings", async () => {
@@ -1906,9 +1906,9 @@ describe("NestedFactory", () => {
             await context.nestedFactory.connect(context.user1).withdraw(1, 1);
 
             // Should not me able to withdraw UNI (the last token)
-            await expect(
-                context.nestedFactory.connect(context.user1).withdraw(1, 0),
-            ).to.be.revertedWith("NestedFactory::withdraw: Can't withdraw the last asset");
+            await expect(context.nestedFactory.connect(context.user1).withdraw(1, 0)).to.be.revertedWith(
+                "NestedFactory::withdraw: Can't withdraw the last asset",
+            );
         });
     });
 
@@ -1959,9 +1959,9 @@ describe("NestedFactory", () => {
                 .to.emit(context.nestedRecords, "LockTimestampIncreased")
                 .withArgs(1, Date.now() + 1000);
 
-            await expect(
-                context.nestedFactory.connect(context.user1).withdraw(1, 0),
-            ).to.be.revertedWith("NestedFactory: The NFT is currently locked");
+            await expect(context.nestedFactory.connect(context.user1).withdraw(1, 0)).to.be.revertedWith(
+                "NestedFactory: The NFT is currently locked",
+            );
         });
 
         it("can withdraw after the waiting period", async () => {
@@ -1973,8 +1973,32 @@ describe("NestedFactory", () => {
             await network.provider.send("evm_increaseTime", [Date.now()]);
             await network.provider.send("evm_mine");
 
-            await expect(context.nestedFactory.connect(context.user1).withdraw(1, 0)).to.not.be
-                .reverted;
+            await expect(context.nestedFactory.connect(context.user1).withdraw(1, 0)).to.not.be.reverted;
+        });
+    });
+
+    describe("unlockTokens()", () => {
+        it("return tokens to owner", async () => {
+            const oldBalance = await context.mockDAI.connect(context.masterDeployer).balanceOf(context.masterDeployer.address);
+            // User send 1 DAI to the Factory
+            await context.mockDAI
+                .connect(context.user1)
+                .transfer(context.nestedFactory.address, ethers.utils.parseEther("1"));
+            await context.nestedFactory.connect(context.masterDeployer).unlockTokens(context.mockDAI.address);
+
+            expect(await context.mockDAI.balanceOf(context.masterDeployer.address)).to.be.equal(
+                ethers.utils.parseEther("1").add(oldBalance),
+            );
+        });
+
+        it("reverts if not factory owner", async () => {
+            // User send 1 DAI to the Factory
+            await context.mockDAI
+                .connect(context.user1)
+                .transfer(context.nestedFactory.address, ethers.utils.parseEther("1"));
+            await expect(
+                context.nestedFactory.connect(context.user1).unlockTokens(context.mockDAI.address),
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         });
     });
 
