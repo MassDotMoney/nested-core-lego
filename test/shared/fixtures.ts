@@ -14,8 +14,6 @@ import {
     OperatorResolver,
     SynthetixOperator,
     TestableOperatorCaller,
-    TestableOwnableOperatorCaller,
-    TestableOwnedOperator,
     TestableSynthetix,
     WETH9,
     ZeroExOperator,

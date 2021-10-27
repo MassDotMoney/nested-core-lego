@@ -127,13 +127,17 @@ interface INestedFactory {
     /// @notice Withdraw a token from the reserve and transfer it to the owner without exchanging it
     /// @param _nftId NFT token ID
     /// @param _tokenIndex Index in array of tokens for this NFT and holding.
-    function withdraw(
-        uint256 _nftId,
-        uint256 _tokenIndex
-    ) external;
+    function withdraw(uint256 _nftId, uint256 _tokenIndex) external;
 
     /// @notice Increase the lock timestamp of an NFT record.
     /// @param _nftId The NFT id to get the record
     /// @param _timestamp The new timestamp.
     function increaseLockTimestamp(uint256 _nftId, uint256 _timestamp) external;
+
+    /// @notice The Factory is not storing funds, but some users can make
+    /// bad manipulations and send tokens to the contract.
+    /// In response to that, the owner can retrieve the factory balance of a given token
+    /// to later return users funds.
+    /// @param _token The token to retrieve.
+    function unlockTokens(IERC20 _token) external;
 }
