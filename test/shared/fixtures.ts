@@ -12,16 +12,13 @@ import {
     NestedRecords,
     NestedReserve,
     OperatorResolver,
-    SynthetixOperator,
     TestableOperatorCaller,
-    TestableSynthetix,
     WETH9,
     ZeroExOperator,
 } from "../../typechain";
-import { BaseContract, BigNumber, Wallet } from "ethers";
+import { BigNumber, Wallet } from "ethers";
 import { Interface } from "ethers/lib/utils";
 import { appendDecimals, toBytes32 } from "../helpers";
-import { FakeContract, smock } from "@defi-wonderland/smock";
 
 export type OperatorResolverFixture = { operatorResolver: OperatorResolver };
 
@@ -70,46 +67,6 @@ export const zeroExOperatorFixture: Fixture<ZeroExOperatorFixture> = async (wall
     await mockDAI.transfer(testableOperatorCaller.address, appendDecimals(1000));
 
     return { zeroExOperator, dummyRouter, dummyRouterInterface, mockUNI, mockDAI, testableOperatorCaller };
-};
-
-export type SynthetixOperatorFixture = {
-    synthetix: FakeContract<TestableSynthetix>;
-    synthetixOperator: SynthetixOperator;
-    testableOperatorCaller: TestableOperatorCaller;
-    mockUNI: MockERC20;
-    mockDAI: MockERC20;
-};
-
-export const synthetixOperatorFixture: Fixture<SynthetixOperatorFixture> = async (wallets, provider) => {
-    const signer = new ActorFixture(wallets as Wallet[], provider).synthetixOperatorOwner();
-
-    const synthetixResolver: FakeContract<BaseContract> = await smock.fake([
-        "function getAddress(bytes32 name) external view returns (address)",
-        "function getSynth(bytes32 key) external view returns (address)",
-        "function requireAndGetAddress(bytes32 name, string calldata reason) external view returns (address)",
-    ]);
-
-    const synthetixAddress = Wallet.createRandom().address;
-
-    synthetixResolver.getAddress.returns(synthetixAddress);
-    const synthetix = await smock.fake<TestableSynthetix>("TestableSynthetix", { address: synthetixAddress });
-
-    const synthetixOperatorFactory = await ethers.getContractFactory("SynthetixOperator");
-    const synthetixOperator = await synthetixOperatorFactory.connect(signer).deploy(synthetixAddress);
-
-    const testableOperatorCallerFactory = await ethers.getContractFactory("TestableOperatorCaller");
-    const testableOperatorCaller = await testableOperatorCallerFactory
-        .connect(signer)
-        .deploy(synthetixOperator.address);
-
-    const mockERC20Factory = await ethers.getContractFactory("MockERC20");
-    const mockUNI = await mockERC20Factory.deploy("Mocked UNI", "UNI", appendDecimals(3000000));
-    const mockDAI = await mockERC20Factory.deploy("Mocked DAI", "DAI", appendDecimals(3000000));
-
-    await mockUNI.transfer(testableOperatorCaller.address, appendDecimals(1000));
-    await mockDAI.transfer(synthetix.address, appendDecimals(1000));
-
-    return { synthetix, synthetixOperator, testableOperatorCaller, mockUNI, mockDAI };
 };
 
 export type FactoryAndOperatorsFixture = {
