@@ -1,0 +1,19 @@
+{
+    "MAINNET": {
+        "Deployer": "",
+        "NestedFactory": "",
+        "NestedRecords": "",
+        "NestedReserve": "",
+        "NestedAsset": "",
+        "FeeSplitter": "",
+        "OperatorResolver": "",
+        "ZeroExOperator": "",
+        "FlatOperator": "",
+        "Timelock": ""
+    },
+    "BSC": {},
+    "POLYGON": {},
+    "FANTOM": {},
+    "AVAX": {},
+    "CELO": {}
+}
