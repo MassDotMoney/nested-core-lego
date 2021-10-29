@@ -1979,7 +1979,9 @@ describe("NestedFactory", () => {
 
     describe("unlockTokens()", () => {
         it("return tokens to owner", async () => {
-            const oldBalance = await context.mockDAI.connect(context.masterDeployer).balanceOf(context.masterDeployer.address);
+            const oldBalance = await context.mockDAI
+                .connect(context.masterDeployer)
+                .balanceOf(context.masterDeployer.address);
             // User send 1 DAI to the Factory
             await context.mockDAI
                 .connect(context.user1)
