@@ -6,7 +6,7 @@
         "build": "hardhat compile",
         "console": "hardhat console",
         "run": "npx hardhat node",
-        "deploy": "hardhat deploy",
+        "export": "hardhat export --export-all exports/deployments.json",
         "mainnet:deploy": "hardhat run scripts/deployAll.ts --network mainnet",
         "test": "hardhat test",
         "test:coverage": "cross-env FORKING=false hardhat coverage",
