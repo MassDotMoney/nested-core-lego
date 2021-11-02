@@ -32,11 +32,12 @@ abstract contract MixinOperatorResolver {
         for (uint256 i = 0; i < requiredAddresses.length; i++) {
             bytes32 name = requiredAddresses[i];
             // Note: can only be invoked once the resolver has all the targets needed added
-            address destination = resolver.requireAndGetAddress(
-                name,
-                string(abi.encodePacked("Resolver missing target: ", name))
-            );
-            addressCache[name] = destination;
+            address destination = resolver.getAddress(name);
+            if (destination != address(0)) {
+                addressCache[name] = destination;
+            } else {
+                delete addressCache[name];
+            }
             emit CacheUpdated(name, destination);
         }
     }
