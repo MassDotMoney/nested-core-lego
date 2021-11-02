@@ -52,7 +52,7 @@ const config: HardhatUserConfig = {
         },
         bsc: {
             url: "https://bsc-dataseed.binance.org/",
-            accounts
+            accounts: accounts,
         }
     },
     solidity: {

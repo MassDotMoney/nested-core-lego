@@ -65,6 +65,30 @@ describe("NestedFactory", () => {
         });
     });
 
+    describe("removeOperator()", () => {
+        it("cant be invoked by an user", async () => {
+            await expect(
+                context.nestedFactory.connect(context.user1).removeOperator(toBytes32("test")),
+            ).to.be.revertedWith("Ownable: caller is not the owner");
+        });
+        it("add a new operator", async () => {
+            // Add the operator named "test"
+            await context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("test"));
+
+            // Then remove the operator
+            await context.nestedFactory.connect(context.masterDeployer).removeOperator(toBytes32("test"));
+
+            // Get the operators from the factory
+            const operators = await context.nestedFactory.resolverAddressesRequired();
+
+            // Must have 2 operators ("ZeroEx" from Fixture and "test")
+            expect(operators.length).to.be.equal(3);
+            expect(operators[0]).to.be.equal(context.zeroExOperatorNameBytes32);
+            expect(operators[1]).to.be.equal(context.flatOperatorNameBytes32);
+            expect(operators[2]).to.not.be.equal(toBytes32("test"));
+        });
+    });
+
     describe("setReserve()", () => {
         const newReserve = Wallet.createRandom().address;
         it("cant be invoked by an user", async () => {

@@ -44,6 +44,10 @@ interface INestedFactory {
     /// @param operator The operator name to add
     function addOperator(bytes32 operator) external;
 
+    /// @notice Remove an operator (name) for building cache
+    /// @param operator The operator name to remove
+    function removeOperator(bytes32 operator) external;
+
     /// @notice Sets the reserve where the funds are stored
     /// @param _reserve the address of the new reserve
     function setReserve(NestedReserve _reserve) external;
