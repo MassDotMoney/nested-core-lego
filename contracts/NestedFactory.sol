@@ -76,6 +76,16 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     }
 
     /// @inheritdoc INestedFactory
+    function removeOperator(bytes32 operator) external override onlyOwner {
+        uint i = 0;
+        while (operators[i] != operator) {
+            i++;
+        }
+        require(i > 0, "NestedFactory::removeOperator: Cant remove non-existent operator");
+        delete operators[i];
+    }
+
+    /// @inheritdoc INestedFactory
     function setReserve(NestedReserve _reserve) external override onlyOwner {
         require(address(reserve) == address(0), "NestedFactory::setReserve: Reserve is immutable");
         reserve = _reserve;
