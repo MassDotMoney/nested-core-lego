@@ -1,4 +1,4 @@
-import hre, { ethers } from "hardhat";
+import hre from "hardhat";
 import addresses from "../addresses.json";
 import { BigNumberish, Wallet } from "ethers";
 
@@ -13,7 +13,7 @@ async function main(): Promise<void> {
     accounts.push(Wallet.createRandom().address);
     weigths.push(100);
 
-    const feeSplitterFactory = await ethers.getContractFactory("FeeSplitter");
+    const feeSplitterFactory = await hre.ethers.getContractFactory("FeeSplitter");
     const feeSplitter = await feeSplitterFactory.attach(context[chainId].FeeSplitter);
     await feeSplitter.setShareholders(accounts, weigths);
 }

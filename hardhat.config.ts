@@ -7,6 +7,7 @@ import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "@nomiclabs/hardhat-solhint";
 import "hardhat-contract-sizer";
+import "hardhat-dependency-compiler";
 
 import { HardhatUserConfig } from "hardhat/config";
 
@@ -78,6 +79,9 @@ const config: HardhatUserConfig = {
         currency: "USD",
         enabled: process.env.REPORT_GAS === "true",
         excludeContracts: ["contracts/mocks/", "contracts/libraries/", "contracts/interfaces/"],
+    },
+    dependencyCompiler: {
+        paths: ["@openzeppelin/contracts/governance/TimelockController.sol"],
     },
 };
 
