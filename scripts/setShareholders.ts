@@ -15,7 +15,6 @@ async function main(): Promise<void> {
 
     const feeSplitterFactory = await ethers.getContractFactory("FeeSplitter");
     const feeSplitter = await feeSplitterFactory.attach(context[chainId].FeeSplitter);
-
     await feeSplitter.setShareholders(accounts, weigths);
 }
 
