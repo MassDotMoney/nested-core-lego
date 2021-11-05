@@ -3,7 +3,7 @@ import addresses from "../addresses.json";
 
 const chainId: string = hre.network.config.chainId.toString();
 const context = JSON.parse(JSON.stringify(addresses));
-const timelockMinDelay = 48 * 60 * 60;
+const timelockMinDelay = 7 * 24 * 60 * 60;
 
 async function main(): Promise<void> {
     const TimelockFactory = await hre.ethers.getContractFactory("TimelockController");
