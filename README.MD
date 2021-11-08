@@ -5,22 +5,22 @@ _https://nested.finance_
 ## Introduction
 
 Nested Finance is a decentralized protocol providing customizable financial products in the form of NFTs. 
-The platform allows users to put several digital assets as ERC20 tokens inside an NFT (abbreviated as `NestedNFT`).
+The platform allows users to put several digital assets, i.e. ERC20 tokens, inside an NFT (abbreviated as `NestedNFT`).
 <br/>
 
-Each NestedNFT is backed by underlying assets  :
+Each NestedNFT is backed by underlying assets:
 - Purchased or sold on a decentralized exchange (AMM).
 - Collected/earned after adding liquidity or staking.
 - Exchanged/Minted on a protocol that is not a decentralized exchange.
 - (...)
 
 The main idea is to allow adding modules (**operators**) to interact with new protocols 
-and enable new assets... without re-deploying.
+and enable new assets, without re-deploying.
 
 > The tokens are stored on a self-custodian smart contract.
 
-At the end of the creation process, the user receives the NFT that encrypts every detail of his portfolio. 
-Furthermore, we allow users to replicate other users’ NestedNFTs. The creator of the initial NestedNFTs earns royalties.
+At the end of the creation process, the user receives the NFT which allows to control all underlying assets of the portfolio.
+Furthermore, we allow users to copy other users’ NestedNFTs. The creator of the initial NestedNFT earns royalties.
 
 #### _Further documentation and details can be found here: https://docs.nested.finance/_
 
@@ -36,12 +36,12 @@ Furthermore, we allow users to replicate other users’ NestedNFTs. The creator 
 | **NestedAsset**      | Collection of ERC721 tokens. Called NestedNFT across the codebase. |
 | **NestedReserve**    | Holds funds for the user. Transferred from the NestedFactory. |
 | **NestedRecords**    | Tracks underlying assets of NestedNFTs. (Amount, NestedReserve). |
-| **FeeSplitter**      | Receives payment in ERC20 tokens from the factory when fees are taken. Allows each party to claim the amount they are due. |
-| **NestedBuyBacker**  | Pulls tokens from the FeeSplitter, buys back NST tokens on the market, and burn a part of it. |
+| **FeeSplitter**      | Receives payments in ERC20 tokens from the factory when fees are sent. Allows each party to claim the amount they are due. |
+| **NestedBuyBacker**  | Pulls tokens from the FeeSplitter, buys back NST tokens on the market, and burns a part of it. |
 
 ### Operators (modularization)
 
-#### What is an operator ?
+#### What is an operator?
 
 `NestedFactory` is the main smart contract, but it can't work without the Operators.
 
@@ -49,22 +49,22 @@ As mentioned in the introduction, we designed the protocol to be **modular**.
 We want to be able to interact with any protocol in exchange for an ERC20 token.
 
 So, we had to deal with two issues :
-- How to interact with 5, 10, or 20 protocols without blowing up the bytecode size and having too much logic ?
-- How to add new interactions without redeploying the `NestedFactory` contract ?
+- How to interact with 5, 10, or 20 protocols without blowing up the bytecode size and having too much logic?
+- How to add new interactions without redeploying the `NestedFactory` contract?
 
-Our solution is called the "**Operator**"... Where a new interaction is a new operator and can be added on the fly.
-They work a bit like [libraries](https://docs.soliditylang.org/en/v0.8.9/contracts.html#libraries), but since we don't want to redeploy the factory, 
+Our solution is called the "**Operator**"... A new interaction is a new operator and can be added on the fly.
+They kind of work like [libraries](https://docs.soliditylang.org/en/v0.8.9/contracts.html#libraries), but since we don't want to redeploy the factory, 
 they are contracts that are called via `delegatecall` and referenced by the `OperatorResolver`.
 
 #### One language
 To interact with new operators on the fly, they must speak the same language.
-The first aspect we will define are the "interactions" common to all operators : `commit` and `revert`.
+Let's define the "interactions" common to all operators: `commit` and `revert`.
 
-Indeed, an operator allows to perform a precise action, like _"swap our token A against a token B"_. When we want to perform this action, we will "**commit**".
-On the other hand, all the actions in the DeFi can be carried out in the opposite direction, like "_swap our token B against a token A_". 
+An operator allows performing a precise action, like _"swap my token A for a token B"_. When we want to perform this action, we will "**commit**".
+On the other hand, all the actions in DeFi can be carried out in the opposite direction, like "_swap my token B against a token A_".
 When we want to "reverse" an action that we have "committed", we will "**revert**".
 
-**Some examples :** 
+**Some examples:**
 
 | Name     | Commit  |  Revert  |
 |----------|---------|----------|
@@ -74,10 +74,10 @@ When we want to "reverse" an action that we have "committed", we will "**revert*
 
 #### Storage
 
-Since the operators are called via `delegatecall`: _how can we store/retrieve useful data ?_
+Since the operators are called via `delegatecall`: _how can we store/retrieve useful data?_
 <br>In fact, we cannot trust the Factory to provide all the data, like the address of the protocol. It must be stored and managed by the owner.
 
-When deploying an operator, it will also deploy the storage contract using `CREATE2` and transfer the ownership to `msg.sender`.
+When deploying an operator, it will also deploy the storage contract using `CREATE2` and transfer the ownership to `msgSender()`.
 
 This way, the operator can retrieve the storage address (without storing it) and get the data.
 
@@ -93,17 +93,17 @@ This way, the operator can retrieve the storage address (without storing it) and
 | MixinOperatorResolver | Abstract contract to load authorized operators in cache (instead of calling `OperatorResolver`). |
 | ZeroExOperator        | Performs token swaps through 0x ([read more](contracts/operators/ZeroEx/README.md)). |
 | ZeroExStorage         | ZeroExOperator storage contract. Must store the 0x `swapTarget`. |
-| FlatOperator          | Handles deposit and withdraw. No interaction with any third parties ([read more](contracts/operators/Flat/README.md)). |
+| FlatOperator          | Handles deposits and withdraws. No interaction with any third parties ([read more](contracts/operators/Flat/README.md)). |
 
-_More operators will be added._
+_More operators will be added. e.g. CurveOperator or SynthetixOperator_
 
 ### Ownership & Governance
 Some functions of the protocol require admin rights (`onlyOwner`).
 
-We use the [TimelockController](https://docs.openzeppelin.com/contracts/4.x/api/governance#TimelockController) contract from OpenZeppelin with a **7-days** delay, 
-to ensure the community has time to review any change we make to the protocol. 
+The contracts are owned by the [TimelockController](https://docs.openzeppelin.com/contracts/4.x/api/governance#TimelockController) contract from OpenZeppelin, set with a **7-days** delay.
+This ensures the community has time to review any changes made to the protocol.
 
-The owner of the TimelockController will be a three-party multisig. 
+The owner of the TimelockController is a three-party multisignature wallet.
 > During the next phase of the protocol, the ownership will be transferred to a fully decentralized DAO.
 
 ## Development & Testing
