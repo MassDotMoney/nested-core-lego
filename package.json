@@ -1,7 +1,7 @@
 {
     "name": "nested-finance",
     "version": "1.0.0",
-    "license": "UNLICENSED",
+    "license": "GPL-3.0-or-later",
     "scripts": {
         "build": "hardhat compile",
         "console": "hardhat console",
