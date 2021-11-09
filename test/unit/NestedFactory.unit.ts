@@ -72,10 +72,19 @@ describe("NestedFactory", () => {
             ).to.be.revertedWith("Ownable: caller is not the owner");
         });
         it("add a new operator", async () => {
+            const testAddress = Wallet.createRandom().address;
             // Add the operator named "test"
+            await context.operatorResolver
+                .connect(context.masterDeployer)
+                .importOperators([toBytes32("test")], [testAddress]);
             await context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("test"));
+            await context.nestedFactory.connect(context.masterDeployer).rebuildCache();
 
             // Then remove the operator
+            await context.operatorResolver
+                .connect(context.masterDeployer)
+                .importOperators([toBytes32("test")], [ethers.constants.AddressZero]);
+            await context.nestedFactory.connect(context.masterDeployer).rebuildCache();
             await context.nestedFactory.connect(context.masterDeployer).removeOperator(toBytes32("test"));
 
             // Get the operators from the factory
@@ -86,6 +95,32 @@ describe("NestedFactory", () => {
             expect(operators[0]).to.be.equal(context.zeroExOperatorNameBytes32);
             expect(operators[1]).to.be.equal(context.flatOperatorNameBytes32);
             expect(operators[2]).to.not.be.equal(toBytes32("test"));
+
+            let orders: ZeroExOrder[] = [
+                {
+                    operator: toBytes32("test"),
+                    token: context.mockUNI.address,
+                    callData: abiCoder.encode(
+                        ["address", "address", "bytes4", "bytes"],
+                        [
+                            context.mockDAI.address,
+                            context.mockUNI.address,
+                            dummyRouterSelector,
+                            abiCoder.encode(
+                                ["address", "address", "uint"],
+                                [context.mockDAI.address, context.mockUNI.address, appendDecimals(5)],
+                            ),
+                        ],
+                    ),
+                    commit: true,
+                },
+            ];
+
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .create(0, context.mockDAI.address, appendDecimals(5), orders),
+            ).to.be.revertedWith("Missing operator : test");
         });
     });
 
