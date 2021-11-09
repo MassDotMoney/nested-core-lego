@@ -1,4 +1,4 @@
-![logo](https://nested.finance/6b89dd383bb976eeffb280c852b52cca.png)
+![logo](https://user-images.githubusercontent.com/22816913/140889449-5c5afc92-0d4d-43c8-9d02-b3489eab093f.png)
 
 _https://nested.finance_
 
