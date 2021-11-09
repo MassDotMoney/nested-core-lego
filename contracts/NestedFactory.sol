@@ -77,7 +77,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
 
     /// @inheritdoc INestedFactory
     function removeOperator(bytes32 operator) external override onlyOwner {
-        uint i = 0;
+        uint256 i = 0;
         while (operators[i] != operator) {
             i++;
         }
