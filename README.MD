@@ -26,7 +26,7 @@ Furthermore, we allow users to copy other users’ NestedNFTs. The creator of th
 
 ## Architecture
 
-![schema](https://i.ibb.co/jwFTf7B/Capture-d-e-cran-2021-11-08-a-11-29-30.png)
+![diagram](https://user-images.githubusercontent.com/22816913/140886706-ee9e18f8-de84-4bcf-af20-5847b79cc508.png)
 
 ### Core contracts
 
