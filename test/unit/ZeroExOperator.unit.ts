@@ -30,9 +30,17 @@ describe("ZeroExOperator", () => {
         expect(context.zeroExOperator.storageAddress(context.zeroExOperator.address)).to.be.a.string;
     });
 
-    describe("commitAndRevert()", async () => {
-        const initDaiBalance = await context.mockDAI.balanceOf(context.testableOperatorCaller.address);
-        const initUniBalance = await context.mockUNI.balanceOf(context.testableOperatorCaller.address);
+    describe("commitAndRevert()", () => {
+
+
+        let initDaiBalance: BigNumber;
+        let initUniBalance: BigNumber;
+
+        beforeEach(async () => {
+            await context.mockDAI.balanceOf(context.testableOperatorCaller.address);
+            await context.mockUNI.balanceOf(context.testableOperatorCaller.address);
+        });
+
         it("Swap tokens", async () => {
             const amount = 1000;
             // Calldata swap 1000 DAI against 1000 UNI
