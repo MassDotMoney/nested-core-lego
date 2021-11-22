@@ -24,7 +24,7 @@ const zeroExSwapTarget = context[chainId].config.zeroExSwapTarget;
 const WETH = context[chainId].config.WETH;
 const nestedTreasury = context[chainId].config.nestedTreasury;
 
-let deployments: Deployment[];
+let deployments: Deployment[] = [];
 
 async function main(): Promise<void> {
     console.log("Deploy All : ");
@@ -83,32 +83,32 @@ async function main(): Promise<void> {
     await verify("NestedReserve", nestedReserve, [nestedFactory.address]);
 
     // Set factory to asset and records
-    await nestedAsset.setFactory(nestedFactory.address);
-    await nestedRecords.setFactory(nestedFactory.address);
+    let tx = await nestedAsset.setFactory(nestedFactory.address);
+    await tx.wait();
+    tx = await nestedRecords.setFactory(nestedFactory.address);
+    await tx.wait();
 
     // Add operators to OperatorResolver
     const zeroExOperatorNameBytes32 = toBytes32("ZeroEx");
     const flatOperatorNameBytes32 = toBytes32("Flat");
-    await operatorResolver
+    tx = await operatorResolver
         .importOperators(
             [zeroExOperatorNameBytes32, flatOperatorNameBytes32],
             [zeroExOperator.address, flatOperator.address],
         );
-
+    await tx.wait();    
+    
     // Add operators to factory and rebuild cache
-    await nestedFactory.addOperator(zeroExOperatorNameBytes32);
-    await nestedFactory.addOperator(flatOperatorNameBytes32);
-    await nestedFactory.rebuildCache();
+    tx = await nestedFactory.addOperator(zeroExOperatorNameBytes32);
+    await tx.wait();   
+    tx = await nestedFactory.addOperator(flatOperatorNameBytes32);
+    await tx.wait();   
+    tx = await nestedFactory.rebuildCache();
+    await tx.wait();   
 
     // Convert JSON object to string
     const data = JSON.stringify(deployments);
-
-    // write JSON string to a file
-    fs.writeFile('deploy' + Date.now() + '.json', data, (err) => {
-        if (err) {
-            throw err;
-        }
-    });
+    console.log(data);
 }
 
 async function verify(name: string, contract: Contract, params: any[]) {

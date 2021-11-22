@@ -71,7 +71,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory.connect(context.user1).removeOperator(toBytes32("test")),
             ).to.be.revertedWith("Ownable: caller is not the owner");
         });
-        it("add a new operator", async () => {
+        it("remove an operator", async () => {
             const testAddress = Wallet.createRandom().address;
             // Add the operator named "test"
             await context.operatorResolver
