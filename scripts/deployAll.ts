@@ -3,6 +3,7 @@ import { Contract } from "ethers";
 import * as fs from "fs";
 import { toBytes32 } from "../test/helpers";
 import addresses from "../addresses.json";
+import { NestedAsset } from "../typechain";
 
 interface Deployment {
     name: string;
@@ -42,26 +43,32 @@ async function main(): Promise<void> {
     // Deploy FeeSplitter
     const feeSplitter = await feeSplitterFactory.deploy([nestedTreasury], [80], 20, WETH);
     await verify("FeeSplitter", feeSplitter, [[nestedTreasury], [80], 20, WETH]);
+    console.log("FeeSplitter deployed : ", feeSplitter.address);
 
     // Deploy NestedAsset
     const nestedAsset = await nestedAssetFactory.deploy();
     await verify("NestedAsset", nestedAsset, []);
+    console.log("NestedAsset deployed : ", nestedAsset.address);
 
     // Deploy NestedRecords
     const nestedRecords = await nestedRecordsFactory.deploy(maxHoldingsCount);
     await verify("NestedRecords", nestedRecords, [maxHoldingsCount]);
+    console.log("NestedRecords deployed : ", nestedRecords.address);
 
     // Deploy OperatorResolver
     const operatorResolver = await operatorResolverFactory.deploy();
     await verify("OperatorResolver", operatorResolver, []);
+    console.log("OperatorResolver deployed : ", operatorResolver.address);
 
     // Deploy ZeroExOperator
     const zeroExOperator = await zeroExOperatorFactory.deploy(zeroExSwapTarget);
     await verify("ZeroExOperator", zeroExOperator, [zeroExSwapTarget]);
+    console.log("ZeroExOperator deployed : ", zeroExOperator.address);
 
     // Deploy FlatOperator
     const flatOperator = await flatOperatorFactory.deploy();
     await verify("FlatOperator", flatOperator, []);
+    console.log("FlatOperator deployed : ", flatOperator.address);
 
     // Deploy NestedFactory
     const nestedFactory = await nestedFactoryFactory
@@ -77,15 +84,21 @@ async function main(): Promise<void> {
         feeSplitter.address,
         WETH,
         operatorResolver.address]);
+    console.log("NestedFactory deployed : ", nestedFactory.address);
 
     // Deploy NestedReserve
     const nestedReserve = await nestedReserveFactory.deploy(nestedFactory.address);
     await verify("NestedReserve", nestedReserve, [nestedFactory.address]);
+    console.log("NestedReserve deployed : ", nestedReserve.address);
 
     // Set factory to asset and records
     let tx = await nestedAsset.setFactory(nestedFactory.address);
     await tx.wait();
     tx = await nestedRecords.setFactory(nestedFactory.address);
+    await tx.wait();
+
+    // Set reserve to factory
+    tx = await nestedFactory.setReserve(nestedReserve.address);
     await tx.wait();
 
     // Add operators to OperatorResolver
