@@ -69,7 +69,7 @@ describe("FlatOperator", () => {
 
         await expect(
             context.nestedFactory.connect(context.user1).create(0, context.mockUNI.address, totalToSpend, orders),
-        ).to.revertedWith("OperatorHelpers::getDecodeDataAndRequire: Wrong output token");
+        ).to.revertedWith("OperatorHelpers::decodeDataAndRequire: Wrong output token");
     });
 
     it("Adds token to portfolio when create()", async () => {

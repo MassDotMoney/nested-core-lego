@@ -9,7 +9,6 @@ interface IZeroExOperator {
     /// @param self The operator address (for delegatecall context resolution)
     /// @param sellToken The token sold
     /// @param buyToken The token bought
-    /// @param swapSelector The selector of the ZeroEx function
     /// @param swapCallData 0x calldata from the API
     /// @return amounts Array of output amounts
     /// @return tokens Array of output tokens
@@ -17,7 +16,6 @@ interface IZeroExOperator {
         address self,
         IERC20 sellToken,
         IERC20 buyToken,
-        bytes4 swapSelector,
         bytes calldata swapCallData
     ) external payable returns (uint256[] memory amounts, address[] memory tokens);
 }

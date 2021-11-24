@@ -1,17 +1,43 @@
 import { LoadFixtureFunction } from "../types";
 import { factoryAndOperatorsFixture, FactoryAndOperatorsFixture } from "../shared/fixtures";
 import { createFixtureLoader, expect, provider } from "../shared/provider";
-import { BigNumber, Wallet } from "ethers";
+import { BigNumber, BytesLike, Wallet } from "ethers";
 import { appendDecimals, getExpectedFees, toBytes32 } from "../helpers";
 import { ethers, network } from "hardhat";
 
 let loadFixture: LoadFixtureFunction;
 
-interface ZeroExOrder {
-    operator: string;
+type RawDataType = "address" | "bytes4" | "bytes" | "uint256";
+
+interface OrderStruct {
+    operator: BytesLike;
     token: string;
-    callData: string | [];
+    callData: BytesLike;
     commit: boolean;
+}
+
+function buildOrderStruct(operator: string, outToken: string, data: [RawDataType, any][]): OrderStruct {
+    // struct Order {
+    //     bytes32 operator;
+    //     address token;
+    //     bytes callData;
+    //     bool commit;
+    // }
+    const abiCoder = new ethers.utils.AbiCoder();
+    const coded = abiCoder.encode(
+        ["address", ...data.map(x => x[0])],
+        [ethers.constants.AddressZero, ...data.map(x => x[1])],
+    );
+    return {
+        // specify which operator?
+        operator: operator,
+        // specify the token that this order will output
+        token: outToken,
+        // encode the given data
+        callData: "0x" + coded.slice(64 + 2), // remove the leading 32 bytes (one address) and the leading 0x
+        // callData,
+        commit: true, // to remove on next contract update (commit)
+    };
 }
 
 describe("NestedFactory", () => {
@@ -96,24 +122,21 @@ describe("NestedFactory", () => {
             expect(operators[1]).to.be.equal(context.flatOperatorNameBytes32);
             expect(operators[2]).to.not.be.equal(toBytes32("test"));
 
-            let orders: ZeroExOrder[] = [
-                {
-                    operator: toBytes32("test"),
-                    token: context.mockUNI.address,
-                    callData: abiCoder.encode(
-                        ["address", "address", "bytes4", "bytes"],
-                        [
-                            context.mockDAI.address,
-                            context.mockUNI.address,
+            let orders: OrderStruct[] = [
+                buildOrderStruct(toBytes32("test"), context.mockUNI.address, [
+                    ["address", context.mockDAI.address],
+                    ["address", context.mockUNI.address],
+                    [
+                        "bytes",
+                        ethers.utils.hexConcat([
                             dummyRouterSelector,
                             abiCoder.encode(
                                 ["address", "address", "uint"],
                                 [context.mockDAI.address, context.mockUNI.address, appendDecimals(5)],
                             ),
-                        ],
-                    ),
-                    commit: true,
-                },
+                        ]),
+                    ],
+                ]),
             ];
 
             await expect(
@@ -183,7 +206,7 @@ describe("NestedFactory", () => {
         });
 
         it("reverts if Orders list is empty", async () => {
-            let orders: ZeroExOrder[] = [];
+            let orders: OrderStruct[] = [];
             await expect(
                 context.nestedFactory.connect(context.user1).create(0, context.mockDAI.address, 0, orders),
             ).to.be.revertedWith("NestedFactory::create: Missing orders");
@@ -196,23 +219,20 @@ describe("NestedFactory", () => {
             const totalToSpend = uniBought.add(expectedFee);
 
             // Orders to buy UNI but the sellToken param (ZeroExOperator) is removed
-            const orders: ZeroExOrder[] = [
-                {
-                    operator: context.zeroExOperatorNameBytes32,
-                    token: context.mockUNI.address,
-                    callData: abiCoder.encode(
-                        ["address", "bytes4", "bytes"],
-                        [
-                            context.mockUNI.address,
+            const orders: OrderStruct[] = [
+                buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
+                    ["address", context.mockUNI.address],
+                    [
+                        "bytes",
+                        ethers.utils.hexConcat([
                             dummyRouterSelector,
                             abiCoder.encode(
                                 ["address", "address", "uint"],
                                 [context.mockDAI.address, context.mockUNI.address, uniBought],
                             ),
-                        ],
-                    ),
-                    commit: true,
-                },
+                        ]),
+                    ],
+                ]),
             ];
 
             await expect(
@@ -226,30 +246,27 @@ describe("NestedFactory", () => {
             const expectedFee = getExpectedFees(uniBought);
             const totalToSpend = uniBought.add(expectedFee);
 
-            // Orders to buy UNI but the sellToken param (ZeroExOperator) is removed
-            const orders: ZeroExOrder[] = [
-                {
-                    operator: context.zeroExOperatorNameBytes32,
-                    token: context.mockUNI.address,
-                    callData: abiCoder.encode(
-                        ["address", "address", "bytes4", "bytes"],
-                        [
-                            context.mockDAI.address,
-                            context.mockKNC.address,
+            // Orders to buy UNI but with the wrong output token
+            const orders: OrderStruct[] = [
+                buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
+                    ["address", context.mockDAI.address],
+                    ["address", context.mockKNC.address],
+                    [
+                        "bytes",
+                        ethers.utils.hexConcat([
                             dummyRouterSelector,
                             abiCoder.encode(
                                 ["address", "address", "uint"],
                                 [context.mockDAI.address, context.mockKNC.address, uniBought],
                             ),
-                        ],
-                    ),
-                    commit: true,
-                },
+                        ]),
+                    ],
+                ]),
             ];
 
             await expect(
                 context.nestedFactory.connect(context.user1).create(0, context.mockDAI.address, totalToSpend, orders),
-            ).to.be.revertedWith("OperatorHelpers::getDecodeDataAndRequire: Wrong output token");
+            ).to.be.revertedWith("OperatorHelpers::decodeDataAndRequire: Wrong output token");
         });
 
         it("reverts if the DAI amount is less than total sum of DAI sales", async () => {
@@ -263,7 +280,7 @@ describe("NestedFactory", () => {
             const totalToSpend = appendDecimals(5);
 
             // Orders for UNI and KNC
-            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
+            let orders: OrderStruct[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
 
             // Revert because not enough funds to swap, the order amounts > totalToSpend
             await expect(
@@ -282,7 +299,7 @@ describe("NestedFactory", () => {
             const totalToSpend = appendDecimals(10);
 
             // Orders for UNI and KNC
-            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
+            let orders: OrderStruct[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
 
             // Should revert with "assert" (no message)
             await expect(
@@ -301,7 +318,7 @@ describe("NestedFactory", () => {
             const totalToSpend = appendDecimals(5);
 
             // Orders for UNI and KNC
-            let orders: ZeroExOrder[] = getUniAndKncWithETHOrders(uniBought, kncBought);
+            let orders: OrderStruct[] = getUniAndKncWithETHOrders(uniBought, kncBought);
 
             // Should revert with "assert" (no message)
             await expect(
@@ -320,7 +337,7 @@ describe("NestedFactory", () => {
             const totalToSpend = totalToBought.add(expectedFee);
 
             // Orders for UNI and KNC
-            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
+            let orders: OrderStruct[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
 
             // User1 creates the portfolio/NFT and emit event NftCreated
             await expect(
@@ -373,7 +390,7 @@ describe("NestedFactory", () => {
             const totalToSpend = appendDecimals(20);
 
             // Orders for UNI and KNC
-            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
+            let orders: OrderStruct[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
 
             // User1 creates the portfolio/NFT and emit event NftCreated
             await expect(
@@ -411,7 +428,7 @@ describe("NestedFactory", () => {
             const totalToSpend = appendDecimals(20);
 
             // Orders for UNI and KNC
-            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
+            let orders: OrderStruct[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
 
             // User1 creates the portfolio/NFT and emit event NftCreated (not more than needed)
             await expect(
@@ -474,7 +491,7 @@ describe("NestedFactory", () => {
             const ethBalanceBefore = await context.user1.getBalance();
 
             // Orders for UNI and KNC
-            let orders: ZeroExOrder[] = getUniAndKncWithETHOrders(uniBought, kncBought);
+            let orders: OrderStruct[] = getUniAndKncWithETHOrders(uniBought, kncBought);
 
             // User1 creates the portfolio/NFT
             const tx = await context.nestedFactory
@@ -516,14 +533,14 @@ describe("NestedFactory", () => {
             await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
 
             // create nft 1 with UNI and KNC from DAI (use the base amounts)
-            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
+            let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
                 .connect(context.user1)
                 .create(0, context.mockDAI.address, baseTotalToSpend, orders);
         });
 
         it("reverts if Orders list is empty", async () => {
-            let orders: ZeroExOrder[] = [];
+            let orders: OrderStruct[] = [];
             await expect(
                 context.nestedFactory.connect(context.user1).addTokens(1, context.mockDAI.address, 0, orders),
             ).to.be.revertedWith("NestedFactory::addTokens: Missing orders");
@@ -536,23 +553,20 @@ describe("NestedFactory", () => {
             const totalToSpend = uniBought.add(expectedFee);
 
             // Orders to buy UNI but the sellToken param (ZeroExOperator) is removed
-            const orders: ZeroExOrder[] = [
-                {
-                    operator: context.zeroExOperatorNameBytes32,
-                    token: context.mockUNI.address,
-                    callData: abiCoder.encode(
-                        ["address", "bytes4", "bytes"],
-                        [
-                            context.mockUNI.address,
+            const orders: OrderStruct[] = [
+                buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
+                    ["address", context.mockUNI.address],
+                    [
+                        "bytes",
+                        ethers.utils.hexConcat([
                             dummyRouterSelector,
                             abiCoder.encode(
                                 ["address", "address", "uint"],
                                 [context.mockDAI.address, context.mockUNI.address, uniBought],
                             ),
-                        ],
-                    ),
-                    commit: true,
-                },
+                        ]),
+                    ],
+                ]),
             ];
 
             await expect(
@@ -569,7 +583,7 @@ describe("NestedFactory", () => {
             const totalToBought = uniBought.add(kncBought);
             const expectedFee = getExpectedFees(totalToBought);
             const totalToSpend = totalToBought.add(expectedFee);
-            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
+            let orders: OrderStruct[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
 
             // NFT with id = 2 shouldn't exist
             await expect(
@@ -586,7 +600,7 @@ describe("NestedFactory", () => {
             const totalToBought = uniBought.add(kncBought);
             const expectedFee = getExpectedFees(totalToBought);
             const totalToSpend = totalToBought.add(expectedFee);
-            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
+            let orders: OrderStruct[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
 
             // Master Deployer is not the owner of NFT 1
             await expect(
@@ -602,32 +616,29 @@ describe("NestedFactory", () => {
             const expectedFee = getExpectedFees(uniBought);
             const totalToSpend = uniBought.add(expectedFee);
 
-            // Orders to buy UNI but the sellToken param (ZeroExOperator) is removed
-            const orders: ZeroExOrder[] = [
-                {
-                    operator: context.zeroExOperatorNameBytes32,
-                    token: context.mockUNI.address,
-                    callData: abiCoder.encode(
-                        ["address", "address", "bytes4", "bytes"],
-                        [
-                            context.mockDAI.address,
-                            context.mockKNC.address,
+            // Orders to buy UNI but with the wrong output token
+            const orders: OrderStruct[] = [
+                buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
+                    ["address", context.mockDAI.address],
+                    ["address", context.mockKNC.address],
+                    [
+                        "bytes",
+                        ethers.utils.hexConcat([
                             dummyRouterSelector,
                             abiCoder.encode(
                                 ["address", "address", "uint"],
                                 [context.mockDAI.address, context.mockKNC.address, uniBought],
                             ),
-                        ],
-                    ),
-                    commit: true,
-                },
+                        ]),
+                    ],
+                ]),
             ];
 
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
                     .addTokens(1, context.mockDAI.address, totalToSpend, orders),
-            ).to.be.revertedWith("OperatorHelpers::getDecodeDataAndRequire: Wrong output token");
+            ).to.be.revertedWith("OperatorHelpers::decodeDataAndRequire: Wrong output token");
         });
 
         it("reverts if the DAI amount is less than total sum of DAI sales", async () => {
@@ -641,7 +652,7 @@ describe("NestedFactory", () => {
             const totalToSpend = appendDecimals(5);
 
             // Orders for UNI and KNC
-            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
+            let orders: OrderStruct[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
 
             // Should revert with "assert" (no message)
             await expect(
@@ -662,7 +673,7 @@ describe("NestedFactory", () => {
             const totalToSpend = appendDecimals(5);
 
             // Orders for UNI and KNC
-            let orders: ZeroExOrder[] = getUniAndKncWithETHOrders(uniBought, kncBought);
+            let orders: OrderStruct[] = getUniAndKncWithETHOrders(uniBought, kncBought);
 
             // Should revert with "assert" (no message)
             await expect(
@@ -681,7 +692,7 @@ describe("NestedFactory", () => {
             const totalToSpend = totalToBought.add(expectedFee);
 
             // Orders for UNI and KNC
-            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
+            let orders: OrderStruct[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
 
             // User1 creates the portfolio/NFT and emit event NftUpdated
             await expect(
@@ -739,7 +750,7 @@ describe("NestedFactory", () => {
             const totalToSpend = appendDecimals(20);
 
             // Orders for UNI and KNC
-            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
+            let orders: OrderStruct[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
 
             await context.nestedFactory
                 .connect(context.user1)
@@ -783,24 +794,21 @@ describe("NestedFactory", () => {
             const expectedFee = getExpectedFees(daiBought);
             const totalToSpend = daiBought.add(expectedFee);
 
-            let orders: ZeroExOrder[] = [
-                {
-                    operator: context.zeroExOperatorNameBytes32,
-                    token: context.mockDAI.address,
-                    callData: abiCoder.encode(
-                        ["address", "address", "bytes4", "bytes"],
-                        [
-                            context.WETH.address,
-                            context.mockDAI.address,
+            let orders: OrderStruct[] = [
+                buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockDAI.address, [
+                    ["address", context.WETH.address],
+                    ["address", context.mockDAI.address],
+                    [
+                        "bytes",
+                        ethers.utils.hexConcat([
                             dummyRouterSelector,
                             abiCoder.encode(
                                 ["address", "address", "uint"],
                                 [context.WETH.address, context.mockDAI.address, daiBought],
                             ),
-                        ],
-                    ),
-                    commit: true,
-                },
+                        ]),
+                    ],
+                ]),
             ];
 
             await expect(
@@ -842,7 +850,7 @@ describe("NestedFactory", () => {
             await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
 
             // create nft 1 with UNI and KNC from DAI (use the base amounts)
-            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
+            let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
                 .connect(context.user1)
                 .create(0, context.mockDAI.address, baseTotalToSpend, orders);
@@ -850,7 +858,7 @@ describe("NestedFactory", () => {
 
         it("reverts if Orders list is empty", async () => {
             it("reverts if Orders list is empty", async () => {
-                let orders: ZeroExOrder[] = [];
+                let orders: OrderStruct[] = [];
                 await expect(
                     context.nestedFactory
                         .connect(context.user1)
@@ -867,23 +875,20 @@ describe("NestedFactory", () => {
                 const totalToSpend = uniBought.add(expectedFee);
 
                 // Orders to swap UNI from the portfolio but the sellToken param (ZeroExOperator) is removed
-                const orders: ZeroExOrder[] = [
-                    {
-                        operator: context.zeroExOperatorNameBytes32,
-                        token: context.mockDAI.address,
-                        callData: abiCoder.encode(
-                            ["address", "bytes4", "bytes"],
-                            [
-                                context.mockDAI.address,
+                const orders: OrderStruct[] = [
+                    buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockDAI.address, [
+                        ["address", context.mockDAI.address],
+                        [
+                            "bytes",
+                            ethers.utils.hexConcat([
                                 dummyRouterSelector,
                                 abiCoder.encode(
                                     ["address", "address", "uint"],
                                     [context.mockUNI.address, context.mockDAI.address, uniBought],
                                 ),
-                            ],
-                        ),
-                        commit: true,
-                    },
+                            ]),
+                        ],
+                    ]),
                 ];
 
                 await expect(
@@ -900,7 +905,7 @@ describe("NestedFactory", () => {
             const totalToBought = kncBought;
             const expectedFee = totalToBought.div(100);
             const totalToSpend = totalToBought.add(expectedFee);
-            let orders: ZeroExOrder[] = getTokenBWithTokenAOrders(
+            let orders: OrderStruct[] = getTokenBWithTokenAOrders(
                 kncBought,
                 context.mockKNC.address,
                 context.mockUSDC.address,
@@ -920,7 +925,7 @@ describe("NestedFactory", () => {
             const totalToBought = kncBought;
             const expectedFee = getExpectedFees(totalToBought);
             const totalToSpend = totalToBought.add(expectedFee);
-            let orders: ZeroExOrder[] = getTokenBWithTokenAOrders(
+            let orders: OrderStruct[] = getTokenBWithTokenAOrders(
                 kncBought,
                 context.mockKNC.address,
                 context.mockUSDC.address,
@@ -944,7 +949,7 @@ describe("NestedFactory", () => {
             const totalToSpend = appendDecimals(3);
 
             // Orders for UNI and KNC
-            let orders: ZeroExOrder[] = getTokenBWithTokenAOrders(
+            let orders: OrderStruct[] = getTokenBWithTokenAOrders(
                 usdcBought,
                 context.mockUNI.address,
                 context.mockUSDC.address,
@@ -966,7 +971,7 @@ describe("NestedFactory", () => {
             const totalToSpend = appendDecimals(10);
 
             // Orders for UNI and KNC
-            let orders: ZeroExOrder[] = getTokenBWithTokenAOrders(
+            let orders: OrderStruct[] = getTokenBWithTokenAOrders(
                 usdcBought,
                 context.mockUNI.address,
                 context.mockUSDC.address,
@@ -987,7 +992,7 @@ describe("NestedFactory", () => {
             const totalToSpend = totalToBought.add(expectedFee);
 
             // Orders for UNI and KNC
-            let orders: ZeroExOrder[] = getTokenBWithTokenAOrders(
+            let orders: OrderStruct[] = getTokenBWithTokenAOrders(
                 uniBought,
                 context.mockKNC.address,
                 context.mockUNI.address,
@@ -1034,7 +1039,7 @@ describe("NestedFactory", () => {
             const totalToSpend = appendDecimals(4);
 
             // Orders for UNI and KNC
-            let orders: ZeroExOrder[] = getTokenBWithTokenAOrders(
+            let orders: OrderStruct[] = getTokenBWithTokenAOrders(
                 uniBought,
                 context.mockKNC.address,
                 context.mockUNI.address,
@@ -1071,7 +1076,7 @@ describe("NestedFactory", () => {
             const totalToSpend = usdcBought.add(expectedFee);
 
             // Orders to buy USDC with UNI
-            let orders: ZeroExOrder[] = getTokenBWithTokenAOrders(
+            let orders: OrderStruct[] = getTokenBWithTokenAOrders(
                 usdcBought,
                 context.mockUNI.address,
                 context.mockUSDC.address,
@@ -1120,14 +1125,14 @@ describe("NestedFactory", () => {
             await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
 
             // create nft 1 with UNI and KNC from DAI (use the base amounts)
-            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
+            let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
                 .connect(context.user1)
                 .create(0, context.mockDAI.address, baseTotalToSpend, orders);
         });
 
         it("reverts if Orders list is empty", async () => {
-            let orders: ZeroExOrder[] = [];
+            let orders: OrderStruct[] = [];
             await expect(
                 context.nestedFactory.connect(context.user1).sellTokensToNft(1, context.mockDAI.address, [], orders),
             ).to.be.revertedWith("NestedFactory::sellTokensToNft: Missing orders");
@@ -1138,23 +1143,20 @@ describe("NestedFactory", () => {
             const uniSold = appendDecimals(3);
 
             // Orders to swap UNI from the portfolio but the sellToken param (ZeroExOperator) is removed
-            const orders: ZeroExOrder[] = [
-                {
-                    operator: context.zeroExOperatorNameBytes32,
-                    token: context.mockUNI.address,
-                    callData: abiCoder.encode(
-                        ["address", "bytes4", "bytes"],
-                        [
-                            context.mockUSDC.address,
+            const orders: OrderStruct[] = [
+                buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
+                    ["address", context.mockUNI.address],
+                    [
+                        "bytes",
+                        ethers.utils.hexConcat([
                             dummyRouterSelector,
                             abiCoder.encode(
                                 ["address", "address", "uint"],
                                 [context.mockUNI.address, context.mockUSDC.address, uniSold],
                             ),
-                        ],
-                    ),
-                    commit: true,
-                },
+                        ]),
+                    ],
+                ]),
             ];
 
             await expect(
@@ -1169,7 +1171,7 @@ describe("NestedFactory", () => {
             const uniSold = appendDecimals(3);
             const kncSold = appendDecimals(3);
 
-            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+            let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
             // NFT with id = 2 shouldn't exist
             await expect(
@@ -1184,7 +1186,7 @@ describe("NestedFactory", () => {
             const uniSold = appendDecimals(3);
             const kncSold = appendDecimals(3);
 
-            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+            let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
             // Master Deployer is not the owner of NFT 1
             await expect(
@@ -1199,7 +1201,7 @@ describe("NestedFactory", () => {
             const uniSold = appendDecimals(3);
             const kncSold = appendDecimals(3);
 
-            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+            let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
             await expect(
                 context.nestedFactory
@@ -1213,7 +1215,7 @@ describe("NestedFactory", () => {
             const uniSold = appendDecimals(7);
             const kncSold = appendDecimals(3);
 
-            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+            let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
             await expect(
                 context.nestedFactory
@@ -1228,7 +1230,7 @@ describe("NestedFactory", () => {
             const kncSold = appendDecimals(3);
 
             // The amount in the order is more than sell amount
-            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold.add(appendDecimals(1)));
+            let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold.add(appendDecimals(1)));
 
             // Error in operator cant transfer more than in factory balance
             await expect(
@@ -1244,14 +1246,14 @@ describe("NestedFactory", () => {
             const kncSold = appendDecimals(3);
 
             // The amount in the order is more than sell amount
-            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+            let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
             // Instead of USDC as output token, use DAI
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToNft(1, context.mockDAI.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("OperatorHelpers::getDecodeDataAndRequire: Wrong output token");
+            ).to.be.revertedWith("OperatorHelpers::decodeDataAndRequire: Wrong output token");
         });
 
         it("swap KNC and UNI for USDC (ZeroExOperator) with right amounts", async () => {
@@ -1261,7 +1263,7 @@ describe("NestedFactory", () => {
             const usdcBought = kncSold.add(uniSold);
             const expectedUsdcFees = getExpectedFees(usdcBought);
 
-            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+            let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
             await expect(
                 context.nestedFactory
@@ -1312,7 +1314,7 @@ describe("NestedFactory", () => {
             const uniSoldOrder = uniSold.sub(appendDecimals(1));
             const kncSoldOrder = kncSold.sub(appendDecimals(1));
             const usdcBoughtOrder = uniSoldOrder.add(kncSoldOrder);
-            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSoldOrder, kncSoldOrder);
+            let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSoldOrder, kncSoldOrder);
             const orderExpectedFee = getExpectedFees(uniSoldOrder.add(kncSoldOrder));
 
             await expect(
@@ -1402,14 +1404,14 @@ describe("NestedFactory", () => {
             await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
 
             // create nft 1 with UNI and KNC from DAI (use the base amounts)
-            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
+            let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
                 .connect(context.user1)
                 .create(0, context.mockDAI.address, baseTotalToSpend, orders);
         });
 
         it("reverts if Orders list is empty", async () => {
-            let orders: ZeroExOrder[] = [];
+            let orders: OrderStruct[] = [];
             await expect(
                 context.nestedFactory.connect(context.user1).sellTokensToWallet(1, context.mockDAI.address, [], orders),
             ).to.be.revertedWith("NestedFactory::sellTokensToWallet: Missing orders");
@@ -1420,23 +1422,20 @@ describe("NestedFactory", () => {
             const uniSold = appendDecimals(3);
 
             // Orders to swap UNI from the portfolio but the sellToken param (ZeroExOperator) is removed
-            const orders: ZeroExOrder[] = [
-                {
-                    operator: context.zeroExOperatorNameBytes32,
-                    token: context.mockUNI.address,
-                    callData: abiCoder.encode(
-                        ["address", "bytes4", "bytes"],
-                        [
-                            context.mockUSDC.address,
+            const orders: OrderStruct[] = [
+                buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
+                    ["address", context.mockUSDC.address],
+                    [
+                        "bytes",
+                        ethers.utils.hexConcat([
                             dummyRouterSelector,
                             abiCoder.encode(
                                 ["address", "address", "uint"],
                                 [context.mockUNI.address, context.mockUSDC.address, uniSold],
                             ),
-                        ],
-                    ),
-                    commit: true,
-                },
+                        ]),
+                    ],
+                ]),
             ];
 
             await expect(
@@ -1451,7 +1450,7 @@ describe("NestedFactory", () => {
             const uniSold = appendDecimals(3);
             const kncSold = appendDecimals(3);
 
-            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+            let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
             // NFT with id = 2 shouldn't exist
             await expect(
@@ -1466,7 +1465,7 @@ describe("NestedFactory", () => {
             const uniSold = appendDecimals(3);
             const kncSold = appendDecimals(3);
 
-            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+            let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
             // Master Deployer is not the owner of NFT 1
             await expect(
@@ -1481,7 +1480,7 @@ describe("NestedFactory", () => {
             const uniSold = appendDecimals(3);
             const kncSold = appendDecimals(3);
 
-            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+            let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
             await expect(
                 context.nestedFactory
@@ -1495,7 +1494,7 @@ describe("NestedFactory", () => {
             const uniSold = appendDecimals(7);
             const kncSold = appendDecimals(3);
 
-            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+            let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
             await expect(
                 context.nestedFactory
@@ -1510,7 +1509,7 @@ describe("NestedFactory", () => {
             const kncSold = appendDecimals(3);
 
             // The amount in the order is more than sell amount
-            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold.add(appendDecimals(1)));
+            let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold.add(appendDecimals(1)));
 
             // Error in operator cant transfer more than in factory balance
             await expect(
@@ -1526,14 +1525,14 @@ describe("NestedFactory", () => {
             const kncSold = appendDecimals(3);
 
             // The amount in the order is more than sell amount
-            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+            let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
             // Instead of USDC as output token, use DAI
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToWallet(1, context.mockDAI.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("OperatorHelpers::getDecodeDataAndRequire: Wrong output token");
+            ).to.be.revertedWith("OperatorHelpers::decodeDataAndRequire: Wrong output token");
         });
 
         it("swap KNC and UNI for USDC (ZeroExOperator) with right amounts", async () => {
@@ -1543,7 +1542,7 @@ describe("NestedFactory", () => {
             const usdcBought = kncSold.add(uniSold);
             const expectedUsdcFees = getExpectedFees(usdcBought);
 
-            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+            let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
             await expect(
                 context.nestedFactory
@@ -1590,7 +1589,7 @@ describe("NestedFactory", () => {
             // The amount in the order is less than sell amount. Only 5 USDC will be bought
             const uniSoldOrder = uniSold.sub(appendDecimals(1));
             const kncSoldOrder = kncSold.sub(appendDecimals(1));
-            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSoldOrder, kncSoldOrder);
+            let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSoldOrder, kncSoldOrder);
             const orderExpectedFee = getExpectedFees(uniSoldOrder.add(kncSoldOrder));
 
             await expect(
@@ -1673,14 +1672,14 @@ describe("NestedFactory", () => {
             await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
 
             // create nft 1 with UNI and KNC from DAI (use the base amounts)
-            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
+            let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
                 .connect(context.user1)
                 .create(0, context.mockDAI.address, baseTotalToSpend, orders);
         });
 
         it("reverts if Orders list is empty", async () => {
-            let orders: ZeroExOrder[] = [];
+            let orders: OrderStruct[] = [];
             await expect(
                 context.nestedFactory.connect(context.user1).destroy(1, context.mockDAI.address, orders),
             ).to.be.revertedWith("NestedFactory::destroy: Missing orders");
@@ -1691,39 +1690,33 @@ describe("NestedFactory", () => {
             const kncSold = appendDecimals(4);
 
             // The sellToken param (ZeroExOperator) is removed
-            const orders: ZeroExOrder[] = [
-                {
-                    operator: context.zeroExOperatorNameBytes32,
-                    token: context.mockUNI.address,
-                    callData: abiCoder.encode(
-                        ["address", "bytes4", "bytes"],
-                        [
-                            context.mockUSDC.address,
+            const orders: OrderStruct[] = [
+                buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
+                    ["address", context.mockUNI.address],
+                    [
+                        "bytes",
+                        ethers.utils.hexConcat([
                             dummyRouterSelector,
                             abiCoder.encode(
                                 ["address", "address", "uint"],
                                 [context.mockUNI.address, context.mockUSDC.address, uniSold],
                             ),
-                        ],
-                    ),
-                    commit: true,
-                },
-                {
-                    operator: context.zeroExOperatorNameBytes32,
-                    token: context.mockKNC.address,
-                    callData: abiCoder.encode(
-                        ["address", "bytes4", "bytes"],
-                        [
-                            context.mockUSDC.address,
+                        ]),
+                    ],
+                ]),
+                buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockKNC.address, [
+                    ["address", context.mockUSDC.address],
+                    [
+                        "bytes",
+                        ethers.utils.hexConcat([
                             dummyRouterSelector,
                             abiCoder.encode(
                                 ["address", "address", "uint"],
-                                [context.mockKNC.address, context.mockUSDC.address, kncSold],
+                                [context.mockUNI.address, context.mockUSDC.address, kncSold],
                             ),
-                        ],
-                    ),
-                    commit: true,
-                },
+                        ]),
+                    ],
+                ]),
             ];
 
             await expect(context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders)).to
@@ -1735,7 +1728,7 @@ describe("NestedFactory", () => {
             const uniSold = appendDecimals(6);
             const kncSold = appendDecimals(4);
 
-            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+            let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
             // NFT with id = 2 shouldn't exist
             await expect(
@@ -1748,7 +1741,7 @@ describe("NestedFactory", () => {
             const uniSold = appendDecimals(6);
             const kncSold = appendDecimals(4);
 
-            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+            let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
             // Master Deployer is not the owner of NFT 1
             await expect(
@@ -1760,24 +1753,21 @@ describe("NestedFactory", () => {
             // 6 UNI and 4 KNC in the portfolio, try to sell only the UNI (KNC missing)
             const uniSold = appendDecimals(6);
 
-            let orders: ZeroExOrder[] = [
-                {
-                    operator: context.zeroExOperatorNameBytes32,
-                    token: context.mockUNI.address,
-                    callData: abiCoder.encode(
-                        ["address", "address", "bytes4", "bytes"],
-                        [
-                            context.mockUNI.address,
-                            context.mockUSDC.address,
+            let orders: OrderStruct[] = [
+                buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
+                    ["address", context.mockUNI.address],
+                    ["address", context.mockUSDC.address],
+                    [
+                        "bytes",
+                        ethers.utils.hexConcat([
                             dummyRouterSelector,
                             abiCoder.encode(
                                 ["address", "address", "uint"],
                                 [context.mockUNI.address, context.mockUSDC.address, uniSold],
                             ),
-                        ],
-                    ),
-                    commit: true,
-                },
+                        ]),
+                    ],
+                ]),
             ];
 
             await expect(
@@ -1790,7 +1780,7 @@ describe("NestedFactory", () => {
             const uniSold = appendDecimals(7);
             const kncSold = appendDecimals(4);
 
-            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+            let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
             await expect(context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders))
                 .to.emit(context.nestedFactory, "NftBurned")
@@ -1829,7 +1819,7 @@ describe("NestedFactory", () => {
             const kncSold = appendDecimals(4);
             const usdcBought = uniSold.add(kncSold);
 
-            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
+            let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
             await expect(context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders))
                 .to.emit(context.nestedFactory, "NftBurned")
@@ -1856,7 +1846,7 @@ describe("NestedFactory", () => {
             const kncSold = appendDecimals(4);
             const wethBought = uniSold.add(kncSold);
 
-            let orders: ZeroExOrder[] = getWethWithUniAndKncOrders(uniSold, kncSold);
+            let orders: OrderStruct[] = getWethWithUniAndKncOrders(uniSold, kncSold);
 
             await expect(context.nestedFactory.connect(context.user1).destroy(1, context.WETH.address, orders))
                 .to.emit(context.nestedFactory, "NftBurned")
@@ -1881,7 +1871,7 @@ describe("NestedFactory", () => {
             const uniSoldOrder = appendDecimals(4);
             const usdcBought = uniSoldOrder.add(kncSold);
 
-            let orders: ZeroExOrder[] = getUsdcWithUniAndKncOrders(uniSoldOrder, kncSold);
+            let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSoldOrder, kncSold);
 
             await expect(context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders))
                 .to.emit(context.nestedFactory, "NftBurned")
@@ -1916,7 +1906,7 @@ describe("NestedFactory", () => {
             await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
 
             // create nft 1 with UNI and KNC from DAI (use the base amounts)
-            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
+            let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
                 .connect(context.user1)
                 .create(0, context.mockDAI.address, baseTotalToSpend, orders);
@@ -1984,7 +1974,7 @@ describe("NestedFactory", () => {
             await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
 
             // create nft 1 with UNI and KNC from DAI (use the base amounts)
-            let orders: ZeroExOrder[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
+            let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
                 .connect(context.user1)
                 .create(0, context.mockDAI.address, baseTotalToSpend, orders);
@@ -2066,180 +2056,153 @@ describe("NestedFactory", () => {
     // Create the Orders to buy KNC and UNI with DAI
     function getUniAndKncWithDaiOrders(uniBought: BigNumber, kncBought: BigNumber) {
         return [
-            {
-                operator: context.zeroExOperatorNameBytes32,
-                token: context.mockUNI.address,
-                callData: abiCoder.encode(
-                    ["address", "address", "bytes4", "bytes"],
-                    [
-                        context.mockDAI.address,
-                        context.mockUNI.address,
+            buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
+                ["address", context.mockDAI.address],
+                ["address", context.mockUNI.address],
+                [
+                    "bytes",
+                    ethers.utils.hexConcat([
                         dummyRouterSelector,
                         abiCoder.encode(
                             ["address", "address", "uint"],
                             [context.mockDAI.address, context.mockUNI.address, uniBought],
                         ),
-                    ],
-                ),
-                commit: true,
-            },
-            {
-                operator: context.zeroExOperatorNameBytes32,
-                token: context.mockKNC.address,
-                callData: abiCoder.encode(
-                    ["address", "address", "bytes4", "bytes"],
-                    [
-                        context.mockDAI.address,
-                        context.mockKNC.address,
+                    ]),
+                ],
+            ]),
+            buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockKNC.address, [
+                ["address", context.mockDAI.address],
+                ["address", context.mockKNC.address],
+                [
+                    "bytes",
+                    ethers.utils.hexConcat([
                         dummyRouterSelector,
                         abiCoder.encode(
                             ["address", "address", "uint"],
                             [context.mockDAI.address, context.mockKNC.address, kncBought],
                         ),
-                    ],
-                ),
-                commit: true,
-            },
+                    ]),
+                ],
+            ]),
         ];
     }
 
     // Create the Orders to buy KNC and UNI with ETH
     function getUniAndKncWithETHOrders(uniBought: BigNumber, kncBought: BigNumber) {
         return [
-            {
-                operator: context.zeroExOperatorNameBytes32,
-                token: context.mockUNI.address,
-                callData: abiCoder.encode(
-                    ["address", "address", "bytes4", "bytes"],
-                    [
-                        context.WETH.address,
-                        context.mockUNI.address,
+            buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
+                ["address", context.WETH.address],
+                ["address", context.mockUNI.address],
+                [
+                    "bytes",
+                    ethers.utils.hexConcat([
                         dummyRouterSelector,
                         abiCoder.encode(
                             ["address", "address", "uint"],
                             [context.WETH.address, context.mockUNI.address, uniBought],
                         ),
-                    ],
-                ),
-                commit: true,
-            },
-            {
-                operator: context.zeroExOperatorNameBytes32,
-                token: context.mockKNC.address,
-                callData: abiCoder.encode(
-                    ["address", "address", "bytes4", "bytes"],
-                    [
-                        context.WETH.address,
-                        context.mockKNC.address,
+                    ]),
+                ],
+            ]),
+            buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockKNC.address, [
+                ["address", context.WETH.address],
+                ["address", context.mockKNC.address],
+                [
+                    "bytes",
+                    ethers.utils.hexConcat([
                         dummyRouterSelector,
                         abiCoder.encode(
                             ["address", "address", "uint"],
                             [context.WETH.address, context.mockKNC.address, kncBought],
                         ),
-                    ],
-                ),
-                commit: true,
-            },
+                    ]),
+                ],
+            ]),
         ];
     }
 
     // Generic function to create a 1:1 Order
     function getTokenBWithTokenAOrders(amount: BigNumber, tokenA: string, tokenB: string) {
         return [
-            {
-                operator: context.zeroExOperatorNameBytes32,
-                token: tokenB,
-                callData: abiCoder.encode(
-                    ["address", "address", "bytes4", "bytes"],
-                    [
-                        tokenA,
-                        tokenB,
+            buildOrderStruct(context.zeroExOperatorNameBytes32, tokenB, [
+                ["address", tokenA],
+                ["address", tokenB],
+                [
+                    "bytes",
+                    ethers.utils.hexConcat([
                         dummyRouterSelector,
                         abiCoder.encode(["address", "address", "uint"], [tokenA, tokenB, amount]),
-                    ],
-                ),
-                commit: true,
-            },
+                    ]),
+                ],
+            ]),
         ];
     }
 
     // Create the Orders to get USDC with UNI and KNC
     function getUsdcWithUniAndKncOrders(uniSold: BigNumber, kncSold: BigNumber) {
         return [
-            {
-                operator: context.zeroExOperatorNameBytes32,
-                token: context.mockUNI.address,
-                callData: abiCoder.encode(
-                    ["address", "address", "bytes4", "bytes"],
-                    [
-                        context.mockUNI.address,
-                        context.mockUSDC.address,
+            buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
+                ["address", context.mockUNI.address],
+                ["address", context.mockUSDC.address],
+                [
+                    "bytes",
+                    ethers.utils.hexConcat([
                         dummyRouterSelector,
                         abiCoder.encode(
                             ["address", "address", "uint"],
                             [context.mockUNI.address, context.mockUSDC.address, uniSold],
                         ),
-                    ],
-                ),
-                commit: false, // must work with revert too, because it's the same selector
-            },
-            {
-                operator: context.zeroExOperatorNameBytes32,
-                token: context.mockKNC.address,
-                callData: abiCoder.encode(
-                    ["address", "address", "bytes4", "bytes"],
-                    [
-                        context.mockKNC.address,
-                        context.mockUSDC.address,
+                    ]),
+                ],
+            ]),
+            buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockKNC.address, [
+                ["address", context.mockKNC.address],
+                ["address", context.mockUSDC.address],
+                [
+                    "bytes",
+                    ethers.utils.hexConcat([
                         dummyRouterSelector,
                         abiCoder.encode(
                             ["address", "address", "uint"],
                             [context.mockKNC.address, context.mockUSDC.address, kncSold],
                         ),
-                    ],
-                ),
-                commit: true,
-            },
+                    ]),
+                ],
+            ]),
         ];
     }
 
     // Create the Orders to get Eth with UNI and KNC
     function getWethWithUniAndKncOrders(uniSold: BigNumber, kncSold: BigNumber) {
         return [
-            {
-                operator: context.zeroExOperatorNameBytes32,
-                token: context.mockUNI.address,
-                callData: abiCoder.encode(
-                    ["address", "address", "bytes4", "bytes"],
-                    [
-                        context.mockUNI.address,
-                        context.WETH.address,
+            buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
+                ["address", context.mockUNI.address],
+                ["address", context.WETH.address],
+                [
+                    "bytes",
+                    ethers.utils.hexConcat([
                         dummyRouterSelector,
                         abiCoder.encode(
                             ["address", "address", "uint"],
                             [context.mockUNI.address, context.WETH.address, uniSold],
                         ),
-                    ],
-                ),
-                commit: true,
-            },
-            {
-                operator: context.zeroExOperatorNameBytes32,
-                token: context.mockKNC.address,
-                callData: abiCoder.encode(
-                    ["address", "address", "bytes4", "bytes"],
-                    [
-                        context.mockKNC.address,
-                        context.WETH.address,
+                    ]),
+                ],
+            ]),
+            buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockKNC.address, [
+                ["address", context.mockKNC.address],
+                ["address", context.WETH.address],
+                [
+                    "bytes",
+                    ethers.utils.hexConcat([
                         dummyRouterSelector,
                         abiCoder.encode(
                             ["address", "address", "uint"],
                             [context.mockKNC.address, context.WETH.address, kncSold],
                         ),
-                    ],
-                ),
-                commit: true,
-            },
+                    ]),
+                ],
+            ]),
         ];
     }
 });
