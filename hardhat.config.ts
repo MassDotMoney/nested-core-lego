@@ -26,10 +26,6 @@ const config: HardhatUserConfig = {
     defaultNetwork: "hardhat",
     networks: {
         hardhat: {
-            forking: {
-                enabled: process.env.FORKING === "true",
-                url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_MAINNET_API_KEY}`,
-            },
             live: false,
             saveDeployments: true,
             tags: ["test", "local"],
@@ -49,10 +45,27 @@ const config: HardhatUserConfig = {
         },
         mainnet: {
             url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_MAINNET_API_KEY}`,
+            chainId: 1,
             accounts: accounts,
         },
         bsc: {
             url: "https://bsc-dataseed.binance.org/",
+            chainId: 56,
+            accounts: accounts,
+        },
+        polygon: {
+            url: "https://polygon-rpc.com/",
+            chainId: 137,
+            accounts: accounts,
+        },
+        celo: {
+            url: "https://forno.celo.org/",
+            chainId: 42220,
+            accounts: accounts, 
+        },
+        avalanche: {
+            url: "https://api.avax.network/ext/bc/C/rpc",
+            chainId: 43114,
             accounts: accounts,
         }
     },

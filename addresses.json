@@ -1,5 +1,6 @@
 {
     "1": {
+        "name": "mainnet",
         "Deployer": "",
         "NestedFactory": "",
         "NestedRecords": "",
@@ -14,6 +15,86 @@
             "maxHoldingsCount": 15,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+            "multisig": "",
+            "nestedTreasury": ""
+        }
+    },
+    "56": {
+        "name": "bsc",
+        "Deployer": "",
+        "NestedFactory": "",
+        "NestedRecords": "",
+        "NestedReserve": "",
+        "NestedAsset": "",
+        "FeeSplitter": "",
+        "OperatorResolver": "",
+        "ZeroExOperator": "",
+        "FlatOperator": "",
+        "Timelock": "",
+        "config" : {
+            "maxHoldingsCount": 15,
+            "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
+            "WETH": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
+            "multisig": "",
+            "nestedTreasury": ""
+        }
+    },
+    "137": {
+        "name": "polygon",
+        "Deployer": "",
+        "NestedFactory": "",
+        "NestedRecords": "",
+        "NestedReserve": "",
+        "NestedAsset": "",
+        "FeeSplitter": "",
+        "OperatorResolver": "",
+        "ZeroExOperator": "",
+        "FlatOperator": "",
+        "Timelock": "",
+        "config" : {
+            "maxHoldingsCount": 15,
+            "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
+            "WETH": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+            "multisig": "",
+            "nestedTreasury": ""
+        }
+    },
+    "42220": {
+        "name": "celo",
+        "Deployer": "",
+        "NestedFactory": "",
+        "NestedRecords": "",
+        "NestedReserve": "",
+        "NestedAsset": "",
+        "FeeSplitter": "",
+        "OperatorResolver": "",
+        "ZeroExOperator": "",
+        "FlatOperator": "",
+        "Timelock": "",
+        "config" : {
+            "maxHoldingsCount": 15,
+            "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
+            "WETH": "0x471ece3750da237f93b8e339c536989b8978a438",
+            "multisig": "",
+            "nestedTreasury": ""
+        }
+    },
+    "43114": {
+        "name": "avalanche",
+        "Deployer": "",
+        "NestedFactory": "",
+        "NestedRecords": "",
+        "NestedReserve": "",
+        "NestedAsset": "",
+        "FeeSplitter": "",
+        "OperatorResolver": "",
+        "ZeroExOperator": "",
+        "FlatOperator": "",
+        "Timelock": "",
+        "config" : {
+            "maxHoldingsCount": 15,
+            "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
+            "WETH": "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
             "multisig": "",
             "nestedTreasury": ""
         }
