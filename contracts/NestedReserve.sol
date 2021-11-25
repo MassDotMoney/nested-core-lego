@@ -52,13 +52,6 @@ contract NestedReserve is Ownable {
         _token.safeTransfer(factory, _amount);
     }
 
-    /// Transfer funds from the factory directly
-    /// @param _token The ERC20 to transfer
-    /// @param _amount The amount to transfer
-    function transferFromFactory(IERC20 _token, uint256 _amount) external onlyFactory {
-        _token.safeTransferFrom(factory, address(this), _amount);
-    }
-
     /// @notice Update the factory address
     /// @param _newFactory The new factory address
     function updateFactory(address _newFactory) external onlyOwner {
