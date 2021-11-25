@@ -20,8 +20,8 @@ contract NestedRecords is Ownable {
 
     /// @dev Info about assets stored in reserves
     struct Holding {
-        address token;
         uint256 amount;
+        address token;
         bool isActive;
     }
 
