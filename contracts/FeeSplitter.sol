@@ -71,7 +71,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
 
     /// @dev Receive ether after a WETH withdraw call
     receive() external payable {
-        require(_msgSender() == weth, "FeeSplitter: ETH_SENDER_NOT_WETH");
+        require(msg.sender == weth, "FeeSplitter: ETH_SENDER_NOT_WETH");
     }
 
     /// @notice Returns the amount due to an account. Call releaseToken to withdraw the amount.
