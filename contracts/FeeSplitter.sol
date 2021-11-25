@@ -92,9 +92,8 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// @notice Sets the weight assigned to the royalties part for the fee
     /// @param _weight The new royalties weight
     function setRoyaltiesWeight(uint256 _weight) public onlyOwner {
-        totalWeights -= royaltiesWeight;
+        totalWeights = totalWeights + _weight - royaltiesWeight;
         royaltiesWeight = _weight;
-        totalWeights += _weight;
     }
 
     /// @notice Sets a new list of shareholders
