@@ -223,11 +223,11 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         uint256 _totalWeights
     ) private {
         IERC20(_token).safeTransferFrom(_msgSender(), address(this), _amount);
-
-        for (uint256 i = 0; i < shareholders.length; i++) {
+        Shareholder[] memory shareholdersCache = shareholders;
+        for (uint256 i = 0; i < shareholdersCache.length; i++) {
             _addShares(
-                shareholders[i].account,
-                _computeShareCount(_amount, shareholders[i].weight, _totalWeights),
+                shareholdersCache[i].account,
+                _computeShareCount(_amount, shareholdersCache[i].weight, _totalWeights),
                 address(_token)
             );
         }
