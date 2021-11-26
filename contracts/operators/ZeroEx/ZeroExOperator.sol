@@ -10,9 +10,14 @@ import "../../interfaces/IOperatorSelector.sol";
 
 /// @title The 0x protocol operator to execute swap with the aggregator
 contract ZeroExOperator is IZeroExOperator, IOperatorSelector {
+    bytes32 private constant salt = bytes32("nested.zeroex.operator");
+    bytes32 private immutable storageCreationCode;
+
     /// @dev Deploy with the storage contract
     constructor(address swapTarget) {
-        address zeroxExStorage = Create2.deploy(0, bytes32("nested.zeroex.operator"), type(ZeroExStorage).creationCode);
+        bytes memory creationCodeBytes = type(ZeroExStorage).creationCode;
+        storageCreationCode = keccak256(creationCodeBytes);
+        address zeroxExStorage = Create2.deploy(0, salt, creationCodeBytes);
         ZeroExStorage(zeroxExStorage).updatesSwapTarget(swapTarget);
         ZeroExStorage(zeroxExStorage).transferOwnership(msg.sender);
     }
@@ -51,16 +56,12 @@ contract ZeroExOperator is IZeroExOperator, IOperatorSelector {
 
     /// @notice Return the operator storage address
     /// @param own the operator address to build the storage address in delegatecall
-    function storageAddress(address own) public pure returns (address) {
-        bytes32 _data = keccak256(
-            abi.encodePacked(
-                bytes1(0xff),
-                own,
-                bytes32("nested.zeroex.operator"),
-                keccak256(type(ZeroExStorage).creationCode)
-            )
+    function storageAddress(address own) public view returns (address) {
+        return Create2.computeAddress(
+            salt,
+            storageCreationCode,
+            own
         );
-        return address(uint160(uint256(_data)));
     }
 
     /// @inheritdoc IOperatorSelector
