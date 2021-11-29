@@ -96,8 +96,6 @@ contract NestedBuybacker is Ownable {
         if (feeSplitter.getAmountDue(address(this), _sellToken) > 0) {
             claimFees(_sellToken);
         }
-
-        uint256 balance = _sellToken.balanceOf(address(this));
         ExchangeHelpers.fillQuote(_sellToken, _swapTarget, _swapCallData);
         trigger();
         emit BuybackTriggered(_sellToken);
