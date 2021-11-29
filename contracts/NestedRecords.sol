@@ -136,13 +136,6 @@ contract NestedRecords is Ownable {
         createRecord(_nftId, _token, _amount, _reserve);
     }
 
-    /// @notice Get holding object for this NFT ID
-    /// @param _nftId The id of the NFT
-    /// @param _token The address of the token
-    function getAssetHolding(uint256 _nftId, address _token) external view returns (Holding memory) {
-        return records[_nftId].holdings[_token];
-    }
-
     /// @notice Sets the factory for Nested records
     /// @param _factory The address of the new factory
     function setFactory(address _factory) external onlyOwner {
@@ -183,8 +176,30 @@ contract NestedRecords is Ownable {
     /// @notice Get how many tokens are in a portfolio/NFT
     /// @param _nftId NFT ID to examine
     /// @return The array length
-    function getAssetTokensLength(uint256 _nftId) external view returns (uint256) {
+    function getAssetTokensLength(uint256 _nftId) public view returns (uint256) {
         return records[_nftId].tokens.length;
+    }
+
+    /// @notice Get holding object for this NFT ID
+    /// @param _nftId The id of the NFT
+    /// @param _token The address of the token
+    function getAssetHolding(uint256 _nftId, address _token) public view returns (Holding memory) {
+        return records[_nftId].holdings[_token];
+    }
+
+    /// @notice Returns the holdings associated to a NestedAsset
+    /// @param _nftId the id of the NestedAsset
+    /// @return The holdings
+    function tokenHoldings(uint256 _nftId) public view returns (Holding[] memory) {
+        address[] memory tokens = getAssetTokens(_nftId);
+        uint256 tokensCount = tokens.length;
+        Holding[] memory holdings = new Holding[](tokensCount);
+
+        for (uint256 i = 0; i < tokensCount; i++) {
+            Holding memory holding = getAssetHolding(_nftId, tokens[i]);
+            holdings[i] = holding;
+        }
+        return holdings;
     }
 
     /// @notice Get the lock timestamp of a portfolio/NFT
