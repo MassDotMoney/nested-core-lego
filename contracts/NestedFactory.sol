@@ -376,11 +376,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         (bool success, bytes memory data) = OperatorHelpers.callOperator(operator, _order.commit, _order.callData);
         require(success, "NestedFactory::_submitOrder: Operator call failed");
 
-        (uint256[] memory amounts, address[] memory tokens) = OperatorHelpers.decodeDataAndRequire(
-            data,
-            _inputToken,
-            _outputToken
-        );
+        (uint256[] memory amounts, ) = OperatorHelpers.decodeDataAndRequire(data, _inputToken, _outputToken);
 
         if (_reserved) {
             _transferToReserveAndStore(IERC20(_outputToken), amounts[0], _nftId);
@@ -407,11 +403,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         address operator = requireAndGetAddress(_order.operator);
         (bool success, bytes memory data) = OperatorHelpers.callOperator(operator, _order.commit, _order.callData);
         if (success) {
-            (uint256[] memory amounts, address[] memory tokens) = OperatorHelpers.decodeDataAndRequire(
-                data,
-                _inputToken,
-                _outputToken
-            );
+            (uint256[] memory amounts, ) = OperatorHelpers.decodeDataAndRequire(data, _inputToken, _outputToken);
             _handleUnderSpending(_amountToSpend, amounts[1], IERC20(_inputToken));
         } else {
             _safeTransferWithFees(IERC20(_inputToken), _amountToSpend, _msgSender(), _nftId);
