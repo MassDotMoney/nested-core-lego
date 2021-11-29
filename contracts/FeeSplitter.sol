@@ -121,7 +121,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
 
     /// @notice Call releaseToken() for multiple tokens
     /// @param _tokens ERC20 tokens to release
-    function releaseTokens(IERC20[] memory _tokens) external {
+    function releaseTokens(IERC20[] calldata _tokens) external {
         for (uint256 i = 0; i < _tokens.length; i++) {
             releaseToken(_tokens[i]);
         }
