@@ -303,7 +303,9 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             _decreaseHoldingAmount(_nftId, address(_inputToken), _inputTokenAmount);
         }
 
-        _handleUnderSpending(_inputTokenAmount - feesAmount, amountSpent, _inputToken);
+        if (_inputTokenAmount - feesAmount - amountSpent > 0) {
+            _handleUnderSpending(_inputTokenAmount - feesAmount, amountSpent, _inputToken);
+        }
 
         tokenSold = _inputToken;
     }
@@ -404,7 +406,9 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         (bool success, bytes memory data) = OperatorHelpers.callOperator(operator, _order.commit, _order.callData);
         if (success) {
             (uint256[] memory amounts, ) = OperatorHelpers.decodeDataAndRequire(data, _inputToken, _outputToken);
-            _handleUnderSpending(_amountToSpend, amounts[1], IERC20(_inputToken));
+            if (_amountToSpend - amounts[1] > 0) {
+                _handleUnderSpending(_amountToSpend, amounts[1], IERC20(_inputToken));
+            }
         } else {
             _safeTransferWithFees(IERC20(_inputToken), _amountToSpend, _msgSender(), _nftId);
         }
@@ -471,10 +475,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         uint256 _amountSpent,
         IERC20 _token
     ) private {
-        if (_amountToSpent - _amountSpent > 0) {
-            ExchangeHelpers.setMaxAllowance(_token, address(feeSplitter));
-            feeSplitter.sendFees(_token, _amountToSpent - _amountSpent);
-        }
+        ExchangeHelpers.setMaxAllowance(_token, address(feeSplitter));
+        feeSplitter.sendFees(_token, _amountToSpent - _amountSpent);
     }
 
     /// @dev Send a fee to the FeeSplitter, royalties will be paid to the owner of the original asset
