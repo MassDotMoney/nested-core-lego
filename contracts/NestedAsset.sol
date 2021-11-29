@@ -139,7 +139,7 @@ contract NestedAsset is ERC721Enumerable, Ownable {
     /// @notice Remove a supported factory from NestedAssets
     /// @param _factory The address of the factory to remove
     function removeFactory(address _factory) external onlyOwner {
-        require(supportedFactories[_factory] == true, "NestedAsset: ALREADY_NOT_SUPPORTED");
+        require(supportedFactories[_factory], "NestedAsset: ALREADY_NOT_SUPPORTED");
         supportedFactories[_factory] = false;
         emit FactoryRemoved(_factory);
     }
