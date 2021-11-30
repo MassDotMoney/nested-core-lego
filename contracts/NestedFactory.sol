@@ -225,7 +225,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
 
         // Amount calculation to send fees and tokens
         uint256 amountBought = _buyToken.balanceOf(address(this)) - buyTokenInitialBalance;
-        uint256 amountFees = _calculateFees(_msgSender(), amountBought);
+        uint256 amountFees = amountBought / 100;
         amountBought = amountBought - amountFees;
 
         _transferFeeWithRoyalty(amountFees, _buyToken, _nftId);
@@ -295,7 +295,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         for (uint256 i = 0; i < _orders.length; i++) {
             amountSpent += _submitOrder(address(_inputToken), _orders[i].token, _nftId, _orders[i], _reserved);
         }
-        feesAmount = _calculateFees(_msgSender(), amountSpent);
+        feesAmount = amountSpent / 100;
         assert(amountSpent <= _inputTokenAmount - feesAmount); // overspent
 
         // If input is from the reserve, update the records
@@ -353,7 +353,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         }
 
         amountBought = _outputToken.balanceOf(address(this)) - _outputTokenInitialBalance;
-        feesAmount = _calculateFees(_msgSender(), amountBought);
+        feesAmount = amountBought / 100;
 
         if (_reserved) {
             _transferToReserveAndStore(_outputToken, amountBought - feesAmount, _nftId);
@@ -540,16 +540,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         address _dest,
         uint256 _nftId
     ) private {
-        uint256 feeAmount = _calculateFees(_dest, _amount);
+        uint256 feeAmount = _amount / 100;
         _transferFeeWithRoyalty(feeAmount, _token, _nftId);
         _token.safeTransfer(_dest, _amount - feeAmount);
-    }
-
-    /// @dev Calculate the fees for a specific user and amount (1%)
-    /// @param _user The user address
-    /// @param _amount The amount
-    /// @return The fees amount
-    function _calculateFees(address _user, uint256 _amount) private view returns (uint256) {
-        return _amount / 100;
     }
 }
