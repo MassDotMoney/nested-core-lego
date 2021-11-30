@@ -303,7 +303,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             _decreaseHoldingAmount(_nftId, address(_inputToken), _inputTokenAmount);
         }
 
-        if (_inputTokenAmount - feesAmount - amountSpent > 0) {
+        if (_inputTokenAmount - feesAmount > amountSpent) {
             _handleUnderSpending(_inputTokenAmount - feesAmount, amountSpent, _inputToken);
         }
 
@@ -406,7 +406,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         (bool success, bytes memory data) = OperatorHelpers.callOperator(operator, _order.commit, _order.callData);
         if (success) {
             (uint256[] memory amounts, ) = OperatorHelpers.decodeDataAndRequire(data, _inputToken, _outputToken);
-            if (_amountToSpend - amounts[1] > 0) {
+            if (_amountToSpend > amounts[1]) {
                 _handleUnderSpending(_amountToSpend, amounts[1], IERC20(_inputToken));
             }
         } else {
