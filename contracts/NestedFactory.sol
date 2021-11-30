@@ -467,16 +467,16 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     /// @dev Send the under spent amount to the FeeSplitter without the royalties.
     ///      The "under spent" amount is the positive difference between the amount supposed
     ///      to be spent and the amount really spent.
-    /// @param _amountToSpent The amount supposed to be spent
+    /// @param _amountToSpend The amount supposed to be spent
     /// @param _amountSpent The amount really spent
     /// @param _token The amount-related token
     function _handleUnderSpending(
-        uint256 _amountToSpent,
+        uint256 _amountToSpend,
         uint256 _amountSpent,
         IERC20 _token
     ) private {
         ExchangeHelpers.setMaxAllowance(_token, address(feeSplitter));
-        feeSplitter.sendFees(_token, _amountToSpent - _amountSpent);
+        feeSplitter.sendFees(_token, _amountToSpend - _amountSpent);
     }
 
     /// @dev Send a fee to the FeeSplitter, royalties will be paid to the owner of the original asset
