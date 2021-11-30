@@ -354,7 +354,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         feesAmount = _calculateFees(_msgSender(), amountBought);
 
         if (_reserved) {
-            _transferToReserveAndStore(address(_outputToken), amountBought - feesAmount, _nftId);
+            _transferToReserveAndStore(_outputToken, amountBought - feesAmount, _nftId);
         }
     }
 
@@ -383,7 +383,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         );
 
         if (_reserved) {
-            _transferToReserveAndStore(_outputToken, amounts[0], _nftId);
+            _transferToReserveAndStore(IERC20(_outputToken), amounts[0], _nftId);
         }
         amountSpent = amounts[1];
     }
@@ -420,22 +420,23 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
 
     /// @dev Transfer tokens to the reserve, and compute the amount received to store
     /// in the records. We need to know the amount received in case of deflationary tokens.
-    /// @param _token The token address
+    /// @param _token The token to transfer (IERC20)
     /// @param _amount The amount to send to the reserve
     /// @param _nftId The Token ID to store the assets
     function _transferToReserveAndStore(
-        address _token,
+        IERC20 _token,
         uint256 _amount,
         uint256 _nftId
     ) private {
-        uint256 balanceReserveBefore = IERC20(_token).balanceOf(address(reserve));
+        address reserveAddr = address(reserve);
+        uint256 balanceReserveBefore = _token.balanceOf(reserveAddr);
 
         // Send output to reserve
-        IERC20(_token).safeTransfer(address(reserve), _amount);
+        _token.safeTransfer(reserveAddr, _amount);
 
-        uint256 balanceReserveAfter = IERC20(_token).balanceOf(address(reserve));
+        uint256 balanceReserveAfter = _token.balanceOf(reserveAddr);
 
-        nestedRecords.store(_nftId, _token, balanceReserveAfter - balanceReserveBefore, address(reserve));
+        nestedRecords.store(_nftId, address(_token), balanceReserveAfter - balanceReserveBefore, reserveAddr);
     }
 
     /// @dev Choose between ERC20 (safeTransfer) and ETH (deposit), to transfer from the Reserve
