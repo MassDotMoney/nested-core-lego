@@ -30,6 +30,10 @@ contract OperatorResolver is IOperatorResolver, Ownable {
         override
         returns (bool)
     {
+        require(
+            names.length == destinations.length,
+            "OperatorResolver::areAddressesImported: Input lengths must match"
+        );
         for (uint256 i = 0; i < names.length; i++) {
             if (operators[names[i]] != destinations[i]) {
                 return false;
