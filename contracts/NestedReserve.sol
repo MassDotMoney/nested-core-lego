@@ -20,13 +20,6 @@ contract NestedReserve is Ownable {
         factory = _factory;
     }
 
-    /// @dev Reverts if the address does not exist
-    /// @param _address The address to check
-    modifier valid(address _address) {
-        require(_address != address(0), "NestedReserve: INVALID_ADDRESS");
-        _;
-    }
-
     /// @dev Reverts if the caller is not the factory
     modifier onlyFactory() {
         require(_msgSender() == factory, "NestedReserve: UNAUTHORIZED");
@@ -41,14 +34,15 @@ contract NestedReserve is Ownable {
         address _recipient,
         IERC20 _token,
         uint256 _amount
-    ) external onlyFactory valid(_recipient) valid(address(_token)) {
+    ) external onlyFactory {
+        require(_recipient != address(0), "NestedReserve: INVALID_ADDRESS");
         _token.safeTransfer(_recipient, _amount);
     }
 
     /// @notice Release funds to the factory
     /// @param _token The ERC20 to transfer
     /// @param _amount The amount to transfer
-    function withdraw(IERC20 _token, uint256 _amount) external onlyFactory valid(address(_token)) {
+    function withdraw(IERC20 _token, uint256 _amount) external onlyFactory {
         _token.safeTransfer(factory, _amount);
     }
 
