@@ -106,13 +106,7 @@ contract NestedBuybacker is Ownable {
         uint256 balance = NST.balanceOf(address(this));
         uint256 toBurn = (balance * burnPercentage) / 1000;
         uint256 toSendToReserve = balance - toBurn;
-        _burnNST(toBurn);
+        NST.burn(toBurn);
         NST.safeTransfer(nstReserve, toSendToReserve);
-    }
-
-    /// @dev Burn NST token from the smart contract
-    /// @param _amount The amount to burn
-    function _burnNST(uint256 _amount) private {
-        NST.burn(_amount);
     }
 }
