@@ -340,15 +340,15 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
 
             // Submit order and update holding of spent token
             uint256 amountSpent = _submitOrder(address(_inputToken), address(_outputToken), _nftId, _orders[i], false);
-            assert(amountSpent <= _inputTokenAmounts[i]);
+            assert(amountSpent <= _inputTokenAmounts[i]); // overspent
 
             if (_fromReserve) {
                 _decreaseHoldingAmount(_nftId, address(_inputToken), _inputTokenAmounts[i]);
             }
 
             // Under spent input amount send to fee splitter
-            if (_inputTokenAmounts[i] - amountSpent > 0) {
-                _transferFeeWithRoyalty(_inputTokenAmounts[i] - amountSpent, _inputToken, _nftId);
+            if (_inputTokenAmounts[i] > amountSpent) {
+                _handleUnderSpending(_inputTokenAmounts[i], amountSpent, _inputToken);
             }
         }
 
@@ -406,6 +406,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         (bool success, bytes memory data) = OperatorHelpers.callOperator(operator, _order.commit, _order.callData);
         if (success) {
             (uint256[] memory amounts, ) = OperatorHelpers.decodeDataAndRequire(data, _inputToken, _outputToken);
+            assert(amounts[1] <= _amountToSpend); // overspent
             if (_amountToSpend > amounts[1]) {
                 _handleUnderSpending(_amountToSpend, amounts[1], IERC20(_inputToken));
             }
