@@ -296,7 +296,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             amountSpent += _submitOrder(address(_inputToken), _orders[i].token, _nftId, _orders[i], _reserved);
         }
         feesAmount = amountSpent / 100;
-        assert(amountSpent <= _inputTokenAmount - feesAmount); // overspent
+        require(amountSpent <= _inputTokenAmount - feesAmount, "NestedFactory::_submitInOrders: Overspent");
 
         // If input is from the reserve, update the records
         if (_fromReserve) {
@@ -340,7 +340,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
 
             // Submit order and update holding of spent token
             uint256 amountSpent = _submitOrder(address(_inputToken), address(_outputToken), _nftId, _orders[i], false);
-            assert(amountSpent <= _inputTokenAmounts[i]); // overspent
+            require(amountSpent <= _inputTokenAmounts[i], "NestedFactory::_submitOutOrders: Overspent");
 
             if (_fromReserve) {
                 _decreaseHoldingAmount(_nftId, address(_inputToken), _inputTokenAmounts[i]);
@@ -406,7 +406,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         (bool success, bytes memory data) = OperatorHelpers.callOperator(operator, _order.commit, _order.callData);
         if (success) {
             (uint256[] memory amounts, ) = OperatorHelpers.decodeDataAndRequire(data, _inputToken, _outputToken);
-            assert(amounts[1] <= _amountToSpend); // overspent
+            require(amounts[1] <= _amountToSpend, "NestedFactory::_safeSubmitOrder: Overspent");
             if (_amountToSpend > amounts[1]) {
                 _handleUnderSpending(_amountToSpend, amounts[1], IERC20(_inputToken));
             }
