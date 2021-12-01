@@ -226,7 +226,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         // Amount calculation to send fees and tokens
         uint256 amountBought = _buyToken.balanceOf(address(this)) - buyTokenInitialBalance;
         uint256 amountFees = amountBought / 100;
-        amountBought = amountBought - amountFees;
+        amountBought -= amountFees;
 
         _transferFeeWithRoyalty(amountFees, _buyToken, _nftId);
         _safeTransferAndUnwrap(_buyToken, amountBought, _msgSender());
