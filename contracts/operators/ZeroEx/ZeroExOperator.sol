@@ -38,8 +38,8 @@ contract ZeroExOperator is IZeroExOperator, IOperatorSelector {
 
         uint256 amountBought = buyToken.balanceOf(address(this)) - buyBalanceBeforePurchase;
         uint256 amountSold = sellBalanceBeforePurchase - sellToken.balanceOf(address(this));
-        assert(amountBought > 0);
-        assert(amountSold > 0);
+        require(amountBought > 0, "ZeroExOperator::commitAndRevert: amountBought cant be zero");
+        require(amountSold > 0, "ZeroExOperator::commitAndRevert: amountSold cant be zero");
 
         // Output amounts
         amounts[0] = amountBought;
