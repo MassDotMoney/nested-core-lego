@@ -140,7 +140,10 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// @param _token Currency for the fee as an ERC20 token
     /// @param _amount Amount of token as fee to be claimed by this contract
     function sendFees(IERC20 _token, uint256 _amount) external nonReentrant {
-        uint256 weights = totalWeights - royaltiesWeight;
+        uint256 weights;
+        unchecked {
+            weights = totalWeights - royaltiesWeight;
+        }
         _sendFees(_token, _amount, weights);
     }
 
@@ -155,10 +158,8 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     ) external nonReentrant {
         require(_royaltiesTarget != address(0), "FeeSplitter: INVALID_ROYALTIES_TARGET_ADDRESS");
 
-        uint256 _totalWeights = totalWeights;
-
-        _sendFees(_token, _amount, _totalWeights);
-        _addShares(_royaltiesTarget, _computeShareCount(_amount, royaltiesWeight, _totalWeights), address(_token));
+        _sendFees(_token, _amount, totalWeights);
+        _addShares(_royaltiesTarget, _computeShareCount(_amount, royaltiesWeight, totalWeights), address(_token));
     }
 
     /// @notice Updates weight for a shareholder
