@@ -30,10 +30,7 @@ contract OperatorResolver is IOperatorResolver, Ownable {
         override
         returns (bool)
     {
-        require(
-            names.length == destinations.length,
-            "OR: INPUTS_LENGTH_MUST_MATCH"
-        );
+        require(names.length == destinations.length, "OR: INPUTS_LENGTH_MUST_MATCH");
         for (uint256 i = 0; i < names.length; i++) {
             if (operators[names[i]] != destinations[i]) {
                 return false;
