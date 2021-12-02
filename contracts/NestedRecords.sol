@@ -45,7 +45,7 @@ contract NestedRecords is Ownable {
 
     /// @dev Reverts the transaction if the caller is not the factory
     modifier onlyFactory() {
-        require(supportedFactories[_msgSender()], "NestedRecords: FORBIDDEN");
+        require(supportedFactories[_msgSender()], "NRC: FORBIDDEN");
         _;
     }
 
@@ -64,14 +64,14 @@ contract NestedRecords is Ownable {
         uint256 _amount,
         address _reserve
     ) public onlyFactory {
-        require(records[_nftId].tokens.length < maxHoldingsCount, "NestedRecords: TOO_MANY_ORDERS");
+        require(records[_nftId].tokens.length < maxHoldingsCount, "NRC: TOO_MANY_ORDERS");
         require(
             _reserve != address(0) && (_reserve == records[_nftId].reserve || records[_nftId].reserve == address(0)),
-            "NestedRecords: INVALID_RESERVE"
+            "NRC: INVALID_RESERVE"
         );
 
         Holding memory holding = records[_nftId].holdings[_token];
-        require(!holding.isActive, "NestedRecords: HOLDING_EXISTS");
+        require(!holding.isActive, "NRC: HOLDING_EXISTS");
 
         records[_nftId].holdings[_token] = Holding({ token: _token, amount: _amount, isActive: true });
         records[_nftId].tokens.push(_token);
@@ -129,7 +129,7 @@ contract NestedRecords is Ownable {
     ) external onlyFactory {
         Holding memory holding = records[_nftId].holdings[_token];
         if (holding.isActive) {
-            require(records[_nftId].reserve == _reserve, "NestedRecords: RESERVE_MISMATCH");
+            require(records[_nftId].reserve == _reserve, "NRC: RESERVE_MISMATCH");
             updateHoldingAmount(_nftId, _token, holding.amount + _amount);
             return;
         }
@@ -146,7 +146,7 @@ contract NestedRecords is Ownable {
     /// @notice Sets the factory for Nested records
     /// @param _factory The address of the new factory
     function setFactory(address _factory) external onlyOwner {
-        require(_factory != address(0), "NestedRecords: INVALID_ADDRESS");
+        require(_factory != address(0), "NRC: INVALID_ADDRESS");
         supportedFactories[_factory] = true;
         emit FactoryAdded(_factory);
     }
@@ -159,7 +159,7 @@ contract NestedRecords is Ownable {
     function updateLockTimestamp(uint256 _nftId, uint256 _timestamp) external onlyFactory {
         require(
             _timestamp > records[_nftId].lockTimestamp,
-            "NestedRecords::increaseLockTimestamp: Can't decrease timestamp"
+            "NRC: LOCK_PERIOD_CANT_DECREASE"
         );
         records[_nftId].lockTimestamp = _timestamp;
         emit LockTimestampIncreased(_nftId, _timestamp);
@@ -168,7 +168,7 @@ contract NestedRecords is Ownable {
     /// @notice Sets the maximum number of holdings for an NFT record
     /// @param _maxHoldingsCount The new maximum number of holdings
     function setMaxHoldingsCount(uint256 _maxHoldingsCount) external onlyOwner {
-        require(_maxHoldingsCount > 0, "NestedRecords: INVALID_MAX_HOLDINGS");
+        require(_maxHoldingsCount > 0, "NRC: INVALID_MAX_HOLDINGS");
         maxHoldingsCount = _maxHoldingsCount;
         emit MaxHoldingsChanges(maxHoldingsCount);
     }
@@ -215,7 +215,7 @@ contract NestedRecords is Ownable {
         address token = tokens[_tokenIndex];
         Holding memory holding = records[_nftId].holdings[token];
 
-        require(holding.isActive, "NestedRecords: HOLDING_INACTIVE");
+        require(holding.isActive, "NRC: HOLDING_INACTIVE");
 
         delete records[_nftId].holdings[token];
         freeToken(_nftId, _tokenIndex);

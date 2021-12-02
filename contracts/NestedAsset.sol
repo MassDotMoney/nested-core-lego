@@ -31,13 +31,13 @@ contract NestedAsset is ERC721Enumerable, Ownable {
 
     /// @dev Reverts the transaction if the caller is not the factory
     modifier onlyFactory() {
-        require(supportedFactories[msg.sender], "NestedAsset: FORBIDDEN_NOT_FACTORY");
+        require(supportedFactories[msg.sender], "NA: FORBIDDEN_NOT_FACTORY");
         _;
     }
 
     /// @dev Reverts the transaction if the address is not the token owner
     modifier onlyTokenOwner(address _address, uint256 _tokenId) {
-        require(_address == ownerOf(_tokenId), "NestedAsset: FORBIDDEN_NOT_OWNER");
+        require(_address == ownerOf(_tokenId), "NA: FORBIDDEN_NOT_OWNER");
         _;
     }
 
@@ -79,7 +79,7 @@ contract NestedAsset is ERC721Enumerable, Ownable {
 
         require(
             _exists(_replicatedTokenId) && tokenId != _replicatedTokenId,
-            "NestedAsset::mint: Invalid replicated token ID"
+            "NA: INVALID_REPLICATED_TOKEN_ID"
         );
 
         uint256 originalTokenId = originalAsset[_replicatedTokenId];
@@ -112,7 +112,7 @@ contract NestedAsset is ERC721Enumerable, Ownable {
         address _owner,
         string memory _metadataURI
     ) external onlyFactory onlyTokenOwner(_owner, _tokenId) {
-        require(bytes(tokenURI(_tokenId)).length == 0, "NestedAsset: TOKEN_URI_IMMUTABLE");
+        require(bytes(tokenURI(_tokenId)).length == 0, "NA: TOKEN_URI_IMMUTABLE");
         _setTokenURI(_tokenId, _metadataURI);
     }
 
@@ -131,7 +131,7 @@ contract NestedAsset is ERC721Enumerable, Ownable {
     /// @notice Sets the factory for Nested assets
     /// @param _factory the address of the new factory
     function setFactory(address _factory) external onlyOwner {
-        require(_factory != address(0), "NestedAsset: INVALID_ADDRESS");
+        require(_factory != address(0), "NA: INVALID_ADDRESS");
         supportedFactories[_factory] = true;
         emit FactoryAdded(_factory);
     }
@@ -139,7 +139,7 @@ contract NestedAsset is ERC721Enumerable, Ownable {
     /// @notice Remove a supported factory from NestedAssets
     /// @param _factory The address of the factory to remove
     function removeFactory(address _factory) external onlyOwner {
-        require(supportedFactories[_factory], "NestedAsset: ALREADY_NOT_SUPPORTED");
+        require(supportedFactories[_factory], "NA: ALREADY_NOT_SUPPORTED");
         supportedFactories[_factory] = false;
         emit FactoryRemoved(_factory);
     }

@@ -22,7 +22,7 @@ contract NestedReserve is Ownable {
 
     /// @dev Reverts if the caller is not the factory
     modifier onlyFactory() {
-        require(_msgSender() == factory, "NestedReserve: UNAUTHORIZED");
+        require(_msgSender() == factory, "NRS: UNAUTHORIZED");
         _;
     }
 
@@ -35,7 +35,7 @@ contract NestedReserve is Ownable {
         IERC20 _token,
         uint256 _amount
     ) external onlyFactory {
-        require(_recipient != address(0), "NestedReserve: INVALID_ADDRESS");
+        require(_recipient != address(0), "NRS: INVALID_ADDRESS");
         _token.safeTransfer(_recipient, _amount);
     }
 
@@ -49,7 +49,7 @@ contract NestedReserve is Ownable {
     /// @notice Update the factory address
     /// @param _newFactory The new factory address
     function updateFactory(address _newFactory) external onlyOwner {
-        require(_newFactory != address(0), "NestedReserve: INVALID_ADDRESS");
+        require(_newFactory != address(0), "NRS: INVALID_ADDRESS");
         factory = _newFactory;
         emit FactoryUpdated(_newFactory);
     }

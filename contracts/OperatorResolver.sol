@@ -32,7 +32,7 @@ contract OperatorResolver is IOperatorResolver, Ownable {
     {
         require(
             names.length == destinations.length,
-            "OperatorResolver::areAddressesImported: Input lengths must match"
+            "OR: INPUTS_LENGTH_MUST_MATCH"
         );
         for (uint256 i = 0; i < names.length; i++) {
             if (operators[names[i]] != destinations[i]) {
@@ -44,7 +44,7 @@ contract OperatorResolver is IOperatorResolver, Ownable {
 
     /// @inheritdoc IOperatorResolver
     function importOperators(bytes32[] calldata names, address[] calldata destinations) external override onlyOwner {
-        require(names.length == destinations.length, "OperatorResolver::importOperators: Input lengths must match");
+        require(names.length == destinations.length, "OR: INPUTS_LENGTH_MUST_MATCH");
 
         for (uint256 i = 0; i < names.length; i++) {
             bytes32 name = names[i];
