@@ -73,7 +73,7 @@ describe("NestedReserve", () => {
         it("reverts if the token is invalid", async () => {
             await expect(
                 reserve.transfer(alice.address, "0x0000000000000000000000000000000000000000", amountToTransfer),
-            ).to.be.revertedWith("NestedReserve: INVALID_ADDRESS");
+            ).to.be.revertedWith("Address: call to non-contract");
         });
 
         it("reverts if the recipient is invalid", async () => {
@@ -104,7 +104,7 @@ describe("NestedReserve", () => {
         it("reverts if the token is invalid", async () => {
             await expect(
                 reserve.withdraw("0x0000000000000000000000000000000000000000", amountToTransfer),
-            ).to.be.revertedWith("NestedReserve: INVALID_ADDRESS");
+            ).to.be.revertedWith("Address: call to non-contract");
         });
     });
 });
