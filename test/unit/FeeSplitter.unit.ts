@@ -141,10 +141,8 @@ describe("Fee Splitter", () => {
     });
 
     describe("Changing weights", () => {
-        it("should revert because sum of weights is zero", async () => {
-            await feeSplitter.setRoyaltiesWeight(0);
-            await feeSplitter.updateShareholder(0, 0);
-            await expect(feeSplitter.updateShareholder(1, 0)).to.be.revertedWith("FS: TOTAL_WEIGHTS_ZERO");
+        it("should revert because royaltieWeigth is zero", async () => {
+            await expect(feeSplitter.setRoyaltiesWeight(0)).to.be.revertedWith("FS: WEIGHT_ZERO");
         });
 
         it("should revert when adding a shareholder with a weight of zero", async () => {
