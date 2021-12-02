@@ -45,7 +45,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             address(_nestedAsset) != address(0) &&
                 address(_nestedRecords) != address(0) &&
                 address(_feeSplitter) != address(0) &&
-                address(_weth) != address(0),
+                address(_weth) != address(0) &&
+                _operatorResolver != address(0),
             "NF: INVALID_ADDRESS"
         );
         nestedAsset = _nestedAsset;
