@@ -48,7 +48,7 @@ describe("FlatOperator", () => {
 
         await expect(
             context.nestedFactory.connect(context.user1).create(0, context.mockUNI.address, totalToSpend, orders),
-        ).to.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+        ).to.revertedWith("NF: OPERATOR_CALL_FAILED");
     });
 
     it("Cant use with different input", async () => {
@@ -69,7 +69,7 @@ describe("FlatOperator", () => {
 
         await expect(
             context.nestedFactory.connect(context.user1).create(0, context.mockUNI.address, totalToSpend, orders),
-        ).to.revertedWith("OperatorHelpers::decodeDataAndRequire: Wrong output token");
+        ).to.revertedWith("OH: INVALID_OUTPUT_TOKEN");
     });
 
     it("Adds token to portfolio when create()", async () => {

@@ -143,7 +143,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .create(0, context.mockDAI.address, appendDecimals(5), orders),
-            ).to.be.revertedWith("Missing operator : test");
+            ).to.be.revertedWith("MOR: MISSING_OPERATOR: test");
         });
     });
 
@@ -159,7 +159,7 @@ describe("NestedFactory", () => {
             await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
             await expect(
                 context.nestedFactory.connect(context.masterDeployer).setReserve(newReserve),
-            ).to.be.revertedWith("NestedFactory::setReserve: Reserve is immutable");
+            ).to.be.revertedWith("NF: RESERVE_ADDRESS_IMMUTABLE");
         });
 
         it("set value", async () => {
@@ -185,7 +185,7 @@ describe("NestedFactory", () => {
         it("cant set zero address", async () => {
             await expect(
                 context.nestedFactory.connect(context.masterDeployer).setFeeSplitter(ethers.constants.AddressZero),
-            ).to.be.revertedWith("NestedFactory::setFeeSplitter: Invalid feeSplitter address");
+            ).to.be.revertedWith("NF: INVALID_FEE_SPLITTER_ADDRESS");
         });
 
         it("set value", async () => {
@@ -209,7 +209,7 @@ describe("NestedFactory", () => {
             let orders: OrderStruct[] = [];
             await expect(
                 context.nestedFactory.connect(context.user1).create(0, context.mockDAI.address, 0, orders),
-            ).to.be.revertedWith("NestedFactory::create: Missing orders");
+            ).to.be.revertedWith("NF: INVALID_ORDERS");
         });
 
         it("reverts if bad calldatas", async () => {
@@ -237,7 +237,7 @@ describe("NestedFactory", () => {
 
             await expect(
                 context.nestedFactory.connect(context.user1).create(0, context.mockDAI.address, totalToSpend, orders),
-            ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
         it("reverts if wrong output token in calldata", async () => {
@@ -266,7 +266,7 @@ describe("NestedFactory", () => {
 
             await expect(
                 context.nestedFactory.connect(context.user1).create(0, context.mockDAI.address, totalToSpend, orders),
-            ).to.be.revertedWith("OperatorHelpers::decodeDataAndRequire: Wrong output token");
+            ).to.be.revertedWith("OH: INVALID_OUTPUT_TOKEN");
         });
 
         it("reverts if the DAI amount is less than total sum of DAI sales", async () => {
@@ -285,7 +285,7 @@ describe("NestedFactory", () => {
             // Revert because not enough funds to swap, the order amounts > totalToSpend
             await expect(
                 context.nestedFactory.connect(context.user1).create(0, context.mockDAI.address, totalToSpend, orders),
-            ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
         it("reverts if not enough to pay fees", async () => {
@@ -543,7 +543,7 @@ describe("NestedFactory", () => {
             let orders: OrderStruct[] = [];
             await expect(
                 context.nestedFactory.connect(context.user1).addTokens(1, context.mockDAI.address, 0, orders),
-            ).to.be.revertedWith("NestedFactory::addTokens: Missing orders");
+            ).to.be.revertedWith("NF: INVALID_ORDERS");
         });
 
         it("reverts if bad calldatas", async () => {
@@ -573,7 +573,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .addTokens(1, context.mockDAI.address, totalToSpend, orders),
-            ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
         it("cant add tokens to nonexistent portfolio", async () => {
@@ -607,7 +607,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.masterDeployer)
                     .addTokens(1, context.mockDAI.address, totalToSpend, orders),
-            ).to.be.revertedWith("NestedFactory: Not the token owner");
+            ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
         it("reverts if wrong output token in calldata", async () => {
@@ -638,7 +638,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .addTokens(1, context.mockDAI.address, totalToSpend, orders),
-            ).to.be.revertedWith("OperatorHelpers::decodeDataAndRequire: Wrong output token");
+            ).to.be.revertedWith("OH: INVALID_OUTPUT_TOKEN");
         });
 
         it("reverts if the DAI amount is less than total sum of DAI sales", async () => {
@@ -863,7 +863,7 @@ describe("NestedFactory", () => {
                     context.nestedFactory
                         .connect(context.user1)
                         .swapTokenForTokens(1, context.mockUNI.address, 0, orders),
-                ).to.be.revertedWith("NestedFactory::addTokens: Missing orders");
+                ).to.be.revertedWith("NF: INVALID_ORDERS");
             });
         });
 
@@ -895,7 +895,7 @@ describe("NestedFactory", () => {
                     context.nestedFactory
                         .connect(context.user1)
                         .swapTokenForTokens(1, context.mockUNI.address, totalToSpend, orders),
-                ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+                ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
             });
         });
 
@@ -936,7 +936,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.masterDeployer)
                     .swapTokenForTokens(1, context.mockDAI.address, totalToSpend, orders),
-            ).to.be.revertedWith("NestedFactory: Not the token owner");
+            ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
         it("reverts if the UNI amount in portfolio is less than total sum of UNI sales", async () => {
@@ -981,7 +981,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .swapTokenForTokens(1, context.mockUNI.address, totalToSpend, orders),
-            ).to.be.revertedWith("NestedFactory:_transferInputTokens: Insufficient amount");
+            ).to.be.revertedWith("NF: INSUFFICIENT_AMOUNT_IN");
         });
 
         it("increase UNI amount from KNC in portfolio (ZeroExOperator) with right amounts", async () => {
@@ -1135,7 +1135,7 @@ describe("NestedFactory", () => {
             let orders: OrderStruct[] = [];
             await expect(
                 context.nestedFactory.connect(context.user1).sellTokensToNft(1, context.mockDAI.address, [], orders),
-            ).to.be.revertedWith("NestedFactory::sellTokensToNft: Missing orders");
+            ).to.be.revertedWith("NF: INVALID_ORDERS");
         });
 
         it("reverts if bad calldatas", async () => {
@@ -1163,7 +1163,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToNft(1, context.mockUSDC.address, [uniSold], orders),
-            ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
         it("cant swap tokens from nonexistent portfolio", async () => {
@@ -1193,7 +1193,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.masterDeployer)
                     .sellTokensToNft(1, context.mockUSDC.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("NestedFactory: Not the token owner");
+            ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
         it("cant swap tokens if orders dont match sell amounts (array size)", async () => {
@@ -1207,7 +1207,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToNft(1, context.mockUSDC.address, [uniSold], orders),
-            ).to.be.revertedWith("NestedFactory::sellTokensToNft: Input lengths must match");
+            ).to.be.revertedWith("NF: INPUTS_LENGTH_MUST_MATCH");
         });
 
         it("revert if spend more UNI than in reserve", async () => {
@@ -1221,7 +1221,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToNft(1, context.mockUSDC.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("NestedFactory:_transferInputTokens: Insufficient amount");
+            ).to.be.revertedWith("NF: INSUFFICIENT_AMOUNT_IN");
         });
 
         it("revert if try to sell more KNC than sell amount", async () => {
@@ -1237,7 +1237,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToNft(1, context.mockUSDC.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
         it("reverts if wrong output token in calldata", async () => {
@@ -1253,7 +1253,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToNft(1, context.mockDAI.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("OperatorHelpers::decodeDataAndRequire: Wrong output token");
+            ).to.be.revertedWith("OH: INVALID_OUTPUT_TOKEN");
         });
 
         it("swap KNC and UNI for USDC (ZeroExOperator) with right amounts", async () => {
@@ -1414,7 +1414,7 @@ describe("NestedFactory", () => {
             let orders: OrderStruct[] = [];
             await expect(
                 context.nestedFactory.connect(context.user1).sellTokensToWallet(1, context.mockDAI.address, [], orders),
-            ).to.be.revertedWith("NestedFactory::sellTokensToWallet: Missing orders");
+            ).to.be.revertedWith("NF: INVALID_ORDERS");
         });
 
         it("reverts if bad calldatas", async () => {
@@ -1442,7 +1442,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToWallet(1, context.mockUSDC.address, [uniSold], orders),
-            ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
         it("cant swap tokens from nonexistent portfolio", async () => {
@@ -1472,7 +1472,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.masterDeployer)
                     .sellTokensToWallet(1, context.mockUSDC.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("NestedFactory: Not the token owner");
+            ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
         it("cant swap tokens if orders dont match sell amounts (array size)", async () => {
@@ -1486,7 +1486,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToWallet(1, context.mockUSDC.address, [uniSold], orders),
-            ).to.be.revertedWith("NestedFactory::sellTokensToWallet: Input lengths must match");
+            ).to.be.revertedWith("NF: INPUTS_LENGTH_MUST_MATCH");
         });
 
         it("revert if spend more UNI than in reserve", async () => {
@@ -1500,7 +1500,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToWallet(1, context.mockUSDC.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("NestedFactory:_transferInputTokens: Insufficient amount");
+            ).to.be.revertedWith("NF: INSUFFICIENT_AMOUNT_IN");
         });
 
         it("revert if try to sell more KNC than sell amount", async () => {
@@ -1516,7 +1516,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToWallet(1, context.mockUSDC.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
         it("reverts if wrong output token in calldata", async () => {
@@ -1532,7 +1532,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToWallet(1, context.mockDAI.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("OperatorHelpers::decodeDataAndRequire: Wrong output token");
+            ).to.be.revertedWith("OH: INVALID_OUTPUT_TOKEN");
         });
 
         it("swap KNC and UNI for USDC (ZeroExOperator) with right amounts", async () => {
@@ -1682,7 +1682,7 @@ describe("NestedFactory", () => {
             let orders: OrderStruct[] = [];
             await expect(
                 context.nestedFactory.connect(context.user1).destroy(1, context.mockDAI.address, orders),
-            ).to.be.revertedWith("NestedFactory::destroy: Missing orders");
+            ).to.be.revertedWith("NF: INVALID_ORDERS");
         });
 
         it("doesnt revert if bad calldatas (safe destroy)", async () => {
@@ -1746,7 +1746,7 @@ describe("NestedFactory", () => {
             // Master Deployer is not the owner of NFT 1
             await expect(
                 context.nestedFactory.connect(context.masterDeployer).destroy(1, context.mockUSDC.address, orders),
-            ).to.be.revertedWith("NestedFactory: Not the token owner");
+            ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
         it("revert if holdings and orders don't match", async () => {
@@ -1772,7 +1772,7 @@ describe("NestedFactory", () => {
 
             await expect(
                 context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders),
-            ).to.be.revertedWith("NestedFactory::destroy: Missing sell args");
+            ).to.be.revertedWith("NF: INPUTS_LENGTH_MUST_MATCH");
         });
 
         it("doesnt revert if spend more UNI than in reserve and withdraw (safe destroy)", async () => {
@@ -1914,7 +1914,7 @@ describe("NestedFactory", () => {
 
         it("cant withdraw from another user portfolio", async () => {
             await expect(context.nestedFactory.connect(context.masterDeployer).withdraw(1, 1)).to.be.revertedWith(
-                "NestedFactory: Not the token owner",
+                "NF: CALLER_NOT_OWNER",
             );
         });
 
@@ -1927,7 +1927,7 @@ describe("NestedFactory", () => {
         it("cant withdraw if wrong token index", async () => {
             // KNC => Index 1
             await expect(context.nestedFactory.connect(context.user1).withdraw(1, 2)).to.be.revertedWith(
-                "NestedFactory::withdraw: Invalid token index",
+                "NF: INVALID_TOKEN_INDEX",
             );
         });
 
@@ -1956,7 +1956,7 @@ describe("NestedFactory", () => {
 
             // Should not me able to withdraw UNI (the last token)
             await expect(context.nestedFactory.connect(context.user1).withdraw(1, 0)).to.be.revertedWith(
-                "NestedFactory::withdraw: Can't withdraw the last asset",
+                "NF: UNALLOWED_EMPTY_PORTFOLIO",
             );
         });
     });
@@ -1983,7 +1983,7 @@ describe("NestedFactory", () => {
         it("cant increase if another user portfolio", async () => {
             await expect(
                 context.nestedFactory.connect(context.masterDeployer).increaseLockTimestamp(1, Date.now()),
-            ).to.be.revertedWith("NestedFactory: Not the token owner");
+            ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
         it("cant increase nonexistent portfolio", async () => {
@@ -1996,7 +1996,7 @@ describe("NestedFactory", () => {
             await context.nestedFactory.connect(context.user1).increaseLockTimestamp(1, Date.now());
             await expect(
                 context.nestedFactory.connect(context.user1).increaseLockTimestamp(1, Date.now() - 1000),
-            ).to.be.revertedWith("NestedRecords::increaseLockTimestamp: Can't decrease timestamp");
+            ).to.be.revertedWith("NRC: LOCK_PERIOD_CANT_DECREASE");
         });
 
         /*
@@ -2009,7 +2009,7 @@ describe("NestedFactory", () => {
                 .withArgs(1, Date.now() + 1000);
 
             await expect(context.nestedFactory.connect(context.user1).withdraw(1, 0)).to.be.revertedWith(
-                "NestedFactory: The NFT is currently locked",
+                "NF: LOCKED_NFT",
             );
         });
 

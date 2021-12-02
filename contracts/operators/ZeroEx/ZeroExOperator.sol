@@ -34,7 +34,7 @@ contract ZeroExOperator is IZeroExOperator, IOperatorSelector {
             ZeroExStorage(storageAddress(self)).swapTarget(),
             swapCallData
         );
-        require(success, "ZeroExOperator::commitAndRevert: 0x swap failed");
+        require(success, "ZEO: SWAP_FAILED");
 
         uint256 amountBought = buyToken.balanceOf(address(this)) - buyBalanceBeforePurchase;
         uint256 amountSold = sellBalanceBeforePurchase - sellToken.balanceOf(address(this));

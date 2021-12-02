@@ -51,12 +51,12 @@ describe("Fee Splitter", () => {
     });
 
     it("should revert when calling findShareholder", async () => {
-        await expect(feeSplitter.findShareholder(feeSplitter.address)).to.be.revertedWith("FeeSplitter: NOT_FOUND");
+        await expect(feeSplitter.findShareholder(feeSplitter.address)).to.be.revertedWith("FS: SHAREHOLDER_NOT_FOUND");
     });
 
     it("should revert when calling setShareholders", async () => {
         await expect(feeSplitter.setShareholders([alice.address, bob.address], [100])).to.be.revertedWith(
-            "FeeSplitter: ARRAY_LENGTHS_ERR",
+            "FS: INPUTS_LENGTH_MUST_MATCH",
         );
     });
 
@@ -66,7 +66,7 @@ describe("Fee Splitter", () => {
                 to: feeSplitter.address,
                 value: 1,
             }),
-        ).to.be.revertedWith("FeeSplitter: ETH_SENDER_NOT_WETH");
+        ).to.be.revertedWith("FS: ETH_SENDER_NOT_WETH");
     });
 
     it("releases fees as ETH", async () => {
@@ -89,7 +89,7 @@ describe("Fee Splitter", () => {
         it("should revert because no payment is due", async () => {
             const token = ERC20Mocks[0];
             const release = () => feeSplitter.connect(bob).releaseToken(token.address);
-            await expect(release()).to.be.revertedWith("FeeSplitter: NO_PAYMENT_DUE");
+            await expect(release()).to.be.revertedWith("FS: NO_PAYMENT_DUE");
         });
 
         it("retrieves split token fees", async () => {
@@ -144,18 +144,18 @@ describe("Fee Splitter", () => {
         it("should revert because sum of weights is zero", async () => {
             await feeSplitter.setRoyaltiesWeight(0);
             await feeSplitter.updateShareholder(0, 0);
-            await expect(feeSplitter.updateShareholder(1, 0)).to.be.revertedWith("FeeSplitter: TOTAL_WEIGHTS_ZERO");
+            await expect(feeSplitter.updateShareholder(1, 0)).to.be.revertedWith("FS: TOTAL_WEIGHTS_ZERO");
         });
 
         it("should revert when adding a shareholder with a weight of zero", async () => {
             await expect(feeSplitter.setShareholders([bob.address], [0])).to.be.revertedWith(
-                "FeeSplitter: ZERO_WEIGHT",
+                "FS: ZERO_WEIGHT",
             );
         });
 
         it("should revert if account index invalid", async () => {
             await expect(feeSplitter.updateShareholder(10, 10)).to.be.revertedWith(
-                "FeeSplitter: INVALID_ACCOUNT_INDEX",
+                "FS: INVALID_ACCOUNT_INDEX",
             );
         });
 

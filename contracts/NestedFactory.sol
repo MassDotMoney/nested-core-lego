@@ -50,7 +50,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     /// @dev Reverts the transaction if the caller is not the token owner
     /// @param _nftId The NFT Id
     modifier onlyTokenOwner(uint256 _nftId) {
-        require(nestedAsset.ownerOf(_nftId) == _msgSender(), "NestedFactory: Not the token owner");
+        require(nestedAsset.ownerOf(_nftId) == _msgSender(), "NF: CALLER_NOT_OWNER");
         _;
     }
 
@@ -58,7 +58,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     /// The block.timestamp must be greater than NFT record lock timestamp
     /// @param _nftId The NFT Id
     modifier isUnlocked(uint256 _nftId) {
-        require(block.timestamp > nestedRecords.getLockTimestamp(_nftId), "NestedFactory: The NFT is currently locked");
+        require(block.timestamp > nestedRecords.getLockTimestamp(_nftId), "NF: LOCKED_NFT");
         _;
     }
 
@@ -81,20 +81,20 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         while (operators[i] != operator) {
             i++;
         }
-        require(i > 0, "NestedFactory::removeOperator: Cant remove non-existent operator");
+        require(i > 0, "NF: NON_EXISTENT_OPERATOR");
         delete operators[i];
     }
 
     /// @inheritdoc INestedFactory
     function setReserve(NestedReserve _reserve) external override onlyOwner {
-        require(address(reserve) == address(0), "NestedFactory::setReserve: Reserve is immutable");
+        require(address(reserve) == address(0), "NF: RESERVE_ADDRESS_IMMUTABLE");
         reserve = _reserve;
         emit ReserveUpdated(address(_reserve));
     }
 
     /// @inheritdoc INestedFactory
     function setFeeSplitter(FeeSplitter _feeSplitter) external override onlyOwner {
-        require(address(_feeSplitter) != address(0), "NestedFactory::setFeeSplitter: Invalid feeSplitter address");
+        require(address(_feeSplitter) != address(0), "NF: INVALID_FEE_SPLITTER_ADDRESS");
         feeSplitter = _feeSplitter;
         emit FeeSplitterUpdated(address(_feeSplitter));
     }
@@ -106,7 +106,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         uint256 _sellTokenAmount,
         Order[] calldata _orders
     ) external payable override nonReentrant {
-        require(_orders.length > 0, "NestedFactory::create: Missing orders");
+        require(_orders.length > 0, "NF: INVALID_ORDERS");
 
         uint256 nftId = nestedAsset.mint(_msgSender(), _originalTokenId);
         (uint256 fees, IERC20 tokenSold) = _submitInOrders(nftId, _sellToken, _sellTokenAmount, _orders, true, false);
@@ -122,7 +122,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         uint256 _sellTokenAmount,
         Order[] calldata _orders
     ) external payable override nonReentrant onlyTokenOwner(_nftId) {
-        require(_orders.length > 0, "NestedFactory::addTokens: Missing orders");
+        require(_orders.length > 0, "NF: INVALID_ORDERS");
 
         (uint256 fees, IERC20 tokenSold) = _submitInOrders(_nftId, _sellToken, _sellTokenAmount, _orders, true, false);
         _transferFeeWithRoyalty(fees, tokenSold, _nftId);
@@ -136,10 +136,10 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         uint256 _sellTokenAmount,
         Order[] calldata _orders
     ) external override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
-        require(_orders.length > 0, "NestedFactory::swapTokenForTokens: Missing orders");
+        require(_orders.length > 0, "NF: INVALID_ORDERS");
         require(
             nestedRecords.getAssetReserve(_nftId) == address(reserve),
-            "NestedFactory::swapTokenForTokens: Assets in different reserve"
+            "NF: RESERVE_MISMATCH"
         );
 
         (uint256 fees, IERC20 tokenSold) = _submitInOrders(_nftId, _sellToken, _sellTokenAmount, _orders, true, true);
@@ -155,11 +155,11 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         uint256[] memory _sellTokensAmount,
         Order[] calldata _orders
     ) external override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
-        require(_orders.length > 0, "NestedFactory::sellTokensToNft: Missing orders");
-        require(_sellTokensAmount.length == _orders.length, "NestedFactory::sellTokensToNft: Input lengths must match");
+        require(_orders.length > 0, "NF: INVALID_ORDERS");
+        require(_sellTokensAmount.length == _orders.length, "NF: INPUTS_LENGTH_MUST_MATCH");
         require(
             nestedRecords.getAssetReserve(_nftId) == address(reserve),
-            "NestedFactory::sellTokensToNft: Assets in different reserve"
+            "NF: RESERVE_MISMATCH"
         );
 
         (uint256 feesAmount, ) = _submitOutOrders(_nftId, _buyToken, _sellTokensAmount, _orders, true, true);
@@ -175,14 +175,14 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         uint256[] memory _sellTokensAmount,
         Order[] calldata _orders
     ) external override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
-        require(_orders.length > 0, "NestedFactory::sellTokensToWallet: Missing orders");
+        require(_orders.length > 0, "NF: INVALID_ORDERS");
         require(
             _sellTokensAmount.length == _orders.length,
-            "NestedFactory::sellTokensToWallet: Input lengths must match"
+            "NF: INPUTS_LENGTH_MUST_MATCH"
         );
         require(
             nestedRecords.getAssetReserve(_nftId) == address(reserve),
-            "NestedFactory::sellTokensToWallet: Assets in different reserve"
+            "NF: RESERVE_MISMATCH"
         );
 
         (uint256 feesAmount, uint256 amountBought) = _submitOutOrders(
@@ -206,11 +206,11 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         Order[] calldata _orders
     ) external override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
         address[] memory tokens = nestedRecords.getAssetTokens(_nftId);
-        require(_orders.length > 0, "NestedFactory::destroy: Missing orders");
-        require(tokens.length == _orders.length, "NestedFactory::destroy: Missing sell args");
+        require(_orders.length > 0, "NF: INVALID_ORDERS");
+        require(tokens.length == _orders.length, "NF: INPUTS_LENGTH_MUST_MATCH");
         require(
             nestedRecords.getAssetReserve(_nftId) == address(reserve),
-            "NestedFactory::destroy: Assets in different reserve"
+            "NF: RESERVE_MISMATCH"
         );
 
         uint256 buyTokenInitialBalance = _buyToken.balanceOf(address(this));
@@ -246,9 +246,9 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         isUnlocked(_nftId)
     {
         uint256 assetTokensLength = nestedRecords.getAssetTokensLength(_nftId);
-        require(assetTokensLength > _tokenIndex, "NestedFactory::withdraw: Invalid token index");
+        require(assetTokensLength > _tokenIndex, "NF: INVALID_TOKEN_INDEX");
         // Use destroy instead if NFT has a single holding
-        require(assetTokensLength > 1, "NestedFactory::withdraw: Can't withdraw the last asset");
+        require(assetTokensLength > 1, "NF: UNALLOWED_EMPTY_PORTFOLIO");
 
         NestedRecords.Holding memory holding = nestedRecords.getAssetHolding(
             _nftId,
@@ -376,7 +376,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     ) private returns (uint256 amountSpent) {
         address operator = requireAndGetAddress(_order.operator);
         (bool success, bytes memory data) = OperatorHelpers.callOperator(operator, _order.commit, _order.callData);
-        require(success, "NestedFactory::_submitOrder: Operator call failed");
+        require(success, "NF: OPERATOR_CALL_FAILED");
 
         (uint256[] memory amounts, ) = OperatorHelpers.decodeDataAndRequire(data, _inputToken, _outputToken);
 
@@ -451,12 +451,12 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     ) private returns (IERC20 tokenUsed) {
         if (_fromReserve) {
             NestedRecords.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_inputToken));
-            require(holding.amount >= _inputTokenAmount, "NestedFactory:_transferInputTokens: Insufficient amount");
+            require(holding.amount >= _inputTokenAmount, "NF: INSUFFICIENT_AMOUNT_IN");
 
             // Get input from reserve
             reserve.withdraw(IERC20(holding.token), _inputTokenAmount);
         } else if (address(_inputToken) == ETH) {
-            require(msg.value == _inputTokenAmount, "NestedFactory::_transferInputTokens: Insufficient amount in");
+            require(msg.value == _inputTokenAmount, "NF: INSUFFICIENT_AMOUNT_IN");
             weth.deposit{ value: msg.value }();
             _inputToken = IERC20(address(weth));
         } else {
@@ -525,7 +525,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         if (address(_token) == address(weth)) {
             IWETH(weth).withdraw(_amount);
             (bool success, ) = _dest.call{ value: _amount }("");
-            require(success, "ETH_TRANSFER_ERROR");
+            require(success, "NF: ETH_TRANSFER_ERROR");
         } else {
             _token.safeTransfer(_dest, _amount);
         }
