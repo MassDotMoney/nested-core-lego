@@ -55,12 +55,12 @@ contract ZeroExOperator is IZeroExOperator, IOperatorSelector {
     }
 
     /// @notice Return the operator storage address
-    /// @param own the operator address to build the storage address in delegatecall
-    function storageAddress(address own) public view returns (address) {
+    /// @param self the operator address to build the storage address in delegatecall
+    function storageAddress(address self) public view returns (address) {
         return Create2.computeAddress(
             salt,
             storageCreationCode,
-            own
+            self
         );
     }
 
