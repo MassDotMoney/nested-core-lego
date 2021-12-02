@@ -71,7 +71,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
 
     /// @dev Receive ether after a WETH withdraw call
     receive() external payable {
-        require(msg.sender == weth, "FeeSplitter: ETH_SENDER_NOT_WETH");
+        require(msg.sender == weth, "FS: ETH_SENDER_NOT_WETH");
     }
 
     /// @notice Returns the amount due to an account. Call releaseToken to withdraw the amount.
@@ -101,7 +101,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// @param _weights Weight for each shareholder. Determines part of the payment allocated to them
     function setShareholders(address[] memory _accounts, uint256[] memory _weights) public onlyOwner {
         delete shareholders;
-        require(_accounts.length > 0 && _accounts.length == _weights.length, "FeeSplitter: ARRAY_LENGTHS_ERR");
+        require(_accounts.length > 0 && _accounts.length == _weights.length, "FS: INPUTS_LENGTH_MUST_MATCH");
         totalWeights = royaltiesWeight;
 
         for (uint256 i = 0; i < _accounts.length; i++) {
@@ -132,7 +132,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         uint256 amount = _releaseToken(_msgSender(), IERC20(weth));
         IWETH(weth).withdraw(amount);
         (bool success, ) = _msgSender().call{ value: amount }("");
-        require(success, "FeeSplitter: ETH_TRANFER_ERROR");
+        require(success, "FS: ETH_TRANFER_ERROR");
         emit PaymentReleased(_msgSender(), ETH, amount);
     }
 
@@ -153,7 +153,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         IERC20 _token,
         uint256 _amount
     ) external nonReentrant {
-        require(_royaltiesTarget != address(0), "FeeSplitter: INVALID_ROYALTIES_TARGET_ADDRESS");
+        require(_royaltiesTarget != address(0), "FS: INVALID_ROYALTIES_TARGET_ADDRESS");
 
         uint256 _totalWeights = totalWeights;
 
@@ -165,9 +165,9 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// @param _accountIndex Account to change the weight of
     /// @param _weight The new weight
     function updateShareholder(uint256 _accountIndex, uint256 _weight) external onlyOwner {
-        require(_accountIndex < shareholders.length, "FeeSplitter: INVALID_ACCOUNT_INDEX");
+        require(_accountIndex < shareholders.length, "FS: INVALID_ACCOUNT_INDEX");
         totalWeights = totalWeights + _weight - shareholders[_accountIndex].weight;
-        require(totalWeights != 0, "FeeSplitter: TOTAL_WEIGHTS_ZERO");
+        require(totalWeights != 0, "FS: TOTAL_WEIGHTS_ZERO");
         shareholders[_accountIndex].weight = _weight;
     }
 
@@ -208,7 +208,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         for (uint256 i = 0; i < shareholders.length; i++) {
             if (shareholders[i].account == _account) return i;
         }
-        revert("FeeSplitter: NOT_FOUND");
+        revert("FS: SHAREHOLDER_NOT_FOUND");
     }
 
     /// @dev Transfers a fee to this contract
@@ -249,7 +249,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     function _releaseToken(address _account, IERC20 _token) private returns (uint256) {
         TokenRecords storage _tokenRecords = tokenRecords[address(_token)];
         uint256 amountToRelease = getAmountDue(_account, _token);
-        require(amountToRelease != 0, "FeeSplitter: NO_PAYMENT_DUE");
+        require(amountToRelease != 0, "FS: NO_PAYMENT_DUE");
 
         _tokenRecords.released[_account] += amountToRelease;
         _tokenRecords.totalReleased += amountToRelease;
@@ -258,7 +258,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     }
 
     function _addShareholder(address _account, uint256 _weight) private {
-        require(_weight > 0, "FeeSplitter: ZERO_WEIGHT");
+        require(_weight > 0, "FS: ZERO_WEIGHT");
         shareholders.push(Shareholder(_account, _weight));
         totalWeights += _weight;
     }

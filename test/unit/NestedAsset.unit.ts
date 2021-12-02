@@ -59,10 +59,10 @@ describe("NestedAsset", () => {
 
             it("should revert if replicate id doesnt exist", async () => {
                 await expect(asset.mint(alice.address, 1)).to.be.revertedWith(
-                    "NestedAsset::mint: Invalid replicated token ID",
+                    "NA: INVALID_REPLICATED_TOKEN_ID",
                 );
                 await expect(asset.mint(alice.address, 10)).to.be.revertedWith(
-                    "NestedAsset::mint: Invalid replicated token ID",
+                    "NA: INVALID_REPLICATED_TOKEN_ID",
                 );
             });
         });
@@ -70,7 +70,7 @@ describe("NestedAsset", () => {
         it("should revert if the caller is not the factory", async () => {
             // Alice tries to mint a token for herself and bypass the factory
             await expect(asset.connect(alice).mint(alice.address, 0)).to.be.revertedWith(
-                "NestedAsset: FORBIDDEN_NOT_FACTORY",
+                "NA: FORBIDDEN_NOT_FACTORY",
             );
         });
     });
@@ -111,7 +111,7 @@ describe("NestedAsset", () => {
         it("should revert if the caller is not the factory", async () => {
             // Alice tries to burn the token herself and bypass the factory
             await expect(asset.connect(alice).burn(alice.address, 1)).to.be.revertedWith(
-                "NestedAsset: FORBIDDEN_NOT_FACTORY",
+                "NA: FORBIDDEN_NOT_FACTORY",
             );
         });
 
@@ -119,7 +119,7 @@ describe("NestedAsset", () => {
             await asset.mint(bob.address, 0);
 
             // Alice asked to burn Bob's token
-            await expect(asset.burn(alice.address, 1)).to.be.revertedWith("NestedAsset: FORBIDDEN_NOT_OWNER");
+            await expect(asset.burn(alice.address, 1)).to.be.revertedWith("NA: FORBIDDEN_NOT_OWNER");
         });
     });
 
@@ -131,19 +131,19 @@ describe("NestedAsset", () => {
         it("should revert the URI is already set", async () => {
             await asset.backfillTokenURI(1, bob.address, "ipfs://tokenURI");
             await expect(asset.backfillTokenURI(1, bob.address, "ipfs://newTokenURI")).to.be.revertedWith(
-                "NestedAsset: TOKEN_URI_IMMUTABLE",
+                "NA: TOKEN_URI_IMMUTABLE",
             );
         });
 
         it("should revert if the caller is not the factory", async () => {
             await expect(asset.connect(bob).backfillTokenURI(1, bob.address, "ipfs://newTokenURI")).to.be.revertedWith(
-                "NestedAsset: FORBIDDEN_NOT_FACTORY",
+                "NA: FORBIDDEN_NOT_FACTORY",
             );
         });
 
         it("should revert if the token does not belong to the owner", async () => {
             await expect(asset.backfillTokenURI(1, alice.address, "ipfs://newTokenURI")).to.be.revertedWith(
-                "NestedAsset: FORBIDDEN_NOT_OWNER",
+                "NA: FORBIDDEN_NOT_OWNER",
             );
         });
 
@@ -187,7 +187,7 @@ describe("NestedAsset", () => {
 
         it("reverts if the address is invalid", async () => {
             await expect(asset.setFactory("0x0000000000000000000000000000000000000000")).to.be.revertedWith(
-                "NestedAsset: INVALID_ADDRESS",
+                "NA: INVALID_ADDRESS",
             );
             expect(await asset.supportedFactories(otherFactory.address)).to.equal(false);
         });
@@ -213,11 +213,11 @@ describe("NestedAsset", () => {
 
         it("reverts if already not supported", async () => {
             await expect(asset.removeFactory(otherFactory.address)).to.be.revertedWith(
-                "NestedAsset: ALREADY_NOT_SUPPORTED",
+                "NA: ALREADY_NOT_SUPPORTED",
             );
 
             await expect(asset.removeFactory(ethers.constants.AddressZero)).to.be.revertedWith(
-                "NestedAsset: ALREADY_NOT_SUPPORTED",
+                "NA: ALREADY_NOT_SUPPORTED",
             );
         });
     });

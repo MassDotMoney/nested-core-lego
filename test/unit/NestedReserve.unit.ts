@@ -47,7 +47,7 @@ describe("NestedReserve", () => {
 
         it("should revert if sets the factory with address zero", async () => {
             await expect(reserve.updateFactory(ethers.constants.AddressZero)).to.be.revertedWith(
-                "NestedReserve: INVALID_ADDRESS",
+                "NRS: INVALID_ADDRESS",
             );
         });
     });
@@ -67,7 +67,7 @@ describe("NestedReserve", () => {
         it("reverts if the recipient if unauthorized", async () => {
             await expect(
                 reserve.connect(alice).transfer(alice.address, mockUNI.address, amountToTransfer),
-            ).to.be.revertedWith("NestedReserve: UNAUTHORIZED");
+            ).to.be.revertedWith("NRS: UNAUTHORIZED");
         });
 
         it("reverts if the token is invalid", async () => {
@@ -79,7 +79,7 @@ describe("NestedReserve", () => {
         it("reverts if the recipient is invalid", async () => {
             await expect(
                 reserve.transfer("0x0000000000000000000000000000000000000000", mockUNI.address, amountToTransfer),
-            ).to.be.revertedWith("NestedReserve: INVALID_ADDRESS");
+            ).to.be.revertedWith("NRS: INVALID_ADDRESS");
         });
     });
 
@@ -97,7 +97,7 @@ describe("NestedReserve", () => {
 
         it("reverts if the recipient if unauthorized", async () => {
             await expect(reserve.connect(alice).withdraw(mockUNI.address, amountToTransfer)).to.be.revertedWith(
-                "NestedReserve: UNAUTHORIZED",
+                "NRS: UNAUTHORIZED",
             );
         });
 

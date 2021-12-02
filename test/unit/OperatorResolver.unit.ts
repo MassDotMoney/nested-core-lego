@@ -50,7 +50,7 @@ describe("OperatorResolver", () => {
 
         describe("when a different number of names are given to addresses", () => {
             it("then it reverts", async () => {
-                const revertReason: string = "OperatorResolver::importOperators: Input lengths must match";
+                const revertReason: string = "OR: INPUTS_LENGTH_MUST_MATCH";
                 await expect(
                     context.operatorResolver
                         .connect(actors.addressResolverOwner())

@@ -22,23 +22,23 @@ describe("NestedRecords", () => {
 
     it("reverts when setting invalid factory", async () => {
         await expect(nestedRecords.setFactory(ethers.constants.AddressZero)).to.be.revertedWith(
-            "NestedRecords: INVALID_ADDRESS",
+            "NRC: INVALID_ADDRESS",
         );
     });
 
     it("reverts when calling a factory only function when not a factory", async () => {
         await expect(nestedRecords.connect(bob).setReserve(0, bob.address)).to.be.revertedWith(
-            "NestedRecords: FORBIDDEN",
+            "NRC: FORBIDDEN",
         );
     });
 
     it("reverts when setting a wrong reserve to a NFT", async () => {
         await expect(nestedRecords.store(0, bob.address, 20, ethers.constants.AddressZero)).to.be.revertedWith(
-            "NestedRecords: INVALID_RESERVE",
+            "NRC: INVALID_RESERVE",
         );
         await nestedRecords.store(0, bob.address, 20, alice.address);
         await expect(nestedRecords.store(0, bob.address, 20, bob.address)).to.be.revertedWith(
-            "NestedRecords: RESERVE_MISMATCH",
+            "NRC: RESERVE_MISMATCH",
         );
     });
 
@@ -49,14 +49,14 @@ describe("NestedRecords", () => {
             await nestedRecords.store(0, signers[i + 3].address, 20, alice.address);
         }
         await expect(nestedRecords.store(0, bob.address, 20, alice.address)).to.be.revertedWith(
-            "NestedRecords: TOO_MANY_ORDERS",
+            "NRC: TOO_MANY_ORDERS",
         );
     });
 
     describe("#setMaxHoldingsCount", () => {
         it("reverts when setting an incorrect number of max holdings", async () => {
             await expect(nestedRecords.setMaxHoldingsCount(0)).to.be.revertedWith(
-                "NestedRecords: INVALID_MAX_HOLDINGS",
+                "NRC: INVALID_MAX_HOLDINGS",
             );
         });
 

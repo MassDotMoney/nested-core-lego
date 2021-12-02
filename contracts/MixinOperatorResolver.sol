@@ -60,7 +60,7 @@ abstract contract MixinOperatorResolver {
     /// @return The operator address
     function requireAndGetAddress(bytes32 name) internal view returns (address) {
         address _foundAddress = addressCache[name];
-        require(_foundAddress != address(0), string(abi.encodePacked("Missing operator : ", name)));
+        require(_foundAddress != address(0), string(abi.encodePacked("MOR: MISSING_OPERATOR: ", name)));
         return _foundAddress;
     }
 }
