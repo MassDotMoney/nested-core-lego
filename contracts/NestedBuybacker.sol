@@ -50,6 +50,7 @@ contract NestedBuybacker is Ownable {
         uint256 _burnPercentage
     ) {
         require(_burnPercentage <= 1000, "NB: INVALID_BURN_PART");
+        require(_NST != address(0) && _nstReserve != address(0) && _feeSplitter != address(0), "NB: INVALID_ADDRESS");
         burnPercentage = _burnPercentage;
         NST = INestedToken(_NST);
         feeSplitter = FeeSplitter(_feeSplitter);

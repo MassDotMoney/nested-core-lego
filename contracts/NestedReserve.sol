@@ -17,6 +17,7 @@ contract NestedReserve is Ownable {
     event FactoryUpdated(address newFactory);
 
     constructor(address _factory) {
+        require(address(_factory) != address(0), "NRS: INVALID_FACTORY_ADDRESS");
         factory = _factory;
     }
 
