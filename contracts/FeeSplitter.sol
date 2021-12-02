@@ -80,13 +80,13 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// @return The total amount due for the requested currency
     function getAmountDue(address _account, IERC20 _token) public view returns (uint256) {
         TokenRecords storage _tokenRecords = tokenRecords[address(_token)];
-        uint256 totalReceived = _tokenRecords.totalReleased;
         if (_tokenRecords.totalShares == 0) return 0;
-        else totalReceived += _token.balanceOf(address(this));
-        uint256 amountDue = (totalReceived * _tokenRecords.shares[_account]) /
+
+        uint256 totalReceived = _tokenRecords.totalReleased + _token.balanceOf(address(this));
+        return
+            (totalReceived * _tokenRecords.shares[_account]) /
             _tokenRecords.totalShares -
             _tokenRecords.released[_account];
-        return amountDue;
     }
 
     /// @notice Sets the weight assigned to the royalties part for the fee
