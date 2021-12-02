@@ -77,10 +77,7 @@ contract NestedAsset is ERC721Enumerable, Ownable {
             return tokenId;
         }
 
-        require(
-            _exists(_replicatedTokenId) && tokenId != _replicatedTokenId,
-            "NA: INVALID_REPLICATED_TOKEN_ID"
-        );
+        require(_exists(_replicatedTokenId) && tokenId != _replicatedTokenId, "NA: INVALID_REPLICATED_TOKEN_ID");
 
         uint256 originalTokenId = originalAsset[_replicatedTokenId];
         originalAsset[tokenId] = originalTokenId != 0 ? originalTokenId : _replicatedTokenId;

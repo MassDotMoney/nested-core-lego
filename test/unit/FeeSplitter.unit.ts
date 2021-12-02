@@ -148,15 +148,11 @@ describe("Fee Splitter", () => {
         });
 
         it("should revert when adding a shareholder with a weight of zero", async () => {
-            await expect(feeSplitter.setShareholders([bob.address], [0])).to.be.revertedWith(
-                "FS: ZERO_WEIGHT",
-            );
+            await expect(feeSplitter.setShareholders([bob.address], [0])).to.be.revertedWith("FS: ZERO_WEIGHT");
         });
 
         it("should revert if account index invalid", async () => {
-            await expect(feeSplitter.updateShareholder(10, 10)).to.be.revertedWith(
-                "FS: INVALID_ACCOUNT_INDEX",
-            );
+            await expect(feeSplitter.updateShareholder(10, 10)).to.be.revertedWith("FS: INVALID_ACCOUNT_INDEX");
         });
 
         it("updates the weights for fees distribution", async () => {

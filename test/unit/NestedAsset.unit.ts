@@ -58,20 +58,14 @@ describe("NestedAsset", () => {
             });
 
             it("should revert if replicate id doesnt exist", async () => {
-                await expect(asset.mint(alice.address, 1)).to.be.revertedWith(
-                    "NA: INVALID_REPLICATED_TOKEN_ID",
-                );
-                await expect(asset.mint(alice.address, 10)).to.be.revertedWith(
-                    "NA: INVALID_REPLICATED_TOKEN_ID",
-                );
+                await expect(asset.mint(alice.address, 1)).to.be.revertedWith("NA: INVALID_REPLICATED_TOKEN_ID");
+                await expect(asset.mint(alice.address, 10)).to.be.revertedWith("NA: INVALID_REPLICATED_TOKEN_ID");
             });
         });
 
         it("should revert if the caller is not the factory", async () => {
             // Alice tries to mint a token for herself and bypass the factory
-            await expect(asset.connect(alice).mint(alice.address, 0)).to.be.revertedWith(
-                "NA: FORBIDDEN_NOT_FACTORY",
-            );
+            await expect(asset.connect(alice).mint(alice.address, 0)).to.be.revertedWith("NA: FORBIDDEN_NOT_FACTORY");
         });
     });
 
@@ -110,9 +104,7 @@ describe("NestedAsset", () => {
 
         it("should revert if the caller is not the factory", async () => {
             // Alice tries to burn the token herself and bypass the factory
-            await expect(asset.connect(alice).burn(alice.address, 1)).to.be.revertedWith(
-                "NA: FORBIDDEN_NOT_FACTORY",
-            );
+            await expect(asset.connect(alice).burn(alice.address, 1)).to.be.revertedWith("NA: FORBIDDEN_NOT_FACTORY");
         });
 
         it("should revert when burning someone else's token", async () => {
@@ -212,9 +204,7 @@ describe("NestedAsset", () => {
         });
 
         it("reverts if already not supported", async () => {
-            await expect(asset.removeFactory(otherFactory.address)).to.be.revertedWith(
-                "NA: ALREADY_NOT_SUPPORTED",
-            );
+            await expect(asset.removeFactory(otherFactory.address)).to.be.revertedWith("NA: ALREADY_NOT_SUPPORTED");
 
             await expect(asset.removeFactory(ethers.constants.AddressZero)).to.be.revertedWith(
                 "NA: ALREADY_NOT_SUPPORTED",
