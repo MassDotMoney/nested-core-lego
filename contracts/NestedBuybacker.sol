@@ -12,7 +12,6 @@ import "./libraries/ExchangeHelpers.sol";
 /// @dev Some of it is burned, the rest is sent to a pool that will redistribute
 ///      to the NST ecosystem and community.
 contract NestedBuybacker is Ownable {
-    using SafeERC20 for IERC20;
     using SafeERC20 for INestedToken;
 
     /// @dev Emitted when the reserve address is updated
