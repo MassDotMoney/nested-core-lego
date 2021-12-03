@@ -22,7 +22,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// @param amount The amount paid
     event PaymentReleased(address to, address token, uint256 amount);
 
-    /// @dev Emitted when a payment is released
+    /// @dev Emitted when a payment is received
     /// @param from The address sending the tokens
     /// @param token The token received
     /// @param amount The amount received
