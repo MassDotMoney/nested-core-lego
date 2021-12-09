@@ -39,6 +39,7 @@ async function main(): Promise<void> {
     const zeroExOperatorFactory = await ethers.getContractFactory("ZeroExOperator");
     const nestedFactoryFactory = await ethers.getContractFactory("NestedFactory");
     const nestedReserveFactory = await ethers.getContractFactory("NestedReserve");
+    const transparentUpgradeableProxyFactory = await ethers.getContractFactory("TransparentUpgradeableProxy");
 
     // Deploy FeeSplitter
     const feeSplitter = await feeSplitterFactory.deploy([nestedTreasury], [80], 20, WETH);
@@ -65,6 +66,9 @@ async function main(): Promise<void> {
     await verify("ZeroExOperator", zeroExOperator, [zeroExSwapTarget]);
     console.log("ZeroExOperator deployed : ", zeroExOperator.address);
 
+    // Add ZeroExStorage address
+    deployments.push({name: "ZeroExStorage", address: await zeroExOperator.storageAddress(zeroExOperator.address)})
+
     // Deploy FlatOperator
     const flatOperator = await flatOperatorFactory.deploy();
     await verify("FlatOperator", flatOperator, []);
@@ -86,15 +90,20 @@ async function main(): Promise<void> {
         operatorResolver.address]);
     console.log("NestedFactory deployed : ", nestedFactory.address);
 
+    // Deploy FactoryProxy
+    const factoryProxy = await transparentUpgradeableProxyFactory.deploy(nestedFactory.address, await nestedFactory.owner(), []);
+    await verify("FactoryProxy", factoryProxy, [nestedFactory.address, await nestedFactory.owner(), []]);
+    console.log("FactoryProxy deployed : ", factoryProxy.address);
+
     // Deploy NestedReserve
-    const nestedReserve = await nestedReserveFactory.deploy(nestedFactory.address);
-    await verify("NestedReserve", nestedReserve, [nestedFactory.address]);
+    const nestedReserve = await nestedReserveFactory.deploy(factoryProxy.address);
+    await verify("NestedReserve", nestedReserve, [factoryProxy.address]);
     console.log("NestedReserve deployed : ", nestedReserve.address);
 
     // Set factory to asset and records
-    let tx = await nestedAsset.setFactory(nestedFactory.address);
+    let tx = await nestedAsset.setFactory(factoryProxy.address);
     await tx.wait();
-    tx = await nestedRecords.setFactory(nestedFactory.address);
+    tx = await nestedRecords.setFactory(factoryProxy.address);
     await tx.wait();
 
     // Set reserve to factory
