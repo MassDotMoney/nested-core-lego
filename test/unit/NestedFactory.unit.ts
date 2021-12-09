@@ -76,6 +76,18 @@ describe("NestedFactory", () => {
                 context.nestedFactory.connect(context.user1).addOperator(toBytes32("test")),
             ).to.be.revertedWith("Ownable: caller is not the owner");
         });
+
+        it("cant add already existent operator", async () => {
+            await context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("test"));
+            await context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("test1"));
+            await expect(
+                context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("test")),
+            ).to.be.revertedWith("NF: EXISTENT_OPERATOR");
+            await expect(
+                context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("test1")),
+            ).to.be.revertedWith("NF: EXISTENT_OPERATOR");
+        });
+
         it("add a new operator", async () => {
             // Add the operator named "test"
             await context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("test"));
