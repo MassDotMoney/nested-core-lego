@@ -96,7 +96,7 @@ contract NestedBuybacker is Ownable {
         if (feeSplitter.getAmountDue(address(this), _sellToken) > 0) {
             claimFees(_sellToken);
         }
-        ExchangeHelpers.fillQuote(_sellToken, _swapTarget, _swapCallData);
+        require(ExchangeHelpers.fillQuote(_sellToken, _swapTarget, _swapCallData), "NB : FAILED_SWAP");
         trigger();
         emit BuybackTriggered(_sellToken);
     }
