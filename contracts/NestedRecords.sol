@@ -53,31 +53,6 @@ contract NestedRecords is Ownable {
         maxHoldingsCount = _maxHoldingsCount;
     }
 
-    /// @notice Add a record for NFT data into our mappings
-    /// @param _nftId The id of the NFT
-    /// @param _token The address of the token
-    /// @param _amount The amount of tokens bought
-    /// @param _reserve The address of the reserve
-    function createRecord(
-        uint256 _nftId,
-        address _token,
-        uint256 _amount,
-        address _reserve
-    ) public onlyFactory {
-        require(records[_nftId].tokens.length < maxHoldingsCount, "NRC: TOO_MANY_ORDERS");
-        require(
-            _reserve != address(0) && (_reserve == records[_nftId].reserve || records[_nftId].reserve == address(0)),
-            "NRC: INVALID_RESERVE"
-        );
-
-        Holding memory holding = records[_nftId].holdings[_token];
-        require(!holding.isActive, "NRC: HOLDING_EXISTS");
-
-        records[_nftId].holdings[_token] = Holding({ token: _token, amount: _amount, isActive: true });
-        records[_nftId].tokens.push(_token);
-        records[_nftId].reserve = _reserve;
-    }
-
     /// @notice Update the amount for a specific holding and delete
     /// the holding if the amount is zero.
     /// @param _nftId The id of the NFT
@@ -133,7 +108,15 @@ contract NestedRecords is Ownable {
             updateHoldingAmount(_nftId, _token, holding.amount + _amount);
             return;
         }
-        createRecord(_nftId, _token, _amount, _reserve);
+        require(records[_nftId].tokens.length < maxHoldingsCount, "NRC: TOO_MANY_ORDERS");
+        require(
+            _reserve != address(0) && (_reserve == records[_nftId].reserve || records[_nftId].reserve == address(0)),
+            "NRC: INVALID_RESERVE"
+        );
+
+        records[_nftId].holdings[_token] = Holding({ token: _token, amount: _amount, isActive: true });
+        records[_nftId].tokens.push(_token);
+        records[_nftId].reserve = _reserve;
     }
 
     /// @notice Get holding object for this NFT ID
