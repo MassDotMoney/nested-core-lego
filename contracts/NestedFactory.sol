@@ -264,7 +264,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
 
     /// @inheritdoc INestedFactory
     function unlockTokens(IERC20 _token) external override onlyOwner {
-        _token.transfer(owner(), _token.balanceOf(address(this)));
+        _token.safeTransfer(owner(), _token.balanceOf(address(this)));
     }
 
     /// @dev For every orders, call the operator with the calldata
