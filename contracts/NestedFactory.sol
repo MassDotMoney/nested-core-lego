@@ -28,8 +28,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     FeeSplitter public feeSplitter;
 
     /// @dev Current reserve contract/address
-    NestedReserve public reserve;
-
+    NestedReserve public immutable reserve;
     NestedAsset public immutable nestedAsset;
     IWETH public immutable weth;
     NestedRecords public immutable nestedRecords;
@@ -37,6 +36,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     constructor(
         NestedAsset _nestedAsset,
         NestedRecords _nestedRecords,
+        NestedReserve _reserve,
         FeeSplitter _feeSplitter,
         IWETH _weth,
         address _operatorResolver
@@ -44,6 +44,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         require(
             address(_nestedAsset) != address(0) &&
                 address(_nestedRecords) != address(0) &&
+                address(_reserve) != address(0) &&
                 address(_feeSplitter) != address(0) &&
                 address(_weth) != address(0) &&
                 _operatorResolver != address(0),
@@ -51,6 +52,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         );
         nestedAsset = _nestedAsset;
         nestedRecords = _nestedRecords;
+        reserve = _reserve;
         feeSplitter = _feeSplitter;
         weth = _weth;
     }
@@ -91,13 +93,6 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         }
         require(i > 0, "NF: NON_EXISTENT_OPERATOR");
         delete operators[i];
-    }
-
-    /// @inheritdoc INestedFactory
-    function setReserve(NestedReserve _reserve) external override onlyOwner {
-        require(address(reserve) == address(0), "NF: RESERVE_ADDRESS_IMMUTABLE");
-        reserve = _reserve;
-        emit ReserveUpdated(address(_reserve));
     }
 
     /// @inheritdoc INestedFactory

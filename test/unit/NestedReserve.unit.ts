@@ -21,35 +21,12 @@ describe("NestedReserve", () => {
     });
 
     beforeEach(async () => {
-        reserve = await nestedReserve.deploy(factory.address);
+        reserve = await nestedReserve.deploy();
         await reserve.deployed();
+        await reserve.addFactory(factory.address);
 
         mockUNI = await mockERC20.deploy("Mocked UNI", "INU", 0);
         await mockUNI.mint(reserve.address, amountToTransfer);
-    });
-
-    describe("#initialization", () => {
-        it("sets the state variable", async () => {
-            expect(await reserve.factory()).to.eq(factory.address);
-        });
-
-        it("sets a new factory", async () => {
-            const tx = await reserve.updateFactory(bob.address);
-            await tx.wait();
-            expect(await reserve.factory()).to.eq(bob.address);
-        });
-
-        it("should revert if unauthorized account sets the factory", async () => {
-            await expect(reserve.connect(bob).updateFactory(bob.address)).to.be.revertedWith(
-                "Ownable: caller is not the owner",
-            );
-        });
-
-        it("should revert if sets the factory with address zero", async () => {
-            await expect(reserve.updateFactory(ethers.constants.AddressZero)).to.be.revertedWith(
-                "NRS: INVALID_ADDRESS",
-            );
-        });
     });
 
     describe("#transfer", async () => {
@@ -67,7 +44,7 @@ describe("NestedReserve", () => {
         it("reverts if the recipient if unauthorized", async () => {
             await expect(
                 reserve.connect(alice).transfer(alice.address, mockUNI.address, amountToTransfer),
-            ).to.be.revertedWith("NRS: UNAUTHORIZED");
+            ).to.be.revertedWith("OFH: FORBIDDEN");
         });
 
         it("reverts if the token is invalid", async () => {
@@ -97,7 +74,7 @@ describe("NestedReserve", () => {
 
         it("reverts if the recipient if unauthorized", async () => {
             await expect(reserve.connect(alice).withdraw(mockUNI.address, amountToTransfer)).to.be.revertedWith(
-                "NRS: UNAUTHORIZED",
+                "OFH: FORBIDDEN",
             );
         });
 

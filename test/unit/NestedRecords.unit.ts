@@ -17,15 +17,15 @@ describe("NestedRecords", () => {
     beforeEach(async () => {
         NestedRecords = await ethers.getContractFactory("NestedRecords");
         nestedRecords = await NestedRecords.deploy(15);
-        nestedRecords.setFactory(alice.address);
+        nestedRecords.addFactory(alice.address);
     });
 
     it("reverts when setting invalid factory", async () => {
-        await expect(nestedRecords.setFactory(ethers.constants.AddressZero)).to.be.revertedWith("NRC: INVALID_ADDRESS");
+        await expect(nestedRecords.addFactory(ethers.constants.AddressZero)).to.be.revertedWith("OFH: INVALID_ADDRESS");
     });
 
     it("reverts when calling a factory only function when not a factory", async () => {
-        await expect(nestedRecords.connect(bob).setReserve(0, bob.address)).to.be.revertedWith("NRC: FORBIDDEN");
+        await expect(nestedRecords.connect(bob).setReserve(0, bob.address)).to.be.revertedWith("OFH: FORBIDDEN");
     });
 
     it("reverts when setting a wrong reserve to a NFT", async () => {
