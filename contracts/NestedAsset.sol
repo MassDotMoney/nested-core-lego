@@ -73,7 +73,8 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
         return tokenId;
     }
 
-    /// @notice Mints an ERC721 token and sets the tokenUri
+    /// @notice Mints an ERC721 token and sets the tokenUri.
+    /// Only the NestedFactory contract can call this function.
     /// @param _owner The account address that signed the transaction
     /// @param _metadataURI he metadata URI string
     /// @param _replicatedTokenId The token id of the replicated asset, 0 if no replication
@@ -82,7 +83,7 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
         address _owner,
         string memory _metadataURI,
         uint256 _replicatedTokenId
-    ) external onlyFactory returns (uint256) {
+    ) external returns (uint256) {
         uint256 tokenId = mint(_owner, _replicatedTokenId);
         _setTokenURI(tokenId, _metadataURI);
         return tokenId;
