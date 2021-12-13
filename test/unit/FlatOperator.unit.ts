@@ -23,7 +23,6 @@ describe("FlatOperator", () => {
 
     beforeEach("create fixture loader", async () => {
         context = await loadFixture(factoryAndOperatorsFixture);
-        await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
     });
 
     it("deploys and has an address", async () => {

@@ -48,10 +48,6 @@ interface INestedFactory {
     /// @param operator The operator name to remove
     function removeOperator(bytes32 operator) external;
 
-    /// @notice Sets the reserve where the funds are stored
-    /// @param _reserve the address of the new reserve
-    function setReserve(NestedReserve _reserve) external;
-
     /// @notice Sets the address receiving the fees
     /// @param _feeSplitter The address of the receiver
     function setFeeSplitter(FeeSplitter _feeSplitter) external;

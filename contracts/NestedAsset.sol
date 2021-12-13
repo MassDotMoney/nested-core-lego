@@ -1,22 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "./abstracts/OwnableFactoryHandler.sol";
 
 /// @title Collection of NestedNFTs used to represent ownership of real assets stored in NestedReserves
 /// @dev Only NestedFactory contracts are allowed to call functions that write to storage
-contract NestedAsset is ERC721Enumerable, Ownable {
+contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
     using Counters for Counters.Counter;
 
-    event FactoryAdded(address newFactory);
-    event FactoryRemoved(address oldFactory);
-
     Counters.Counter private _tokenIds;
-
-    /// @dev Supported factories to interact with
-    mapping(address => bool) public supportedFactories;
 
     /// @dev Stores the URI of each asset
     mapping(uint256 => string) private _tokenURIs;
@@ -28,12 +22,6 @@ contract NestedAsset is ERC721Enumerable, Ownable {
     mapping(uint256 => address) public lastOwnerBeforeBurn;
 
     constructor() ERC721("NestedNFT", "NESTED") {}
-
-    /// @dev Reverts the transaction if the caller is not the factory
-    modifier onlyFactory() {
-        require(supportedFactories[msg.sender], "NA: FORBIDDEN_NOT_FACTORY");
-        _;
-    }
 
     /// @dev Reverts the transaction if the address is not the token owner
     modifier onlyTokenOwner(address _address, uint256 _tokenId) {
@@ -123,22 +111,6 @@ contract NestedAsset is ERC721Enumerable, Ownable {
         if (bytes(_tokenURIs[_tokenId]).length != 0) {
             delete _tokenURIs[_tokenId];
         }
-    }
-
-    /// @notice Sets the factory for Nested assets
-    /// @param _factory the address of the new factory
-    function setFactory(address _factory) external onlyOwner {
-        require(_factory != address(0), "NA: INVALID_ADDRESS");
-        supportedFactories[_factory] = true;
-        emit FactoryAdded(_factory);
-    }
-
-    /// @notice Remove a supported factory from NestedAssets
-    /// @param _factory The address of the factory to remove
-    function removeFactory(address _factory) external onlyOwner {
-        require(supportedFactories[_factory], "NA: ALREADY_NOT_SUPPORTED");
-        supportedFactories[_factory] = false;
-        emit FactoryRemoved(_factory);
     }
 
     /// @dev Sets the Uniform Resource Identifier (URI) for `tokenId` token.

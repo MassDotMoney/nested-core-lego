@@ -1,14 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./abstracts/OwnableFactoryHandler.sol";
 
 /// @title Tracks data for underlying assets of NestedNFTs
-contract NestedRecords is Ownable {
-    /// @dev Emitted when a new factory is added to the supported list
-    /// @param newFactory The new added factory
-    event FactoryAdded(address newFactory);
-
+contract NestedRecords is OwnableFactoryHandler {
     /// @dev Emitted when maxHoldingsCount is updated
     /// @param maxHoldingsCount The new value
     event MaxHoldingsChanges(uint256 maxHoldingsCount);
@@ -33,21 +29,11 @@ contract NestedRecords is Ownable {
         uint256 lockTimestamp;
     }
 
-    /// @dev List of supported factories.
-    /// This information is used across the protocol
-    mapping(address => bool) public supportedFactories;
-
     /// @dev stores for each NFT ID an asset record
     mapping(uint256 => NftRecord) public records;
 
     /// @dev The maximum number of holdings for an NFT record
     uint256 public maxHoldingsCount;
-
-    /// @dev Reverts the transaction if the caller is not the factory
-    modifier onlyFactory() {
-        require(supportedFactories[_msgSender()], "NRC: FORBIDDEN");
-        _;
-    }
 
     constructor(uint256 _maxHoldingsCount) {
         maxHoldingsCount = _maxHoldingsCount;
@@ -141,14 +127,6 @@ contract NestedRecords is Ownable {
     /// @param _token The address of the token
     function getAssetHolding(uint256 _nftId, address _token) external view returns (Holding memory) {
         return records[_nftId].holdings[_token];
-    }
-
-    /// @notice Sets the factory for Nested records
-    /// @param _factory The address of the new factory
-    function setFactory(address _factory) external onlyOwner {
-        require(_factory != address(0), "NRC: INVALID_ADDRESS");
-        supportedFactories[_factory] = true;
-        emit FactoryAdded(_factory);
     }
 
     /// @notice The factory can update the lock timestamp of a NFT record

@@ -7,7 +7,6 @@ import { BigNumber } from "ethers";
 describe("NestedAsset", () => {
     let NestedAsset: NestedAsset__factory, asset: NestedAsset;
     let factory: SignerWithAddress,
-        otherFactory: SignerWithAddress,
         alice: SignerWithAddress,
         bob: SignerWithAddress,
         feeToSetter: SignerWithAddress,
@@ -22,14 +21,13 @@ describe("NestedAsset", () => {
         factory = signers[0];
         alice = signers[1];
         bob = signers[2];
-        otherFactory = signers[3];
-        feeToSetter = signers[4];
-        feeTo = signers[5];
+        feeToSetter = signers[3];
+        feeTo = signers[4];
     });
 
     beforeEach(async () => {
         asset = await NestedAsset.deploy();
-        await asset.setFactory(factory.address);
+        await asset.addFactory(factory.address);
         await asset.deployed();
     });
 
@@ -65,7 +63,7 @@ describe("NestedAsset", () => {
 
         it("should revert if the caller is not the factory", async () => {
             // Alice tries to mint a token for herself and bypass the factory
-            await expect(asset.connect(alice).mint(alice.address, 0)).to.be.revertedWith("NA: FORBIDDEN_NOT_FACTORY");
+            await expect(asset.connect(alice).mint(alice.address, 0)).to.be.revertedWith("OFH: FORBIDDEN");
         });
     });
 
@@ -104,7 +102,7 @@ describe("NestedAsset", () => {
 
         it("should revert if the caller is not the factory", async () => {
             // Alice tries to burn the token herself and bypass the factory
-            await expect(asset.connect(alice).burn(alice.address, 1)).to.be.revertedWith("NA: FORBIDDEN_NOT_FACTORY");
+            await expect(asset.connect(alice).burn(alice.address, 1)).to.be.revertedWith("OFH: FORBIDDEN");
         });
 
         it("should revert when burning someone else's token", async () => {
@@ -129,7 +127,7 @@ describe("NestedAsset", () => {
 
         it("should revert if the caller is not the factory", async () => {
             await expect(asset.connect(bob).backfillTokenURI(1, bob.address, "ipfs://newTokenURI")).to.be.revertedWith(
-                "NA: FORBIDDEN_NOT_FACTORY",
+                "OFH: FORBIDDEN",
             );
         });
 
@@ -159,56 +157,6 @@ describe("NestedAsset", () => {
         it("returns the owner address of the original burnt asset", async () => {
             await asset.burn(alice.address, 1);
             expect(await asset.originalOwner(2)).to.eq(alice.address);
-        });
-    });
-
-    describe("#setFactory", () => {
-        it("sets the new factory", async () => {
-            await expect(asset.setFactory(otherFactory.address))
-                .to.emit(asset, "FactoryAdded")
-                .withArgs(otherFactory.address);
-            expect(await asset.supportedFactories(otherFactory.address)).to.equal(true);
-        });
-
-        it("reverts if unauthorized", async () => {
-            await expect(asset.connect(alice).setFactory(otherFactory.address)).to.be.revertedWith(
-                "Ownable: caller is not the owner",
-            );
-            expect(await asset.supportedFactories(otherFactory.address)).to.equal(false);
-        });
-
-        it("reverts if the address is invalid", async () => {
-            await expect(asset.setFactory("0x0000000000000000000000000000000000000000")).to.be.revertedWith(
-                "NA: INVALID_ADDRESS",
-            );
-            expect(await asset.supportedFactories(otherFactory.address)).to.equal(false);
-        });
-    });
-
-    describe("#removeFactory", () => {
-        it("remove a factory", async () => {
-            await asset.setFactory(otherFactory.address);
-            expect(await asset.supportedFactories(otherFactory.address)).to.equal(true);
-            await expect(asset.removeFactory(otherFactory.address))
-                .to.emit(asset, "FactoryRemoved")
-                .withArgs(otherFactory.address);
-            expect(await asset.supportedFactories(otherFactory.address)).to.equal(false);
-        });
-
-        it("reverts if unauthorized", async () => {
-            await asset.setFactory(otherFactory.address);
-            await expect(asset.connect(alice).removeFactory(otherFactory.address)).to.be.revertedWith(
-                "Ownable: caller is not the owner",
-            );
-            expect(await asset.supportedFactories(otherFactory.address)).to.equal(true);
-        });
-
-        it("reverts if already not supported", async () => {
-            await expect(asset.removeFactory(otherFactory.address)).to.be.revertedWith("NA: ALREADY_NOT_SUPPORTED");
-
-            await expect(asset.removeFactory(ethers.constants.AddressZero)).to.be.revertedWith(
-                "NA: ALREADY_NOT_SUPPORTED",
-            );
         });
     });
 });

@@ -147,33 +147,6 @@ describe("NestedFactory", () => {
         });
     });
 
-    describe("setReserve()", () => {
-        const newReserve = Wallet.createRandom().address;
-        it("cant be invoked by an user", async () => {
-            await expect(context.nestedFactory.connect(context.user1).setReserve(newReserve)).to.be.revertedWith(
-                "Ownable: caller is not the owner",
-            );
-        });
-
-        it("cant set address (immutable)", async () => {
-            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
-            await expect(
-                context.nestedFactory.connect(context.masterDeployer).setReserve(newReserve),
-            ).to.be.revertedWith("NF: RESERVE_ADDRESS_IMMUTABLE");
-        });
-
-        it("set value", async () => {
-            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
-            expect(await context.nestedFactory.reserve()).to.be.equal(context.nestedReserve.address);
-        });
-
-        it("emit ReserveUpdated event", async () => {
-            await expect(context.nestedFactory.connect(context.masterDeployer).setReserve(newReserve))
-                .to.emit(context.nestedFactory, "ReserveUpdated")
-                .withArgs(newReserve);
-        });
-    });
-
     describe("setFeeSplitter()", () => {
         const newFeeSplitter = Wallet.createRandom().address;
         it("cant be invoked by an user", async () => {
@@ -201,10 +174,6 @@ describe("NestedFactory", () => {
     });
 
     describe("create()", () => {
-        beforeEach("Set reserve", async () => {
-            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
-        });
-
         it("reverts if Orders list is empty", async () => {
             let orders: OrderStruct[] = [];
             await expect(
@@ -528,10 +497,7 @@ describe("NestedFactory", () => {
         let baseExpectedFee = getExpectedFees(baseTotalToBought);
         let baseTotalToSpend = baseTotalToBought.add(baseExpectedFee);
 
-        beforeEach("Set reserve and create NFT (id 1)", async () => {
-            // set reserve
-            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
-
+        beforeEach("Create NFT (id 1)", async () => {
             // create nft 1 with UNI and KNC from DAI (use the base amounts)
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
@@ -845,10 +811,7 @@ describe("NestedFactory", () => {
         let baseExpectedFee = getExpectedFees(baseTotalToBought);
         let baseTotalToSpend = baseTotalToBought.add(baseExpectedFee);
 
-        beforeEach("Set reserve and create NFT (id 1)", async () => {
-            // set reserve
-            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
-
+        beforeEach("Create NFT (id 1)", async () => {
             // create nft 1 with UNI and KNC from DAI (use the base amounts)
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
@@ -1120,10 +1083,7 @@ describe("NestedFactory", () => {
         let baseExpectedFee = getExpectedFees(baseTotalToBought);
         let baseTotalToSpend = baseTotalToBought.add(baseExpectedFee);
 
-        beforeEach("Set reserve and create NFT (id 1)", async () => {
-            // set reserve
-            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
-
+        beforeEach("Create NFT (id 1)", async () => {
             // create nft 1 with UNI and KNC from DAI (use the base amounts)
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
@@ -1399,10 +1359,7 @@ describe("NestedFactory", () => {
         let baseExpectedFee = getExpectedFees(baseTotalToBought);
         let baseTotalToSpend = baseTotalToBought.add(baseExpectedFee);
 
-        beforeEach("Set reserve and create NFT (id 1)", async () => {
-            // set reserve
-            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
-
+        beforeEach("Create NFT (id 1)", async () => {
             // create nft 1 with UNI and KNC from DAI (use the base amounts)
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
@@ -1667,10 +1624,7 @@ describe("NestedFactory", () => {
         let baseExpectedFee = getExpectedFees(baseTotalToBought);
         let baseTotalToSpend = baseTotalToBought.add(baseExpectedFee);
 
-        beforeEach("Set reserve and create NFT (id 1)", async () => {
-            // set reserve
-            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
-
+        beforeEach("Create NFT (id 1)", async () => {
             // create nft 1 with UNI and KNC from DAI (use the base amounts)
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
@@ -1901,10 +1855,7 @@ describe("NestedFactory", () => {
         let baseExpectedFee = getExpectedFees(baseTotalToBought);
         let baseTotalToSpend = baseTotalToBought.add(baseExpectedFee);
 
-        beforeEach("Set reserve and create NFT (id 1)", async () => {
-            // set reserve
-            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
-
+        beforeEach("Create NFT (id 1)", async () => {
             // create nft 1 with UNI and KNC from DAI (use the base amounts)
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
@@ -1969,10 +1920,7 @@ describe("NestedFactory", () => {
         let baseExpectedFee = getExpectedFees(baseTotalToBought);
         let baseTotalToSpend = baseTotalToBought.add(baseExpectedFee);
 
-        beforeEach("Set reserve and create NFT (id 1)", async () => {
-            // set reserve
-            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
-
+        beforeEach("Create NFT (id 1)", async () => {
             // create nft 1 with UNI and KNC from DAI (use the base amounts)
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory

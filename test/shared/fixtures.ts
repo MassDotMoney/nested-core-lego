@@ -143,6 +143,11 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
     const nestedRecords = await nestedRecordsFactory.connect(masterDeployer).deploy(maxHoldingsCount);
     await nestedRecords.deployed();
 
+    // Deploy Reserve
+    const nestedReserveFactory = await ethers.getContractFactory("NestedReserve");
+    const nestedReserve = await nestedReserveFactory.connect(masterDeployer).deploy();
+    await nestedReserve.deployed();
+
     // Deploy OperatorResolver
     const operatorResolverFactory = await ethers.getContractFactory("OperatorResolver");
     const operatorResolver = await operatorResolverFactory.connect(masterDeployer).deploy();
@@ -170,23 +175,20 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
         .deploy(
             nestedAsset.address,
             nestedRecords.address,
+            nestedReserve.address,
             feeSplitter.address,
             WETH.address,
             operatorResolver.address,
         );
     await nestedFactory.deployed();
 
-    // Deploy Reserve
-    const nestedReserveFactory = await ethers.getContractFactory("NestedReserve");
-    const nestedReserve = await nestedReserveFactory.connect(masterDeployer).deploy(nestedFactory.address);
-    await nestedReserve.deployed();
-
     // Get the user1 actor
     const user1 = new ActorFixture(wallets as Wallet[], provider).user1();
 
-    // Set factory to asset and records
-    await nestedAsset.connect(masterDeployer).setFactory(nestedFactory.address);
-    await nestedRecords.connect(masterDeployer).setFactory(nestedFactory.address);
+    // Set factory to asset, records and reserve
+    await nestedAsset.connect(masterDeployer).addFactory(nestedFactory.address);
+    await nestedRecords.connect(masterDeployer).addFactory(nestedFactory.address);
+    await nestedReserve.connect(masterDeployer).addFactory(nestedFactory.address);
 
     // Add operators to OperatorResolver
     const zeroExOperatorNameBytes32 = toBytes32("ZeroEx");

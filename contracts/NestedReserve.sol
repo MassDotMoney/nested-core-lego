@@ -2,30 +2,13 @@
 pragma solidity 0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./abstracts/OwnableFactoryHandler.sol";
 
 /// @title Stores underlying assets of NestedNFTs.
 /// @notice The factory itself can only trigger a transfer after verification that the user
 ///         holds funds present in this contract. Only the factory can withdraw assets.
-contract NestedReserve is Ownable {
+contract NestedReserve is OwnableFactoryHandler {
     using SafeERC20 for IERC20;
-
-    /// @dev The current factory address
-    address public factory;
-
-    /// @dev Emitted when the factory address is updated by the owner
-    event FactoryUpdated(address newFactory);
-
-    constructor(address _factory) {
-        require(address(_factory) != address(0), "NRS: INVALID_FACTORY_ADDRESS");
-        factory = _factory;
-    }
-
-    /// @dev Reverts if the caller is not the factory
-    modifier onlyFactory() {
-        require(_msgSender() == factory, "NRS: UNAUTHORIZED");
-        _;
-    }
 
     /// @notice Release funds to a recipient
     /// @param _recipient The receiver
@@ -44,14 +27,6 @@ contract NestedReserve is Ownable {
     /// @param _token The ERC20 to transfer
     /// @param _amount The amount to transfer
     function withdraw(IERC20 _token, uint256 _amount) external onlyFactory {
-        _token.safeTransfer(factory, _amount);
-    }
-
-    /// @notice Update the factory address
-    /// @param _newFactory The new factory address
-    function updateFactory(address _newFactory) external onlyOwner {
-        require(_newFactory != address(0), "NRS: INVALID_ADDRESS");
-        factory = _newFactory;
-        emit FactoryUpdated(_newFactory);
+        _token.safeTransfer(msg.sender, _amount);
     }
 }
