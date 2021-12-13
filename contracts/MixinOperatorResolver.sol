@@ -28,11 +28,13 @@ abstract contract MixinOperatorResolver {
     /// @notice Rebuild the addressCache
     function rebuildCache() public {
         bytes32[] memory requiredAddresses = resolverAddressesRequired();
+        bytes32 name;
+        address destination;
         // The resolver must call this function whenever it updates its state
         for (uint256 i = 0; i < requiredAddresses.length; i++) {
-            bytes32 name = requiredAddresses[i];
+            name = requiredAddresses[i];
             // Note: can only be invoked once the resolver has all the targets needed added
-            address destination = resolver.getAddress(name);
+            destination = resolver.getAddress(name);
             if (destination != address(0)) {
                 addressCache[name] = destination;
             } else {
