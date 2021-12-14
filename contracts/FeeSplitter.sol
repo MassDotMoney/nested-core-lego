@@ -176,14 +176,14 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     }
 
     /// @notice Getter for the total shares held by shareholders.
-    /// @param _token Payment token address, use ETH_ADDR for ETH
+    /// @param _token Payment token address
     /// @return The total shares count
     function totalShares(address _token) external view returns (uint256) {
         return tokenRecords[_token].totalShares;
     }
 
     /// @notice Getter for the total amount of token already released.
-    /// @param _token Payment token address, use ETH_ADDR for ETH
+    /// @param _token Payment token address
     /// @return The total amount release to shareholders
     function totalReleased(address _token) external view returns (uint256) {
         return tokenRecords[_token].totalReleased;
@@ -191,7 +191,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
 
     /// @notice Getter for the amount of shares held by an account.
     /// @param _account Account the shares belong to
-    /// @param _token Payment token address, use ETH_ADDR for ETH
+    /// @param _token Payment token address
     /// @return The shares owned by the account
     function shares(address _account, address _token) external view returns (uint256) {
         return tokenRecords[_token].shares[_account];
@@ -199,7 +199,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
 
     /// @notice Getter for the amount of Ether already released to a shareholders.
     /// @param _account The target account for this request
-    /// @param _token Payment token address, use ETH_ADDR for ETH
+    /// @param _token Payment token address
     /// @return The amount already released to this account
     function released(address _account, address _token) external view returns (uint256) {
         return tokenRecords[_token].released[_account];
