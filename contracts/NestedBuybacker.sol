@@ -87,7 +87,7 @@ contract NestedBuybacker is Ownable {
         address payable _swapTarget,
         IERC20 _sellToken
     ) external onlyOwner {
-        if (feeSplitter.getAmountDue(address(this), _sellToken) > 0) {
+        if (feeSplitter.getAmountDue(address(this), _sellToken) != 0) {
             feeSplitter.releaseToken(_sellToken);
         }
         require(ExchangeHelpers.fillQuote(_sellToken, _swapTarget, _swapCallData), "NB : FAILED_SWAP");

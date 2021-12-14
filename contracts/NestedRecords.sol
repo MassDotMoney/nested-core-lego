@@ -131,7 +131,7 @@ contract NestedRecords is OwnableFactoryHandler {
     /// @notice Sets the maximum number of holdings for an NFT record
     /// @param _maxHoldingsCount The new maximum number of holdings
     function setMaxHoldingsCount(uint256 _maxHoldingsCount) external onlyOwner {
-        require(_maxHoldingsCount > 0, "NRC: INVALID_MAX_HOLDINGS");
+        require(_maxHoldingsCount != 0, "NRC: INVALID_MAX_HOLDINGS");
         maxHoldingsCount = _maxHoldingsCount;
         emit MaxHoldingsChanges(maxHoldingsCount);
     }

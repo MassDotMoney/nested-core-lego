@@ -15,7 +15,7 @@ contract FlatOperator is IFlatOperator, IOperatorSelector {
         address token,
         uint256 amount
     ) external payable override returns (uint256[] memory amounts, address[] memory tokens) {
-        require(amount > 0, "FO: INVALID_AMOUNT");
+        require(amount != 0, "FO: INVALID_AMOUNT");
 
         amounts = new uint256[](2);
         tokens = new address[](2);
