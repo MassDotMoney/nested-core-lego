@@ -14,6 +14,11 @@ contract NestedRecords is OwnableFactoryHandler {
     /// @param timestamp The new lock timestamp of the portfolio
     event LockTimestampIncreased(uint256 nftId, uint256 timestamp);
 
+    /// @dev Emitted when the reserve is updated for a specific portfolio
+    /// @param nftId The NFT ID
+    /// @param newReserve The new reserve address
+    event reserveUpdated(uint256 nftId, address newReserve); 
+
     /// @dev Info about assets stored in reserves
     struct Holding {
         uint256 amount;
@@ -157,6 +162,7 @@ contract NestedRecords is OwnableFactoryHandler {
     /// @param _nextReserve Address for the new reserve
     function setReserve(uint256 _nftId, address _nextReserve) external onlyFactory {
         records[_nftId].reserve = _nextReserve;
+        emit reserveUpdated(_nftId, _nextReserve);
     }
 
     /// @notice Delete from mapping assetTokens
