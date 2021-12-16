@@ -26,7 +26,7 @@ abstract contract MixinOperatorResolver {
     function resolverAddressesRequired() public view virtual returns (bytes32[] memory addresses) {}
 
     /// @notice Rebuild the addressCache
-    function rebuildCache() public {
+    function rebuildCache() external {
         bytes32[] memory requiredAddresses = resolverAddressesRequired();
         bytes32 name;
         address destination;
