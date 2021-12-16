@@ -55,13 +55,7 @@ contract NestedBuybacker is Ownable {
         feeSplitter = FeeSplitter(_feeSplitter);
         nstReserve = _nstReserve;
     }
-
-    /// @notice Claim awarded fees from the FeeSplitter contract
-    /// @param _token Token address for the fees
-    function claimFees(IERC20 _token) public {
-        feeSplitter.releaseToken(_token);
-    }
-
+    
     /// @notice Update the nested reserve address
     /// @param _nstReserve New reserve contract address
     function setNestedReserve(address _nstReserve) external onlyOwner {
@@ -94,7 +88,7 @@ contract NestedBuybacker is Ownable {
         IERC20 _sellToken
     ) external onlyOwner {
         if (feeSplitter.getAmountDue(address(this), _sellToken) > 0) {
-            claimFees(_sellToken);
+            feeSplitter.releaseToken(_sellToken);
         }
         require(ExchangeHelpers.fillQuote(_sellToken, _swapTarget, _swapCallData), "NB : FAILED_SWAP");
         trigger();
