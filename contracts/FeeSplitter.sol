@@ -251,10 +251,10 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     }
 
     function _releaseToken(address _account, IERC20 _token) private returns (uint256) {
-        TokenRecords storage _tokenRecords = tokenRecords[address(_token)];
         uint256 amountToRelease = getAmountDue(_account, _token);
         require(amountToRelease != 0, "FS: NO_PAYMENT_DUE");
 
+        TokenRecords storage _tokenRecords = tokenRecords[address(_token)];
         _tokenRecords.released[_account] += amountToRelease;
         _tokenRecords.totalReleased += amountToRelease;
 
