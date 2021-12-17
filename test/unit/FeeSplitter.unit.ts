@@ -138,6 +138,17 @@ describe("Fee Splitter", () => {
             expect(await ERC20Mocks[0].balanceOf(bob.address)).to.equal(ethers.utils.parseEther("1.125"));
             expect(await ERC20Mocks[1].balanceOf(bob.address)).to.equal(ethers.utils.parseEther("1.125"));
         });
+
+        it("emits an event for Royalties", async () => {
+            const amount = ethers.utils.parseEther("3")
+            const token = ERC20Mocks[0]
+            await token.approve(feeSplitter.address, amount)
+            expect(
+                await feeSplitter.sendFeesWithRoyalties(wallet3.address, token.address, amount)
+            ).to
+            .emit(feeSplitter, "RoyaltiesReceived")
+            .withArgs(wallet3.address, token.address, ethers.utils.parseUnits('0.6'));
+        })
     });
 
     describe("Changing weights", () => {

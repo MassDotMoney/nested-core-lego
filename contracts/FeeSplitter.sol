@@ -28,6 +28,12 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// @param amount The amount received
     event PaymentReceived(address from, address token, uint256 amount);
 
+    /// @dev Emitted when royalties are claim released
+    /// @param to The address claiming the royalties
+    /// @param token The token received
+    /// @param value The amount received
+    event RoyaltiesReceived(address to, address token, uint256 value);
+
     /// @dev Represent a shareholder
     /// @param account Shareholders address that can receive income
     /// @param weight Determines share allocation
@@ -156,8 +162,11 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     ) external nonReentrant {
         require(_royaltiesTarget != address(0), "FeeSplitter: INVALID_ROYALTIES_TARGET_ADDRESS");
 
+        uint256 royaltiesAmount = _computeShareCount(_amount, royaltiesWeight, totalWeights);
+
         _sendFees(_token, _amount, totalWeights);
-        _addShares(_royaltiesTarget, _computeShareCount(_amount, royaltiesWeight, totalWeights), address(_token));
+        _addShares(_royaltiesTarget, royaltiesAmount, address(_token));
+        emit RoyaltiesReceived(_royaltiesTarget, address(_token), royaltiesAmount);
     }
 
     /// @notice Updates weight for a shareholder
