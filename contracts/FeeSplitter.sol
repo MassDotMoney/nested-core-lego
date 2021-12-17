@@ -129,13 +129,15 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// @param _tokens ERC20 tokens to release
     function releaseTokens(IERC20[] memory _tokens) external {
         for (uint256 i = 0; i < _tokens.length; i++) {
-            releaseToken(_tokens[i]);
+            if (address(_tokens[i]) == weth) {
+                releaseETH();
+            } else releaseToken(_tokens[i]);
         }
     }
 
     /// @dev Triggers a transfer to `msg.sender` of the amount of Ether they are owed, according to
     /// the amount of shares they own and their previous withdrawals.
-    function releaseETH() external nonReentrant {
+    function releaseETH() public nonReentrant {
         uint256 amount = _releaseToken(_msgSender(), IERC20(weth));
         IWETH(weth).withdraw(amount);
         (bool success, ) = _msgSender().call{ value: amount }("");
