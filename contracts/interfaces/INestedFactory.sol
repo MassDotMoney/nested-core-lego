@@ -24,10 +24,6 @@ interface INestedFactory {
     /// @param nftId The NFT token Id
     event NftUpdated(uint256 indexed nftId);
 
-    /// @dev Emitted when a NFT (portfolio) is burned
-    /// @param nftId The burned NFT token iI
-    event NftBurned(uint256 indexed nftId);
-
     /// @dev Represent an order made to the factory when creating/editing an NFT
     /// @param operator The bytes32 name of the Operator
     /// @param token The expected token address in output/input
