@@ -182,14 +182,6 @@ contract NestedRecords is OwnableFactoryHandler {
         require(holding.isActive, "NRC: HOLDING_INACTIVE");
 
         delete records[_nftId].holdings[token];
-        freeToken(_nftId, _tokenIndex);
-    }
-
-    /// @dev Remove a token from the array of tokens in assetTokens. Does not remove holding record
-    /// @param _nftId ID for the NFT
-    /// @param _tokenIndex Token index to delete in the array of tokens
-    function freeToken(uint256 _nftId, uint256 _tokenIndex) private {
-        address[] storage tokens = records[_nftId].tokens;
         tokens[_tokenIndex] = tokens[tokens.length - 1];
         tokens.pop();
     }
