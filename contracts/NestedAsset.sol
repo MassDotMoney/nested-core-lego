@@ -50,27 +50,12 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
         return address(0);
     }
 
-    /// @notice Mints an ERC721 token for the user and stores the original asset used to create the new asset if any
+    /// @notice Mints an ERC721 token without setting the tokenUri.
     /// @param _owner The account address that signed the transaction
     /// @param _replicatedTokenId The token id of the replicated asset, 0 if no replication
     /// @return The minted token's id
-    function mint(address _owner, uint256 _replicatedTokenId) public onlyFactory returns (uint256) {
-        _tokenIds.increment();
-
-        uint256 tokenId = _tokenIds.current();
-        _safeMint(_owner, tokenId);
-
-        // Stores the first asset of the replication chain as the original
-        if (_replicatedTokenId == 0) {
-            return tokenId;
-        }
-
-        require(_exists(_replicatedTokenId) && tokenId != _replicatedTokenId, "NA: INVALID_REPLICATED_TOKEN_ID");
-
-        uint256 originalTokenId = originalAsset[_replicatedTokenId];
-        originalAsset[tokenId] = originalTokenId != 0 ? originalTokenId : _replicatedTokenId;
-
-        return tokenId;
+    function mint(address _owner, uint256 _replicatedTokenId) external onlyFactory returns (uint256) {
+        return _mintFromReplicated(_owner, _replicatedTokenId);
     }
 
     /// @notice Mints an ERC721 token and sets the tokenUri.
@@ -84,7 +69,7 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
         string memory _metadataURI,
         uint256 _replicatedTokenId
     ) external returns (uint256) {
-        uint256 tokenId = mint(_owner, _replicatedTokenId);
+        uint256 tokenId = _mintFromReplicated(_owner, _replicatedTokenId);
         _setTokenURI(tokenId, _metadataURI);
         return tokenId;
     }
@@ -119,5 +104,28 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
     /// @param _metadataURI The metadata URI string
     function _setTokenURI(uint256 _tokenId, string memory _metadataURI) internal {
         _tokenURIs[_tokenId] = _metadataURI;
+    }
+
+    /// @dev Mints an ERC721 token for the user and stores the original asset used to create the new asset if any
+    /// @param _owner The account address that signed the transaction
+    /// @param _replicatedTokenId The token id of the replicated asset, 0 if no replication
+    /// @return The minted token's id
+    function _mintFromReplicated(address _owner, uint256 _replicatedTokenId) internal returns (uint256) {
+        _tokenIds.increment();
+
+        uint256 tokenId = _tokenIds.current();
+        _safeMint(_owner, tokenId);
+
+        // Stores the first asset of the replication chain as the original
+        if (_replicatedTokenId == 0) {
+            return tokenId;
+        }
+
+        require(_exists(_replicatedTokenId) && tokenId != _replicatedTokenId, "NA: INVALID_REPLICATED_TOKEN_ID");
+
+        uint256 originalTokenId = originalAsset[_replicatedTokenId];
+        originalAsset[tokenId] = originalTokenId != 0 ? originalTokenId : _replicatedTokenId;
+
+        return tokenId;
     }
 }
