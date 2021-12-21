@@ -102,7 +102,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// @param _weights Weight for each shareholder. Determines part of the payment allocated to them
     function setShareholders(address[] memory _accounts, uint256[] memory _weights) public onlyOwner {
         delete shareholders;
-        require(_accounts.length > 0 && _accounts.length == _weights.length, "FS: INPUTS_LENGTH_MUST_MATCH");
+        require(_accounts.length != 0 && _accounts.length == _weights.length, "FS: INPUTS_LENGTH_MUST_MATCH");
         totalWeights = royaltiesWeight;
 
         for (uint256 i = 0; i < _accounts.length; i++) {
@@ -262,10 +262,11 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     }
 
     function _addShareholder(address _account, uint256 _weight) private {
-        require(_weight > 0, "FS: ZERO_WEIGHT");
+        require(_weight != 0, "FS: ZERO_WEIGHT");
         for (uint256 i = 0; i < shareholders.length; i++) {
             require(shareholders[i].account != _account, "FS: ALREADY_SHAREHOLDER");
         }
+
         shareholders.push(Shareholder(_account, _weight));
         totalWeights += _weight;
     }
