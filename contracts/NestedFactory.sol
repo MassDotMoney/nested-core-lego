@@ -454,6 +454,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             weth.deposit{ value: msg.value }();
             _inputToken = IERC20(address(weth));
         } else {
+            require(msg.value == 0, "NF: UNSUPPORTED_ETH_TRANSFER");
             _inputToken.safeTransferFrom(_msgSender(), address(this), _inputTokenAmount);
         }
         tokenUsed = _inputToken;
