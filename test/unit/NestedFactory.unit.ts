@@ -309,6 +309,24 @@ describe("NestedFactory", () => {
             ).to.be.reverted;
         });
 
+        it("reverts if ETH sent for non-ETH transfer", async () => {
+            // All the amounts for this test
+            const uniBought = appendDecimals(6);
+            const kncBought = appendDecimals(4);
+            const totalToBought = uniBought.add(kncBought);
+            const expectedFee = getExpectedFees(totalToBought);
+            const totalToSpend = totalToBought.add(expectedFee);
+
+            // Orders for UNI and KNC
+            let orders: OrderStruct[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
+
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .create(0, context.mockDAI.address, totalToSpend, orders, {value: 1}),
+            ).to.be.revertedWith("NF: UNSUPPORTED_ETH_TRANSFER");
+        });
+
         it("Creates NFT from DAI with KNI and UNI inside (ZeroExOperator) with right amounts", async () => {
             // All the amounts for this test
             const uniBought = appendDecimals(6);
