@@ -86,6 +86,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             require(operatorsCache[i] != operator, "NF: EXISTENT_OPERATOR");
         }
         operators.push(operator);
+        emit OperatorAdded(operator);
     }
 
     /// @inheritdoc INestedFactory
@@ -96,6 +97,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         }
         require(i != 0, "NF: NON_EXISTENT_OPERATOR");
         delete operators[i];
+        emit OperatorRemoved(operator);
     }
 
     /// @inheritdoc INestedFactory
@@ -262,7 +264,9 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
 
     /// @inheritdoc INestedFactory
     function unlockTokens(IERC20 _token) external override onlyOwner {
-        _token.safeTransfer(owner(), _token.balanceOf(address(this)));
+        uint256 amount = _token.balanceOf(address(this));
+        _token.safeTransfer(owner(), amount);
+        emit TokensUnlocked(address(_token), amount);
     }
 
     /// @dev For every orders, call the operator with the calldata

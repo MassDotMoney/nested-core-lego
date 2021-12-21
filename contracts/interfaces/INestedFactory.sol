@@ -28,6 +28,19 @@ interface INestedFactory {
     /// @param nftId The burned NFT token iI
     event NftBurned(uint256 indexed nftId);
 
+    /// @dev Emitted when a new operator is added
+    /// @param newOperator The new operator bytes name
+    event OperatorAdded(bytes32 newOperator);
+
+    /// @dev Emitted when an operator is removed
+    /// @param oldOperator The old operator bytes name
+    event OperatorRemoved(bytes32 oldOperator);
+
+    /// @dev Emitted when tokens are unlocked (sent to the owner)
+    /// @param token The unlocked token address
+    /// @param amount The unlocked amount
+    event TokensUnlocked(address token, uint256 amount);
+
     /// @dev Represent an order made to the factory when creating/editing an NFT
     /// @param operator The bytes32 name of the Operator
     /// @param token The expected token address in output/input

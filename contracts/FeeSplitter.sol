@@ -28,6 +28,20 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// @param amount The amount received
     event PaymentReceived(address from, address token, uint256 amount);
 
+    /// @dev Emitted when the royalties weight is updated
+    /// @param weigth The new weigth
+    event RoyaltiesWeightUpdated(uint256 weigth);
+
+    /// @dev Emitted when a new shareholder is added
+    /// @param account The new shareholder account
+    /// @param weight The shareholder weigth
+    event ShareholdersAdded(address account, uint256 weight);
+
+    /// @dev Emitted when a shareholder weight is updated
+    /// @param account The shareholder address
+    /// @param weight The new weight
+    event ShareholderUpdated(address account, uint256 weight);
+
     /// @dev Represent a shareholder
     /// @param account Shareholders address that can receive income
     /// @param weight Determines share allocation
@@ -95,6 +109,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         require(_weight != 0, "FS: WEIGHT_ZERO");
         totalWeights = totalWeights + _weight - royaltiesWeight;
         royaltiesWeight = _weight;
+        emit RoyaltiesWeightUpdated(_weight);
     }
 
     /// @notice Sets a new list of shareholders
@@ -173,6 +188,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         totalWeights = totalWeights + _weight - shareholders[_accountIndex].weight;
         require(totalWeights != 0, "FS: TOTAL_WEIGHTS_ZERO");
         shareholders[_accountIndex].weight = _weight;
+        emit ShareholderUpdated(shareholders[_accountIndex].account, _weight);
     }
 
     /// @notice Getter for the total shares held by shareholders.
@@ -269,6 +285,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
 
         shareholders.push(Shareholder(_account, _weight));
         totalWeights += _weight;
+        emit ShareholdersAdded(_account, _weight);
     }
 
     function _computeShareCount(
