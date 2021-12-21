@@ -81,6 +81,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
 
     /// @inheritdoc INestedFactory
     function addOperator(bytes32 operator) external override onlyOwner {
+        require(operator != bytes32(""), "NF: INVALID_OPERATOR_NAME");
         bytes32[] memory operatorsCache = operators;
         for (uint256 i = 0; i < operatorsCache.length; i++) {
             require(operatorsCache[i] != operator, "NF: EXISTENT_OPERATOR");

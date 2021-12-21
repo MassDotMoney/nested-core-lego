@@ -88,6 +88,12 @@ describe("NestedFactory", () => {
             ).to.be.revertedWith("NF: EXISTENT_OPERATOR");
         });
 
+        it("cant add empty operator name", async () => {
+            await expect(
+                context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("")),
+            ).to.be.revertedWith("NF: INVALID_OPERATOR_NAME");
+        });
+
         it("add a new operator", async () => {
             // Add the operator named "test"
             await context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("test"));
