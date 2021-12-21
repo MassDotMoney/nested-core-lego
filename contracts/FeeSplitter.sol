@@ -263,6 +263,9 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
 
     function _addShareholder(address _account, uint256 _weight) private {
         require(_weight > 0, "FS: ZERO_WEIGHT");
+        for (uint256 i = 0; i < shareholders.length; i++) {
+            require(shareholders[i].account != _account, "FS: ALREADY_SHAREHOLDER");
+        }
         shareholders.push(Shareholder(_account, _weight));
         totalWeights += _weight;
     }
