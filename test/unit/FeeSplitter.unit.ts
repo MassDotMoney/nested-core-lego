@@ -60,6 +60,12 @@ describe("Fee Splitter", () => {
         );
     });
 
+    it("should revert if shareholder already exists", async () => {
+        await expect(
+            feeSplitter.setShareholders([alice.address, bob.address, alice.address], [100, 100, 100]),
+        ).to.be.revertedWith("FS: ALREADY_SHAREHOLDER");
+    });
+
     it("should fail when sending ETH to FeeSplitter", async () => {
         await expect(
             alice.sendTransaction({
