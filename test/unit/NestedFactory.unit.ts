@@ -376,10 +376,8 @@ describe("NestedFactory", () => {
 
             // Must have the right amount in the holdings
             const holdingsUNI = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
-            expect(holdingsUNI.token).to.be.equal(context.mockUNI.address);
             expect(holdingsUNI.amount).to.be.equal(uniBought);
             const holdingsKNC = await context.nestedRecords.getAssetHolding(1, context.mockKNC.address);
-            expect(holdingsKNC.token).to.be.equal(context.mockKNC.address);
             expect(holdingsKNC.amount).to.be.equal(kncBought);
         });
 
@@ -733,10 +731,8 @@ describe("NestedFactory", () => {
 
             // Must have the right amount in the holdings
             const holdingsUNI = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
-            expect(holdingsUNI.token).to.be.equal(context.mockUNI.address);
             expect(holdingsUNI.amount).to.be.equal(uniBought.add(baseUniBought));
             const holdingsKNC = await context.nestedRecords.getAssetHolding(1, context.mockKNC.address);
-            expect(holdingsKNC.token).to.be.equal(context.mockKNC.address);
             expect(holdingsKNC.amount).to.be.equal(kncBought.add(baseKncBought));
         });
 
@@ -828,13 +824,10 @@ describe("NestedFactory", () => {
 
             // Must have the right amount in the holdings
             const holdingsUNI = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
-            expect(holdingsUNI.token).to.be.equal(context.mockUNI.address);
             expect(holdingsUNI.amount).to.be.equal(baseUniBought);
             const holdingsKNC = await context.nestedRecords.getAssetHolding(1, context.mockKNC.address);
-            expect(holdingsKNC.token).to.be.equal(context.mockKNC.address);
             expect(holdingsKNC.amount).to.be.equal(baseKncBought);
             const holdingsDAI = await context.nestedRecords.getAssetHolding(1, context.mockDAI.address);
-            expect(holdingsDAI.token).to.be.equal(context.mockDAI.address);
             expect(holdingsDAI.amount).to.be.equal(daiBought);
         });
     });
@@ -1024,7 +1017,6 @@ describe("NestedFactory", () => {
 
             // Must have the right amount in the holdings
             const holdingsUNI = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
-            expect(holdingsUNI.token).to.be.equal(context.mockUNI.address);
             expect(holdingsUNI.amount).to.be.equal(uniBought.add(baseUniBought));
         });
 
@@ -1100,13 +1092,10 @@ describe("NestedFactory", () => {
 
             // Must have the right amount in the holdings
             const holdingsUNI = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
-            expect(holdingsUNI.token).to.be.equal(context.mockUNI.address);
             expect(holdingsUNI.amount).to.be.equal(baseUniBought.sub(totalToSpend));
             const holdingsKNC = await context.nestedRecords.getAssetHolding(1, context.mockKNC.address);
-            expect(holdingsKNC.token).to.be.equal(context.mockKNC.address);
             expect(holdingsKNC.amount).to.be.equal(baseKncBought);
             const holdingsUSDC = await context.nestedRecords.getAssetHolding(1, context.mockUSDC.address);
-            expect(holdingsUSDC.token).to.be.equal(context.mockUSDC.address);
             expect(holdingsUSDC.amount).to.be.equal(usdcBought);
         });
     });
@@ -1292,12 +1281,10 @@ describe("NestedFactory", () => {
 
             // Must have the right amount in the holdings
             const holdingsUNI = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
-            expect(holdingsUNI.token).to.be.equal(context.mockUNI.address);
             expect(holdingsUNI.amount).to.be.equal(baseUniBought.sub(uniSold));
 
             // Must have the right amount in the holdings
             const holdingsUSDC = await context.nestedRecords.getAssetHolding(1, context.mockUSDC.address);
-            expect(holdingsUSDC.token).to.be.equal(context.mockUSDC.address);
             expect(holdingsUSDC.amount).to.be.equal(usdcBought.sub(expectedUsdcFees));
         });
 
@@ -1377,11 +1364,9 @@ describe("NestedFactory", () => {
 
             // Must have the right amount in the holdings
             const holdingsUNI = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
-            expect(holdingsUNI.token).to.be.equal(context.mockUNI.address);
             expect(holdingsUNI.amount).to.be.equal(baseUniBought.sub(uniSold));
 
             const holdingsUSDC = await context.nestedRecords.getAssetHolding(1, context.mockUSDC.address);
-            expect(holdingsUSDC.token).to.be.equal(context.mockUSDC.address);
             expect(holdingsUSDC.amount).to.be.equal(usdcBoughtOrder.sub(orderExpectedFee));
         });
     });
@@ -1566,7 +1551,6 @@ describe("NestedFactory", () => {
 
             // Must have the right amount in the holdings
             const holdingsUNI = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
-            expect(holdingsUNI.token).to.be.equal(context.mockUNI.address);
             expect(holdingsUNI.amount).to.be.equal(baseUniBought.sub(uniSold));
 
             expect(await context.mockUSDC.balanceOf(context.user1.address)).to.be.equal(
@@ -1647,7 +1631,6 @@ describe("NestedFactory", () => {
 
             // Must have the right amount in the holdings
             const holdingsUNI = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
-            expect(holdingsUNI.token).to.be.equal(context.mockUNI.address);
             expect(holdingsUNI.amount).to.be.equal(baseUniBought.sub(uniSold));
         });
     });

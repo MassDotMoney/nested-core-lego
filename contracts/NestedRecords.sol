@@ -22,7 +22,6 @@ contract NestedRecords is OwnableFactoryHandler {
     /// @dev Info about assets stored in reserves
     struct Holding {
         uint256 amount;
-        address token;
         bool isActive;
     }
 
@@ -105,7 +104,7 @@ contract NestedRecords is OwnableFactoryHandler {
             "NRC: INVALID_RESERVE"
         );
 
-        records[_nftId].holdings[_token] = Holding({ token: _token, amount: _amount, isActive: true });
+        records[_nftId].holdings[_token] = Holding({ amount: _amount, isActive: true });
         records[_nftId].tokens.push(_token);
         records[_nftId].reserve = _reserve;
     }

@@ -213,7 +213,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
 
         for (uint256 i = 0; i < tokensLength; i++) {
             NestedRecords.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
-            reserve.withdraw(IERC20(holding.token), holding.amount);
+            reserve.withdraw(IERC20(tokens[i]), holding.amount);
 
             _safeSubmitOrder(tokens[i], address(_buyToken), holding.amount, _nftId, _orders[i]);
             nestedRecords.freeHolding(_nftId, tokens[i]);
@@ -247,12 +247,14 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         require(assetTokensLength > 1, "NF: UNALLOWED_EMPTY_PORTFOLIO");
         require(nestedRecords.getAssetReserve(_nftId) == address(reserve), "NF: RESERVE_MISMATCH");
 
+        address token = nestedRecords.getAssetTokens(_nftId)[_tokenIndex];
+
         NestedRecords.Holding memory holding = nestedRecords.getAssetHolding(
             _nftId,
-            nestedRecords.getAssetTokens(_nftId)[_tokenIndex]
+            token
         );
-        reserve.withdraw(IERC20(holding.token), holding.amount);
-        _safeTransferWithFees(IERC20(holding.token), holding.amount, _msgSender(), _nftId);
+        reserve.withdraw(IERC20(token), holding.amount);
+        _safeTransferWithFees(IERC20(token), holding.amount, _msgSender(), _nftId);
 
         nestedRecords.deleteAsset(_nftId, _tokenIndex);
 
@@ -453,7 +455,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             require(holding.amount >= _inputTokenAmount, "NF: INSUFFICIENT_AMOUNT_IN");
 
             // Get input from reserve
-            reserve.withdraw(IERC20(holding.token), _inputTokenAmount);
+            reserve.withdraw(IERC20(_inputToken), _inputTokenAmount);
         } else if (address(_inputToken) == ETH) {
             require(msg.value == _inputTokenAmount, "NF: INVALID_AMOUNT_IN");
             weth.deposit{ value: msg.value }();
