@@ -94,7 +94,7 @@ describe("Fee Splitter", () => {
     describe("ERC20 tokens fees", () => {
         it("should revert because no payment is due", async () => {
             const token = ERC20Mocks[0];
-            const release = () => feeSplitter.connect(bob).releaseToken(token.address);
+            const release = () => feeSplitter.connect(bob).releaseTokens([token.address]);
             await expect(release()).to.be.revertedWith("FS: NO_PAYMENT_DUE");
         });
 
@@ -107,10 +107,10 @@ describe("Fee Splitter", () => {
             await feeSplitter.sendFeesWithRoyalties(wallet3.address, ERC20Mocks[0].address, amount2);
 
             const token = ERC20Mocks[0];
-            await feeSplitter.connect(bob).releaseToken(token.address);
+            await feeSplitter.connect(bob).releaseTokens([token.address]);
             const balanceBob = await token.balanceOf(bob.address);
             const balanceAliceBefore = await token.balanceOf(alice.address);
-            await feeSplitter.releaseToken(token.address);
+            await feeSplitter.releaseTokens([token.address]);
             const balanceAliceAfter = await token.balanceOf(alice.address);
             // Why 4.375? Alice has 5000 shares, we had two payments of 3 (no royalties) and 5 (has royalties). 0.625*3+0.5*5=4.375
             expect(balanceAliceAfter.sub(balanceAliceBefore)).to.equal(ethers.utils.parseEther("4.375"));
@@ -124,7 +124,7 @@ describe("Fee Splitter", () => {
             await token.approve(feeSplitter.address, amount);
             await feeSplitter.sendFeesWithRoyalties(wallet3.address, token.address, amount);
 
-            await feeSplitter.connect(wallet3).releaseToken(token.address);
+            await feeSplitter.connect(wallet3).releaseTokens([token.address]);
             const balanceWallet3 = await token.balanceOf(wallet3.address);
             // wallet3 can claim 20% of the fees. 6 * 0.2
             expect(balanceWallet3).to.equal(ethers.utils.parseEther("1.2"));
@@ -167,7 +167,7 @@ describe("Fee Splitter", () => {
             await clearBalance(bob, ERC20Mocks[0]);
             await clearBalance(wallet3, ERC20Mocks[0]);
 
-            const releaseBob = () => feeSplitter.connect(bob).releaseToken(ERC20Mocks[0].address);
+            const releaseBob = () => feeSplitter.connect(bob).releaseTokens([ERC20Mocks[0].address]);
 
             await sendFees("5", wallet3.address);
             await sendFees("1");
