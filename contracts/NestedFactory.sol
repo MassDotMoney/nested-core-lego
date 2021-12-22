@@ -454,7 +454,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             // Get input from reserve
             reserve.withdraw(IERC20(holding.token), _inputTokenAmount);
         } else if (address(_inputToken) == ETH) {
-            require(msg.value == _inputTokenAmount, "NF: INSUFFICIENT_AMOUNT_IN");
+            require(msg.value == _inputTokenAmount, "NF: INVALID_AMOUNT_IN");
             weth.deposit{ value: msg.value }();
             _inputToken = IERC20(address(weth));
         } else {
