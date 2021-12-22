@@ -77,6 +77,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         uint256 _royaltiesWeight,
         address _weth
     ) {
+        require(_weth != address(0), "FS: INVALID_ADDRESS");
         // Initial shareholders addresses and weights
         setShareholders(_accounts, _weights);
         setRoyaltiesWeight(_royaltiesWeight);
@@ -279,6 +280,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
 
     function _addShareholder(address _account, uint256 _weight) private {
         require(_weight != 0, "FS: ZERO_WEIGHT");
+        require(_account != address(0), "FS: INVALID_ADDRESS");
         for (uint256 i = 0; i < shareholders.length; i++) {
             require(shareholders[i].account != _account, "FS: ALREADY_SHAREHOLDER");
         }

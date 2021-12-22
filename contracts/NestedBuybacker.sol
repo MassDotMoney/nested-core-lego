@@ -59,6 +59,7 @@ contract NestedBuybacker is Ownable {
     /// @notice Update the nested reserve address
     /// @param _nstReserve New reserve contract address
     function setNestedReserve(address _nstReserve) external onlyOwner {
+        require(_nstReserve != address(0), "NB: INVALID_ADDRESS");
         nstReserve = _nstReserve;
         emit ReserveUpdated(nstReserve);
     }
@@ -66,6 +67,7 @@ contract NestedBuybacker is Ownable {
     /// @notice Update the fee splitter address
     /// @param _feeSplitter The new fee splitter contract address
     function setFeeSplitter(FeeSplitter _feeSplitter) external onlyOwner {
+        require(address(_feeSplitter) != address(0), "NB: INVALID_ADDRESS");
         feeSplitter = _feeSplitter;
         emit FeeSplitterUpdated(feeSplitter);
     }
