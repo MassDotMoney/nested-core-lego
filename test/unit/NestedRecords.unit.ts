@@ -42,7 +42,7 @@ describe("NestedRecords", () => {
         for (let i = 0; i < maxHoldingsCount.toNumber(); i++) {
             await nestedRecords.store(0, signers[i + 3].address, 20, alice.address);
         }
-        await expect(nestedRecords.store(0, bob.address, 20, alice.address)).to.be.revertedWith("NRC: TOO_MANY_ORDERS");
+        await expect(nestedRecords.store(0, bob.address, 20, alice.address)).to.be.revertedWith("NRC: TOO_MANY_TOKENS");
     });
 
     describe("#setMaxHoldingsCount", () => {
