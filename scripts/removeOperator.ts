@@ -19,6 +19,7 @@ async function main(): Promise<void> {
         .importOperators(
             [operatorNameBytes32],
             [hre.ethers.constants.AddressZero],
+            []
         );
     await nestedFactory.rebuildCache();
     await nestedFactory.removeOperator(operatorNameBytes32);
