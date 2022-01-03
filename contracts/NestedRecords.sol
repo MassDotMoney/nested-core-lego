@@ -17,17 +17,11 @@ contract NestedRecords is OwnableFactoryHandler {
     /// @dev Emitted when the reserve is updated for a specific portfolio
     /// @param nftId The NFT ID
     /// @param newReserve The new reserve address
-    event reserveUpdated(uint256 nftId, address newReserve); 
-
-    /// @dev Info about assets stored in reserves
-    struct Holding {
-        uint256 amount;
-        bool isActive;
-    }
+    event reserveUpdated(uint256 nftId, address newReserve);
 
     /// @dev Store user asset informations
     struct NftRecord {
-        mapping(address => Holding) holdings;
+        mapping(address => uint256) holdings;
         address[] tokens;
         address reserve;
         uint256 lockTimestamp;
@@ -64,7 +58,7 @@ contract NestedRecords is OwnableFactoryHandler {
                 tokenIndex++;
             }
         } else {
-            records[_nftId].holdings[_token].amount = _amount;
+            records[_nftId].holdings[_token] = _amount;
         }
     }
 
@@ -92,10 +86,10 @@ contract NestedRecords is OwnableFactoryHandler {
         uint256 _amount,
         address _reserve
     ) external onlyFactory {
-        Holding memory holding = records[_nftId].holdings[_token];
-        if (holding.isActive) {
+        uint256 amount = records[_nftId].holdings[_token];
+        if (amount != 0) {
             require(records[_nftId].reserve == _reserve, "NRC: RESERVE_MISMATCH");
-            updateHoldingAmount(_nftId, _token, holding.amount + _amount);
+            updateHoldingAmount(_nftId, _token, amount + _amount);
             return;
         }
         require(records[_nftId].tokens.length < maxHoldingsCount, "NRC: TOO_MANY_TOKENS");
@@ -104,15 +98,15 @@ contract NestedRecords is OwnableFactoryHandler {
             "NRC: INVALID_RESERVE"
         );
 
-        records[_nftId].holdings[_token] = Holding({ amount: _amount, isActive: true });
+        records[_nftId].holdings[_token] = _amount;
         records[_nftId].tokens.push(_token);
         records[_nftId].reserve = _reserve;
     }
 
-    /// @notice Get holding object for this NFT ID
+    /// @notice Get holding amount for this NFT ID
     /// @param _nftId The id of the NFT
     /// @param _token The address of the token
-    function getAssetHolding(uint256 _nftId, address _token) external view returns (Holding memory) {
+    function getAssetHolding(uint256 _nftId, address _token) external view returns (uint256) {
         return records[_nftId].holdings[_token];
     }
 
@@ -176,9 +170,8 @@ contract NestedRecords is OwnableFactoryHandler {
     function deleteAsset(uint256 _nftId, uint256 _tokenIndex) public onlyFactory {
         address[] storage tokens = records[_nftId].tokens;
         address token = tokens[_tokenIndex];
-        Holding memory holding = records[_nftId].holdings[token];
 
-        require(holding.isActive, "NRC: HOLDING_INACTIVE");
+        require(records[_nftId].holdings[token] != 0, "NRC: HOLDING_INACTIVE");
 
         delete records[_nftId].holdings[token];
         tokens[_tokenIndex] = tokens[tokens.length - 1];

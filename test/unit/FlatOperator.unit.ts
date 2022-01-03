@@ -118,8 +118,8 @@ describe("FlatOperator", () => {
         );
 
         // Must have the right amount in the holdings
-        const holdingsUNI = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
-        expect(holdingsUNI.amount).to.be.equal(uniBought);
+        const holdingsUNIAmount = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
+        expect(holdingsUNIAmount).to.be.equal(uniBought);
     });
 
     it("remove token from portfolio when destroy()", async () => {

@@ -212,10 +212,10 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         uint256 buyTokenInitialBalance = _buyToken.balanceOf(address(this));
 
         for (uint256 i = 0; i < tokensLength; i++) {
-            NestedRecords.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
-            reserve.withdraw(IERC20(tokens[i]), holding.amount);
+            uint256 amount = nestedRecords.getAssetHolding(_nftId, tokens[i]);
+            reserve.withdraw(IERC20(tokens[i]), amount);
 
-            _safeSubmitOrder(tokens[i], address(_buyToken), holding.amount, _nftId, _orders[i]);
+            _safeSubmitOrder(tokens[i], address(_buyToken), amount, _nftId, _orders[i]);
             nestedRecords.freeHolding(_nftId, tokens[i]);
         }
 
@@ -249,12 +249,9 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
 
         address token = nestedRecords.getAssetTokens(_nftId)[_tokenIndex];
 
-        NestedRecords.Holding memory holding = nestedRecords.getAssetHolding(
-            _nftId,
-            token
-        );
-        reserve.withdraw(IERC20(token), holding.amount);
-        _safeTransferWithFees(IERC20(token), holding.amount, _msgSender(), _nftId);
+        uint256 amount = nestedRecords.getAssetHolding(_nftId, token);
+        reserve.withdraw(IERC20(token), amount);
+        _safeTransferWithFees(IERC20(token), amount, _msgSender(), _nftId);
 
         nestedRecords.deleteAsset(_nftId, _tokenIndex);
 
@@ -451,8 +448,10 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         bool _fromReserve
     ) private returns (IERC20 tokenUsed) {
         if (_fromReserve) {
-            NestedRecords.Holding memory holding = nestedRecords.getAssetHolding(_nftId, address(_inputToken));
-            require(holding.amount >= _inputTokenAmount, "NF: INSUFFICIENT_AMOUNT_IN");
+            require(
+                nestedRecords.getAssetHolding(_nftId, address(_inputToken)) >= _inputTokenAmount,
+                "NF: INSUFFICIENT_AMOUNT_IN"
+            );
 
             // Get input from reserve
             reserve.withdraw(IERC20(_inputToken), _inputTokenAmount);
@@ -509,8 +508,11 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         address _inputToken,
         uint256 _amount
     ) private {
-        NestedRecords.Holding memory holding = nestedRecords.getAssetHolding(_nftId, _inputToken);
-        nestedRecords.updateHoldingAmount(_nftId, _inputToken, holding.amount - _amount);
+        nestedRecords.updateHoldingAmount(
+            _nftId,
+            _inputToken,
+            nestedRecords.getAssetHolding(_nftId, _inputToken) - _amount
+        );
     }
 
     /// @dev Transfer a token amount from the factory to the recipient.
