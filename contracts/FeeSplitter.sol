@@ -126,20 +126,13 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         }
     }
 
-    /// @notice Triggers a transfer to `msg.sender` of the amount of token they are owed, according to
-    /// the amount of shares they own and their previous withdrawals.
-    /// @param _token Payment token address
-    function releaseToken(IERC20 _token) public nonReentrant {
-        uint256 amount = _releaseToken(_msgSender(), _token);
-        _token.safeTransfer(_msgSender(), amount);
-        emit PaymentReleased(_msgSender(), address(_token), amount);
-    }
-
     /// @notice Call releaseToken() for multiple tokens
     /// @param _tokens ERC20 tokens to release
-    function releaseTokens(IERC20[] calldata _tokens) external {
+    function releaseTokens(IERC20[] calldata _tokens) external nonReentrant {
         for (uint256 i = 0; i < _tokens.length; i++) {
-            releaseToken(_tokens[i]);
+            uint256 amount = _releaseToken(_msgSender(), _tokens[i]);
+            _tokens[i].safeTransfer(_msgSender(), amount);
+            emit PaymentReleased(_msgSender(), address(_tokens[i]), amount);
         }
     }
 
