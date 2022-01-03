@@ -99,7 +99,7 @@ contract NestedRecords is OwnableFactoryHandler {
             updateHoldingAmount(_nftId, _token, holding.amount + _amount);
             return;
         }
-        require(records[_nftId].tokens.length < maxHoldingsCount, "NRC: TOO_MANY_ORDERS");
+        require(records[_nftId].tokens.length < maxHoldingsCount, "NRC: TOO_MANY_TOKENS");
         require(
             _reserve != address(0) && (_reserve == records[_nftId].reserve || records[_nftId].reserve == address(0)),
             "NRC: INVALID_RESERVE"
