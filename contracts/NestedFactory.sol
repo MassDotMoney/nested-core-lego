@@ -204,13 +204,14 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         Order[] calldata _orders
     ) external override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
         address[] memory tokens = nestedRecords.getAssetTokens(_nftId);
+        uint256 tokensLength = tokens.length;
         require(_orders.length != 0, "NF: INVALID_ORDERS");
-        require(tokens.length == _orders.length, "NF: INPUTS_LENGTH_MUST_MATCH");
+        require(tokensLength == _orders.length, "NF: INPUTS_LENGTH_MUST_MATCH");
         require(nestedRecords.getAssetReserve(_nftId) == address(reserve), "NF: RESERVE_MISMATCH");
 
         uint256 buyTokenInitialBalance = _buyToken.balanceOf(address(this));
 
-        for (uint256 i = 0; i < tokens.length; i++) {
+        for (uint256 i = 0; i < tokensLength; i++) {
             NestedRecords.Holding memory holding = nestedRecords.getAssetHolding(_nftId, tokens[i]);
             reserve.withdraw(IERC20(holding.token), holding.amount);
 
