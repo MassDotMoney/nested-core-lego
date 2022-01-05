@@ -406,9 +406,10 @@ describe("NestedFactory", () => {
                 .to.emit(context.nestedFactory, "NftCreated")
                 .withArgs(1, 0);
 
-            // The FeeSplitter must receive the DAI in excess
-            expect(await context.mockDAI.balanceOf(context.feeSplitter.address)).to.be.equal(
-                totalToSpend.sub(totalToBought),
+            // The user must receive the DAI in excess
+            expect(await context.mockDAI.balanceOf(context.user1.address)).to.be.equal(
+                // (1000 - 20) + (20 - 10 - 0.1)
+                context.baseAmount.sub(totalToSpend).add(totalToSpend.sub(totalToBought).sub(totalToBought.div(100))),
             );
 
             const totalWeigths = await context.feeSplitter.totalWeights();
@@ -417,10 +418,10 @@ describe("NestedFactory", () => {
             // Shareholders DAI received
             expect(
                 await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockDAI.address),
-            ).to.equal(totalToSpend.sub(totalToBought).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
+            ).to.equal(totalToBought.div(100).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
             expect(
                 await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockDAI.address),
-            ).to.equal(totalToSpend.sub(totalToBought).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
+            ).to.equal(totalToBought.div(100).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
         });
 
         it("Replicates NFT from DAI with KNI and UNI inside (ZeroExOperator) with more than needed", async () => {
@@ -453,9 +454,13 @@ describe("NestedFactory", () => {
                 .to.emit(context.nestedFactory, "NftCreated")
                 .withArgs(2, 1);
 
-            // The FeeSplitter must receive the DAI in excess
-            expect(await context.mockDAI.balanceOf(context.feeSplitter.address)).to.be.equal(
-                totalToSpend.sub(totalToBought).add(getExpectedFees(totalToBought)),
+            // The user must receive the DAI in excess
+            expect(await context.mockDAI.balanceOf(context.user1.address)).to.be.equal(
+                // (1000 - 20) + (20 - 10 - 0.1)
+                context.baseAmount
+                    .sub(appendDecimals(10).add(getExpectedFees(totalToBought)))
+                    .sub(totalToSpend)
+                    .add(totalToSpend.sub(totalToBought).sub(totalToBought.div(100))),
             );
 
             const totalWeigths = await context.feeSplitter.totalWeights();
@@ -464,22 +469,22 @@ describe("NestedFactory", () => {
             expect(
                 await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockDAI.address),
             ).to.equal(
-                totalToSpend
-                    .sub(totalToBought)
+                totalToBought
+                    .div(100)
                     .mul(1000)
                     .div(totalWeigths.sub(royaltiesWeight))
-                    .add(getExpectedFees(totalToBought).mul(1000).div(totalWeigths))
-                    .add(1),
+                    .add(getExpectedFees(totalToBought).mul(1000).div(totalWeigths)),
             );
 
             expect(
                 await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockDAI.address),
             ).to.equal(
-                totalToSpend
-                    .sub(totalToBought)
+                totalToBought
+                    .div(100)
                     .mul(1700)
                     .div(totalWeigths.sub(royaltiesWeight))
-                    .add(getExpectedFees(totalToBought).mul(1700).div(totalWeigths)),
+                    .add(getExpectedFees(totalToBought).mul(1700).div(totalWeigths))
+                    .add(1),
             );
 
             expect(await context.feeSplitter.getAmountDue(context.user1.address, context.mockDAI.address)).to.equal(
@@ -758,36 +763,23 @@ describe("NestedFactory", () => {
                 .connect(context.user1)
                 .addTokens(1, context.mockDAI.address, totalToSpend, orders);
 
-            // The FeeSplitter must receive the DAI in excess
-            expect(await context.mockDAI.balanceOf(context.feeSplitter.address)).to.be.equal(
-                totalToSpend.add(baseTotalToSpend).sub(totalToBought).sub(baseTotalToBought),
+            // The user must receive the DAI in excess
+            expect(await context.mockDAI.balanceOf(context.user1.address)).to.be.equal(
+                context.baseAmount
+                    .sub(totalToSpend.add(baseTotalToSpend))
+                    .add(totalToSpend.sub(totalToBought).sub(totalToBought.div(100))),
             );
 
             const totalWeigths = await context.feeSplitter.totalWeights();
             const royaltiesWeight = await context.feeSplitter.royaltiesWeight();
+
             // add/sub one bc of solidity rounding
             expect(
                 await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockDAI.address),
-            ).to.equal(
-                totalToSpend
-                    .add(baseTotalToSpend)
-                    .sub(totalToBought)
-                    .sub(baseTotalToBought)
-                    .mul(1000)
-                    .div(totalWeigths.sub(royaltiesWeight))
-                    .add(1),
-            );
+            ).to.equal(baseExpectedFee.add(totalToBought.div(100)).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
             expect(
                 await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockDAI.address),
-            ).to.equal(
-                totalToSpend
-                    .add(baseTotalToSpend)
-                    .sub(totalToBought)
-                    .sub(baseTotalToBought)
-                    .mul(1700)
-                    .div(totalWeigths.sub(royaltiesWeight))
-                    .sub(1),
-            );
+            ).to.equal(baseExpectedFee.add(totalToBought.div(100)).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
         });
 
         it("add new token (DAI) from ETH", async () => {
@@ -1049,19 +1041,19 @@ describe("NestedFactory", () => {
                 .to.emit(context.nestedFactory, "NftUpdated")
                 .withArgs(1);
 
-            // The FeeSplitter must receive the KNC in excess
-            expect(await context.mockKNC.balanceOf(context.feeSplitter.address)).to.be.equal(
-                totalToSpend.sub(uniBought),
+            // The user must receive the KNC in excess (inside the portfolio)
+            expect(await context.mockKNC.balanceOf(context.nestedReserve.address)).to.be.equal(
+                totalToSpend.sub(uniBought).sub(uniBought.div(100)),
             );
 
             const totalWeigths = await context.feeSplitter.totalWeights();
             const royaltiesWeight = await context.feeSplitter.royaltiesWeight();
             expect(
                 await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockKNC.address),
-            ).to.equal(totalToSpend.sub(uniBought).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
+            ).to.equal(uniBought.div(100).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
             expect(
                 await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockKNC.address),
-            ).to.equal(totalToSpend.sub(uniBought).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
+            ).to.equal(uniBought.div(100).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
         });
 
         it("swap UNI in portfolio for USDC (ZeroExOperator) with right amounts", async () => {
@@ -1312,13 +1304,13 @@ describe("NestedFactory", () => {
                 .to.emit(context.nestedFactory, "NftUpdated")
                 .withArgs(1);
 
-            // 3 UNI must be in the reserve
+            // 4 UNI must be in the reserve (6 UNI - 3 UNI, but 1 UNI in excess back to the reserve)
             expect(await context.mockUNI.balanceOf(context.nestedReserve.address)).to.be.equal(
-                baseUniBought.sub(uniSold),
+                baseUniBought.sub(uniSoldOrder),
             );
-            // 0 KNC must be in the reserve
+            // 1 KNC must be in the reserve (4 KNC - 4 KNC, but 1 KNC in excess back to the reserve)
             expect(await context.mockKNC.balanceOf(context.nestedReserve.address)).to.be.equal(
-                baseKncBought.sub(kncSold),
+                baseKncBought.sub(kncSoldOrder),
             );
             // 5 USDC - fees must be in the reserve
             expect(await context.mockUSDC.balanceOf(context.nestedReserve.address)).to.be.equal(
@@ -1328,11 +1320,13 @@ describe("NestedFactory", () => {
             // The FeeSplitter must receive the right fee amount (in USDC)
             expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(orderExpectedFee);
 
-            // The FeeSplitter must receive excess UNI
-            expect(await context.mockUNI.balanceOf(context.feeSplitter.address)).to.be.equal(uniSold.sub(uniSoldOrder));
+            // The user (portfolio) must receive excess UNI
+            const holdingUNIAmount = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
+            expect(holdingUNIAmount).to.be.equal(baseUniBought.sub(uniSoldOrder));
 
-            // The FeeSplitter must receive excess KNC
-            expect(await context.mockKNC.balanceOf(context.feeSplitter.address)).to.be.equal(kncSold.sub(kncSoldOrder));
+            // The user (portfolio) must receive excess KNC
+            const holdingKNCAmount = await context.nestedRecords.getAssetHolding(1, context.mockKNC.address);
+            expect(holdingKNCAmount).to.be.equal(baseKncBought.sub(kncSoldOrder));
 
             const totalWeigths = await context.feeSplitter.totalWeights();
             const royaltiesWeight = await context.feeSplitter.royaltiesWeight();
@@ -1345,33 +1339,10 @@ describe("NestedFactory", () => {
                 await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockUSDC.address),
             ).to.equal(orderExpectedFee.mul(1700).div(totalWeigths.sub(royaltiesWeight)));
 
-            // Shareholders UNI received
-            expect(
-                await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockUNI.address),
-            ).to.equal(uniSold.sub(uniSoldOrder).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
-            expect(
-                await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockUNI.address),
-            ).to.equal(uniSold.sub(uniSoldOrder).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
-
-            // Shareholders KNC received
-            expect(
-                await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockKNC.address),
-            ).to.equal(kncSold.sub(kncSoldOrder).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
-            expect(
-                await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockKNC.address),
-            ).to.equal(kncSold.sub(kncSoldOrder).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
-
-            // Must store UNI, and USDC in the records of the NFT
+            // Must store UNI, KNC, and USDC in the records of the NFT (KNC is not removed because of excess KNC)
             expect(await context.nestedRecords.getAssetTokens(1).then(value => value.toString())).to.be.equal(
-                [context.mockUNI.address, context.mockUSDC.address].toString(),
+                [context.mockUNI.address, context.mockKNC.address, context.mockUSDC.address].toString(),
             );
-
-            // Must have the right amount in the holdings
-            const holdingsUNIAmount = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
-            expect(holdingsUNIAmount).to.be.equal(baseUniBought.sub(uniSold));
-
-            const holdingsUSDCAmount = await context.nestedRecords.getAssetHolding(1, context.mockUSDC.address);
-            expect(holdingsUSDCAmount).to.be.equal(usdcBoughtOrder.sub(orderExpectedFee));
         });
     });
 
@@ -1581,13 +1552,13 @@ describe("NestedFactory", () => {
                 .to.emit(context.nestedFactory, "NftUpdated")
                 .withArgs(1);
 
-            // 3 UNI must be in the reserve
+            // 4 UNI must be in the reserve (6 UNI - 3 UNI, but 1 UNI in excess back to the reserve)
             expect(await context.mockUNI.balanceOf(context.nestedReserve.address)).to.be.equal(
-                baseUniBought.sub(uniSold),
+                baseUniBought.sub(uniSoldOrder),
             );
-            // 0 KNC must be in the reserve
+            // 1 KNC must be in the reserve (4 KNC - 4 KNC, but 1 KNC in excess back to the reserve)
             expect(await context.mockKNC.balanceOf(context.nestedReserve.address)).to.be.equal(
-                baseKncBought.sub(kncSold),
+                baseKncBought.sub(kncSoldOrder),
             );
             // 0 USDC must be in the reserve
             expect(await context.mockUSDC.balanceOf(context.nestedReserve.address)).to.be.equal(BigNumber.from(0));
@@ -1595,11 +1566,13 @@ describe("NestedFactory", () => {
             // The FeeSplitter must receive the right fee amount (in USDC)
             expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(orderExpectedFee);
 
-            // The FeeSplitter must receive excess UNI
-            expect(await context.mockUNI.balanceOf(context.feeSplitter.address)).to.be.equal(uniSold.sub(uniSoldOrder));
+            // The user (portfolio) must receive excess UNI
+            const holdingUNIAmount = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
+            expect(holdingUNIAmount).to.be.equal(baseUniBought.sub(uniSoldOrder));
 
-            // The FeeSplitter must receive excess KNC
-            expect(await context.mockKNC.balanceOf(context.feeSplitter.address)).to.be.equal(kncSold.sub(kncSoldOrder));
+            // The user (portfolio) must receive excess KNC
+            const holdingKNCAmount = await context.nestedRecords.getAssetHolding(1, context.mockKNC.address);
+            expect(holdingKNCAmount).to.be.equal(baseKncBought.sub(kncSoldOrder));
 
             const totalWeigths = await context.feeSplitter.totalWeights();
             const royaltiesWeight = await context.feeSplitter.royaltiesWeight();
@@ -1612,30 +1585,10 @@ describe("NestedFactory", () => {
                 await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockUSDC.address),
             ).to.equal(orderExpectedFee.mul(1700).div(totalWeigths.sub(royaltiesWeight)));
 
-            // Shareholders UNI received
-            expect(
-                await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockUNI.address),
-            ).to.equal(uniSold.sub(uniSoldOrder).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
-            expect(
-                await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockUNI.address),
-            ).to.equal(uniSold.sub(uniSoldOrder).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
-
-            // Shareholders KNC received
-            expect(
-                await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockKNC.address),
-            ).to.equal(kncSold.sub(kncSoldOrder).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
-            expect(
-                await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockKNC.address),
-            ).to.equal(kncSold.sub(kncSoldOrder).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
-
-            // Must store UNI, and USDC in the records of the NFT
+            // Must store UNI, and KNC (because of excess KNC) in the records of the NFT
             expect(await context.nestedRecords.getAssetTokens(1).then(value => value.toString())).to.be.equal(
-                [context.mockUNI.address].toString(),
+                [context.mockUNI.address, context.mockKNC.address].toString(),
             );
-
-            // Must have the right amount in the holdings
-            const holdingsUNIAmount = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
-            expect(holdingsUNIAmount).to.be.equal(baseUniBought.sub(uniSold));
         });
     });
 
