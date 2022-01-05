@@ -92,13 +92,16 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
 
     /// @inheritdoc INestedFactory
     function removeOperator(bytes32 operator) external override onlyOwner {
-        uint256 i = 0;
-        while (operators[i] != operator) {
-            i++;
+        uint256 operatorsLength = operators.length;
+        for (uint256 i = 0; i < operatorsLength; i++) {
+	        if (operators[i] == operator) {
+                operators[i] = operators[operatorsLength - 1];
+		        operators.pop();
+                emit OperatorRemoved(operator);
+                return;
+	        }
         }
-        require(i != 0, "NF: NON_EXISTENT_OPERATOR");
-        delete operators[i];
-        emit OperatorRemoved(operator);
+        revert("NF: NON_EXISTENT_OPERATOR");
     }
 
     /// @inheritdoc INestedFactory
