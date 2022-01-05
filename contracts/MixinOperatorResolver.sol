@@ -47,10 +47,13 @@ abstract contract MixinOperatorResolver {
     /// @notice Check the state of addressCache
     function isResolverCached() external view returns (bool) {
         bytes32[] memory requiredAddresses = resolverAddressesRequired();
+        bytes32 name;
+        address cacheTmp;
         for (uint256 i = 0; i < requiredAddresses.length; i++) {
-            bytes32 name = requiredAddresses[i];
+            name = requiredAddresses[i];
+            cacheTmp = addressCache[name];
             // false if our cache is invalid or if the resolver doesn't have the required address
-            if (resolver.getAddress(name) != addressCache[name] || addressCache[name] == address(0)) {
+            if (resolver.getAddress(name) != cacheTmp || cacheTmp == address(0)) {
                 return false;
             }
         }
