@@ -55,7 +55,7 @@ contract NestedBuybacker is Ownable {
         feeSplitter = FeeSplitter(_feeSplitter);
         nstReserve = _nstReserve;
     }
-    
+
     /// @notice Update the nested reserve address
     /// @param _nstReserve New reserve contract address
     function setNestedReserve(address _nstReserve) external onlyOwner {
