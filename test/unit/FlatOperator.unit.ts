@@ -162,6 +162,6 @@ describe("FlatOperator", () => {
         );
 
         // The NFT is burned
-        await expect(context.nestedAsset.ownerOf(1)).to.be.revertedWith("ERC721: owner query for nonexistent token");
+        expect(await context.nestedAsset.ownerOf(1)).to.be.equal(ethers.constants.AddressZero);
     });
 });

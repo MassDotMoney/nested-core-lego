@@ -39,9 +39,9 @@ describe("NestedAsset", () => {
                 await asset.mint(bob.address, 0);
                 expect(await asset.balanceOf(alice.address)).to.equal("2");
                 expect(await asset.balanceOf(bob.address)).to.equal("1");
-                expect(await asset.tokenOfOwnerByIndex(alice.address, 0)).to.equal("1");
-                expect(await asset.tokenOfOwnerByIndex(alice.address, 1)).to.equal("2");
-                expect(await asset.tokenOfOwnerByIndex(bob.address, 0)).to.equal("3");
+                expect(await asset.ownerOf(1)).to.equal(alice.address);
+                expect(await asset.ownerOf(2)).to.equal(alice.address);
+                expect(await asset.ownerOf(3)).to.equal(bob.address);
             });
         });
 
@@ -70,8 +70,7 @@ describe("NestedAsset", () => {
     describe("#tokenURI", () => {
         it("should display NFT metadata", async () => {
             await asset.mintWithMetadata(alice.address, metadataUri, 0);
-            const tokenId = await asset.tokenOfOwnerByIndex(alice.address, 0);
-            expect(await asset.tokenURI(tokenId)).to.equal(metadataUri);
+            expect(await asset.tokenURI(1)).to.equal(metadataUri);
         });
 
         it("reverts if the token does not exist", async () => {
@@ -97,7 +96,7 @@ describe("NestedAsset", () => {
         });
 
         it("should revert when burning non existing token", async () => {
-            await expect(asset.burn(alice.address, 1)).to.be.revertedWith("ERC721: owner query for nonexistent token");
+            await expect(asset.burn(alice.address, 1)).to.be.revertedWith("NA: FORBIDDEN_NOT_OWNER");
         });
 
         it("should revert if the caller is not the factory", async () => {

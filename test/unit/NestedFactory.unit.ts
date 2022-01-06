@@ -594,7 +594,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .addTokens(2, context.mockDAI.address, totalToSpend, orders),
-            ).to.be.revertedWith("ERC721: owner query for nonexistent token");
+            ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
         it("cant add tokens to another user portfolio", async () => {
@@ -912,7 +912,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .swapTokenForTokens(2, context.mockDAI.address, totalToSpend, orders),
-            ).to.be.revertedWith("ERC721: owner query for nonexistent token");
+            ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
         it("cant swap token from another user portfolio", async () => {
@@ -1167,7 +1167,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToNft(2, context.mockUSDC.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("ERC721: owner query for nonexistent token");
+            ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
         it("cant swap tokens from another user portfolio", async () => {
@@ -1439,7 +1439,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToWallet(2, context.mockUSDC.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("ERC721: owner query for nonexistent token");
+            ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
         it("cant swap tokens from another user portfolio", async () => {
@@ -1710,7 +1710,7 @@ describe("NestedFactory", () => {
             // NFT with id = 2 shouldn't exist
             await expect(
                 context.nestedFactory.connect(context.user1).destroy(2, context.mockUSDC.address, orders),
-            ).to.be.revertedWith("ERC721: owner query for nonexistent token");
+            ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
         it("cant swap tokens from another user portfolio", async () => {
@@ -1785,9 +1785,7 @@ describe("NestedFactory", () => {
             );
 
             // The NFT is burned
-            await expect(context.nestedAsset.ownerOf(1)).to.be.revertedWith(
-                "ERC721: owner query for nonexistent token",
-            );
+            expect(await context.nestedAsset.ownerOf(1)).to.be.equal(ethers.constants.AddressZero);
         });
 
         it("delete nft for USDC with right amounts", async () => {
@@ -1812,9 +1810,7 @@ describe("NestedFactory", () => {
             );
 
             // The NFT is burned
-            await expect(context.nestedAsset.ownerOf(1)).to.be.revertedWith(
-                "ERC721: owner query for nonexistent token",
-            );
+            expect(await context.nestedAsset.ownerOf(1)).to.be.equal(ethers.constants.AddressZero);
         });
 
         it("delete nft for ETH with right amounts", async () => {
@@ -1837,9 +1833,7 @@ describe("NestedFactory", () => {
             );
 
             // The NFT is burned
-            await expect(context.nestedAsset.ownerOf(1)).to.be.revertedWith(
-                "ERC721: owner query for nonexistent token",
-            );
+            expect(await context.nestedAsset.ownerOf(1)).to.be.equal(ethers.constants.AddressZero);
         });
 
         it("delete nft for USDC with UNI leftovers", async () => {
@@ -1864,9 +1858,7 @@ describe("NestedFactory", () => {
             );
 
             // The NFT is burned
-            await expect(context.nestedAsset.ownerOf(1)).to.be.revertedWith(
-                "ERC721: owner query for nonexistent token",
-            );
+            expect(await context.nestedAsset.ownerOf(1)).to.be.equal(ethers.constants.AddressZero);
         });
     });
 
@@ -1894,7 +1886,7 @@ describe("NestedFactory", () => {
 
         it("cant withdraw from nonexistent portfolio", async () => {
             await expect(context.nestedFactory.connect(context.user1).withdraw(2, 1)).to.be.revertedWith(
-                "ERC721: owner query for nonexistent token",
+                "NF: CALLER_NOT_OWNER",
             );
         });
 
@@ -1960,7 +1952,7 @@ describe("NestedFactory", () => {
         it("cant increase nonexistent portfolio", async () => {
             await expect(
                 context.nestedFactory.connect(context.user1).increaseLockTimestamp(2, Date.now()),
-            ).to.be.revertedWith("ERC721: owner query for nonexistent token");
+            ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
         it("cant decrease timestamp", async () => {

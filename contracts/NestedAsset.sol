@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@rari-capital/solmate/src/tokens/ERC721.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "./abstracts/OwnableFactoryHandler.sol";
 
 /// @title Collection of NestedNFTs used to represent ownership of real assets stored in NestedReserves
 /// @dev Only NestedFactory contracts are allowed to call functions that write to storage
-contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
+contract NestedAsset is ERC721, OwnableFactoryHandler {
     using Counters for Counters.Counter;
 
     Counters.Counter private _tokenIds;
@@ -25,7 +25,7 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
 
     /// @dev Reverts the transaction if the address is not the token owner
     modifier onlyTokenOwner(address _address, uint256 _tokenId) {
-        require(_address == ownerOf(_tokenId), "NA: FORBIDDEN_NOT_OWNER");
+        require(_address == ownerOf[_tokenId], "NA: FORBIDDEN_NOT_OWNER");
         _;
     }
 
@@ -45,7 +45,7 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
         uint256 originalAssetId = originalAsset[_tokenId];
 
         if (originalAssetId != 0) {
-            return _exists(originalAssetId) ? ownerOf(originalAssetId) : lastOwnerBeforeBurn[originalAssetId];
+            return _exists(originalAssetId) ? ownerOf[originalAssetId] : lastOwnerBeforeBurn[originalAssetId];
         }
         return address(0);
     }
@@ -119,5 +119,9 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
     /// @param _metadataURI The metadata URI string
     function _setTokenURI(uint256 _tokenId, string memory _metadataURI) internal {
         _tokenURIs[_tokenId] = _metadataURI;
+    }
+
+    function _exists(uint256 _tokenId) internal view returns (bool) {
+        return ownerOf[_tokenId] != address(0);
     }
 }
