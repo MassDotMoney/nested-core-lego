@@ -169,10 +169,8 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     ) external nonReentrant {
         require(_royaltiesTarget != address(0), "FS: INVALID_ROYALTIES_TARGET_ADDRESS");
 
-        uint256 _totalWeights = totalWeights;
-
-        _sendFees(_token, _amount, _totalWeights);
-        _addShares(_royaltiesTarget, _computeShareCount(_amount, royaltiesWeight, _totalWeights), address(_token));
+        _sendFees(_token, _amount, totalWeights);
+        _addShares(_royaltiesTarget, _computeShareCount(_amount, royaltiesWeight, totalWeights), address(_token));
     }
 
     /// @notice Updates weight for a shareholder
