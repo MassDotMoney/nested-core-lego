@@ -47,7 +47,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// @param weight Determines share allocation
     struct Shareholder {
         address account;
-        uint256 weight;
+        uint96 weight;
     }
 
     /// @dev Registers shares and amount release for a specific token or ETH
@@ -73,7 +73,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
 
     constructor(
         address[] memory _accounts,
-        uint256[] memory _weights,
+        uint96[] memory _weights,
         uint256 _royaltiesWeight,
         address _weth
     ) {
@@ -116,7 +116,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// @notice Sets a new list of shareholders
     /// @param _accounts Shareholders accounts list
     /// @param _weights Weight for each shareholder. Determines part of the payment allocated to them
-    function setShareholders(address[] memory _accounts, uint256[] memory _weights) public onlyOwner {
+    function setShareholders(address[] memory _accounts, uint96[] memory _weights) public onlyOwner {
         delete shareholders;
         uint256 accountsLength = _accounts.length;
         require(accountsLength != 0 && accountsLength == _weights.length, "FS: INPUTS_LENGTH_MUST_MATCH");
@@ -178,7 +178,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// @notice Updates weight for a shareholder
     /// @param _accountIndex Account to change the weight of
     /// @param _weight The new weight
-    function updateShareholder(uint256 _accountIndex, uint256 _weight) external onlyOwner {
+    function updateShareholder(uint256 _accountIndex, uint96 _weight) external onlyOwner {
         require(_accountIndex < shareholders.length, "FS: INVALID_ACCOUNT_INDEX");
         totalWeights = totalWeights + _weight - shareholders[_accountIndex].weight;
         require(totalWeights != 0, "FS: TOTAL_WEIGHTS_ZERO");
@@ -272,7 +272,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         return amountToRelease;
     }
 
-    function _addShareholder(address _account, uint256 _weight) private {
+    function _addShareholder(address _account, uint96 _weight) private {
         require(_weight != 0, "FS: ZERO_WEIGHT");
         require(_account != address(0), "FS: INVALID_ADDRESS");
         for (uint256 i = 0; i < shareholders.length; i++) {
