@@ -155,7 +155,11 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         unchecked {
             weights = totalWeights - royaltiesWeight;
         }
-        _sendFees(_token, _amount, weights);
+
+        uint256 balanceBeforeTransfer = _token.balanceOf(address(this));
+        _token.safeTransferFrom(_msgSender(), address(this), _amount);
+
+        _sendFees(_token, _token.balanceOf(address(this)) - balanceBeforeTransfer, weights);
     }
 
     /// @notice Sends a fee to this contract for splitting, as an ERC20 token
@@ -167,12 +171,18 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         IERC20 _token,
         uint256 _amount
     ) external nonReentrant {
-        require(_royaltiesTarget != address(0), "FS: INVALID_ROYALTIES_TARGET_ADDRESS");
+        require(_royaltiesTarget != address(0), "FS: INVALID_ROYALTIES_TARGET");
 
-        uint256 _totalWeights = totalWeights;
+        uint256 balanceBeforeTransfer = _token.balanceOf(address(this));
+        _token.safeTransferFrom(_msgSender(), address(this), _amount);
+        uint256 amountReceived = _token.balanceOf(address(this)) - balanceBeforeTransfer;
 
-        _sendFees(_token, _amount, _totalWeights);
-        _addShares(_royaltiesTarget, _computeShareCount(_amount, royaltiesWeight, _totalWeights), address(_token));
+        _sendFees(_token, amountReceived, totalWeights);
+        _addShares(
+            _royaltiesTarget,
+            _computeShareCount(amountReceived, royaltiesWeight, totalWeights),
+            address(_token)
+        );
     }
 
     /// @notice Updates weight for a shareholder
@@ -226,16 +236,16 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         revert("FS: SHAREHOLDER_NOT_FOUND");
     }
 
-    /// @dev Transfers a fee to this contract
+    /// @notice Transfers a fee to this contract
+    /// @dev This method calculates the amount received, to support deflationary tokens
     /// @param _token Currency for the fee
-    /// @param _amount Amount of token as fee
+    /// @param _amount Amount of token sent
     /// @param _totalWeights Total weights to determine the share count to allocate
     function _sendFees(
         IERC20 _token,
         uint256 _amount,
         uint256 _totalWeights
     ) private {
-        IERC20(_token).safeTransferFrom(_msgSender(), address(this), _amount);
         Shareholder[] memory shareholdersCache = shareholders;
         for (uint256 i = 0; i < shareholdersCache.length; i++) {
             _addShares(

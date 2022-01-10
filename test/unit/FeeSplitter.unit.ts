@@ -2,11 +2,12 @@ import { getETHSpentOnGas } from "../helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
-import { FeeSplitter, MockERC20, WETH9 } from "../../typechain";
+import { FeeSplitter, MockERC20, DeflationaryMockERC20, WETH9 } from "../../typechain";
 
 describe("Fee Splitter", () => {
-    let alice: SignerWithAddress, bob: SignerWithAddress, wallet3: SignerWithAddress, feeTo: SignerWithAddress;
+    let alice: SignerWithAddress, bob: SignerWithAddress, wallet3: SignerWithAddress;
     let ERC20Mocks!: [MockERC20, MockERC20, MockERC20];
+    let deflationaryERC20Mock!: DeflationaryMockERC20;
     let mockWETH: WETH9;
     let feeSplitter: FeeSplitter;
 
@@ -16,7 +17,6 @@ describe("Fee Splitter", () => {
         alice = signers[0];
         bob = signers[1];
         wallet3 = signers[2];
-        feeTo = signers[2];
     });
 
     beforeEach(async () => {
@@ -27,6 +27,7 @@ describe("Fee Splitter", () => {
             deployMockToken("Mock2", "MOCK2", alice),
             deployMockToken("Mock3", "MOCK3", alice),
         ]);
+        deflationaryERC20Mock = await deployMockDeflationaryToken("DefMock", "DEFMOCK", alice);
         const MockWETHFactory = await ethers.getContractFactory("WETH9");
         mockWETH = await MockWETHFactory.deploy();
 
@@ -114,7 +115,7 @@ describe("Fee Splitter", () => {
             const balanceAliceAfter = await token.balanceOf(alice.address);
             // Why 4.375? Alice has 5000 shares, we had two payments of 3 (no royalties) and 5 (has royalties). 0.625*3+0.5*5=4.375
             expect(balanceAliceAfter.sub(balanceAliceBefore)).to.equal(ethers.utils.parseEther("4.375"));
-            // Bob can claim 37.5% of the fees. Same computation as aboove
+            // Bob can claim 37.5% of the fees. Same computation as above
             expect(balanceBob).to.equal(ethers.utils.parseEther("2.625"));
         });
 
@@ -128,6 +129,48 @@ describe("Fee Splitter", () => {
             const balanceWallet3 = await token.balanceOf(wallet3.address);
             // wallet3 can claim 20% of the fees. 6 * 0.2
             expect(balanceWallet3).to.equal(ethers.utils.parseEther("1.2"));
+        });
+
+        it("assign fees correctly for a deflationary token", async () => {
+            const token = deflationaryERC20Mock;
+
+            const amount = ethers.utils.parseEther("6");
+            await token.approve(feeSplitter.address, amount);
+            await feeSplitter.sendFees(token.address, amount);
+
+            // 50% is burned in the deflationary token
+            expect(await token.balanceOf(feeSplitter.address)).to.equal(amount.div(2));
+
+            // alice should get 62.5% of the received part (has a weight of 50 over 80 total)
+            // 50% is burned in the deflationary token
+            // alice should get 1.875
+            expect(await feeSplitter.getAmountDue(alice.address, token.address)).to.equal(
+                amount.div(2).div(80).mul(50),
+            );
+        });
+
+        it("assign fees and royalties correctly for a deflationary token", async () => {
+            const token = deflationaryERC20Mock;
+
+            const amount = ethers.utils.parseEther("6");
+            await token.approve(feeSplitter.address, amount);
+            await feeSplitter.sendFeesWithRoyalties(wallet3.address, token.address, amount);
+
+            expect(await token.balanceOf(feeSplitter.address)).to.equal(amount.div(2));
+
+            // alice should get 50% of the received part (has a weight of 50 over 100 total)
+            // 50% is burned in the deflationary token
+            // alice should get 1.5
+            expect(await feeSplitter.getAmountDue(alice.address, token.address)).to.equal(
+                amount.div(2).div(100).mul(50),
+            );
+
+            // wallet3 should get 20% of the received part (has a weight of 20 over 100 total)
+            // 50% is burned in the deflationary token
+            // wallet3 should get 0.6
+            expect(await feeSplitter.getAmountDue(wallet3.address, token.address)).to.equal(
+                amount.div(2).div(100).mul(20),
+            );
         });
 
         it("releases fees for a list of tokens", async () => {
@@ -191,6 +234,11 @@ describe("Fee Splitter", () => {
 
     const deployMockToken = async (name: string, symbol: string, owner: SignerWithAddress) => {
         const TokenFactory = await ethers.getContractFactory("MockERC20");
+        return TokenFactory.connect(owner).deploy(name, symbol, ethers.utils.parseEther("1000000"));
+    };
+
+    const deployMockDeflationaryToken = async (name: string, symbol: string, owner: SignerWithAddress) => {
+        const TokenFactory = await ethers.getContractFactory("DeflationaryMockERC20");
         return TokenFactory.connect(owner).deploy(name, symbol, ethers.utils.parseEther("1000000"));
     };
 
