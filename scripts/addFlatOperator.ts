@@ -35,6 +35,7 @@ async function main(): Promise<void> {
         .importOperators(
             [flatOperatorNameBytes32],
             [flatOperator.address],
+            []
         );
 
     await nestedFactory.addOperator(flatOperatorNameBytes32);

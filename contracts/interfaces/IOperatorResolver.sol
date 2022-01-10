@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.11;
 
+import "../MixinOperatorResolver.sol";
+
 /// @title Operator address resolver interface
 interface IOperatorResolver {
     /// @notice Emitted when an operator is imported
@@ -33,6 +35,11 @@ interface IOperatorResolver {
     /// @notice Import/replace operators
     /// @dev names and destinations arrays must coincide
     /// @param names Operators name
-    /// @param destinations Operators address
-    function importOperators(bytes32[] calldata names, address[] calldata destinations) external;
+    /// @param operators Operators address
+    /// @param destinations Destinations to rebuild cache atomically
+    function importOperators(
+        bytes32[] calldata names,
+        address[] calldata operators,
+        MixinOperatorResolver[] calldata destinations
+    ) external;
 }

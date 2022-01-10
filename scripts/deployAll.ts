@@ -108,6 +108,7 @@ async function main(): Promise<void> {
         .importOperators(
             [zeroExOperatorNameBytes32, flatOperatorNameBytes32],
             [zeroExOperator.address, flatOperator.address],
+            []
         );
     await tx.wait();    
     

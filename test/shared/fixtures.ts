@@ -198,6 +198,7 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
         .importOperators(
             [zeroExOperatorNameBytes32, flatOperatorNameBytes32],
             [zeroExOperator.address, flatOperator.address],
+            []
         );
 
     // Add operators to factory and rebuild cache

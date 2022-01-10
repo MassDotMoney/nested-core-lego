@@ -120,14 +120,14 @@ describe("NestedFactory", () => {
             // Add the operator named "test"
             await context.operatorResolver
                 .connect(context.masterDeployer)
-                .importOperators([toBytes32("test")], [testAddress]);
+                .importOperators([toBytes32("test")], [testAddress], []);
             await context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("test"));
             await context.nestedFactory.connect(context.masterDeployer).rebuildCache();
 
             // Then remove the operator
             await context.operatorResolver
                 .connect(context.masterDeployer)
-                .importOperators([toBytes32("test")], [ethers.constants.AddressZero]);
+                .importOperators([toBytes32("test")], [ethers.constants.AddressZero], []);
             await context.nestedFactory.connect(context.masterDeployer).rebuildCache();
             await context.nestedFactory.connect(context.masterDeployer).removeOperator(toBytes32("test"));
 
