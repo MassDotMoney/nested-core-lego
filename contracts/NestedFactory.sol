@@ -331,9 +331,9 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         bool _fromReserve
     ) private returns (uint256 feesAmount, uint256 amountBought) {
         uint256 _outputTokenInitialBalance = _outputToken.balanceOf(address(this));
-
+        
+        IERC20 _inputToken;
         for (uint256 i = 0; i < _orders.length; i++) {
-            IERC20 _inputToken;
             (_inputToken, _inputTokenAmounts[i]) = _transferInputTokens(
                 _nftId,
                 IERC20(_orders[i].token),
