@@ -233,7 +233,6 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         // Burn NFT
         nestedRecords.removeNFT(_nftId);
         nestedAsset.burn(_msgSender(), _nftId);
-        emit NftBurned(_nftId);
     }
 
     /// @inheritdoc INestedFactory

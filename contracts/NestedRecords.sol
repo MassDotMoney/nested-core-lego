@@ -103,11 +103,12 @@ contract NestedRecords is OwnableFactoryHandler {
         records[_nftId].reserve = _reserve;
     }
 
-    /// @notice Get holding amount for this NFT ID
-    /// @param _nftId The id of the NFT
-    /// @param _token The address of the token
-    function getAssetHolding(uint256 _nftId, address _token) external view returns (uint256) {
-        return records[_nftId].holdings[_token];
+    /// @notice Sets the factory for Nested records
+    /// @param _factory The address of the new factory
+    function setFactory(address _factory) external onlyOwner {
+        require(_factory != address(0), "NestedRecords: INVALID_ADDRESS");
+        supportedFactories[_factory] = true;
+        emit FactoryAdded(_factory);
     }
 
     /// @notice The factory can update the lock timestamp of a NFT record
@@ -139,8 +140,29 @@ contract NestedRecords is OwnableFactoryHandler {
     /// @notice Get how many tokens are in a portfolio/NFT
     /// @param _nftId NFT ID to examine
     /// @return The array length
-    function getAssetTokensLength(uint256 _nftId) external view returns (uint256) {
+    function getAssetTokensLength(uint256 _nftId) public view returns (uint256) {
         return records[_nftId].tokens.length;
+    }
+
+    /// @notice Get holding object for this NFT ID
+    /// @param _nftId The id of the NFT
+    /// @param _token The address of the token
+    function getAssetHolding(uint256 _nftId, address _token) public view returns (uint256) {
+        return records[_nftId].holdings[_token];
+    }
+
+    /// @notice Returns the holdings associated to a NestedAsset
+    /// @param _nftId the id of the NestedAsset
+    /// @return The holdings
+    function tokenHoldings(uint256 _nftId) public view returns (address[] memory, uint256[] memory) {
+        address[] memory tokens = getAssetTokens(_nftId);
+        uint256 tokensCount = tokens.length;
+        uint256[] memory amounts = new uint256[](tokensCount);
+
+        for (uint256 i = 0; i < tokensCount; i++) {
+            amounts[i] = getAssetHolding(_nftId, tokens[i]);
+        }
+        return (tokens, amounts);
     }
 
     /// @notice Get the lock timestamp of a portfolio/NFT

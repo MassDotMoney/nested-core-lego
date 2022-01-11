@@ -42,6 +42,12 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// @param weight The new weight
     event ShareholderUpdated(address account, uint256 weight);
 
+    /// @dev Emitted when royalties are claim released
+    /// @param to The address claiming the royalties
+    /// @param token The token received
+    /// @param value The amount received
+    event RoyaltiesReceived(address to, address token, uint256 value);
+
     /// @dev Represent a shareholder
     /// @param account Shareholders address that can receive income
     /// @param weight Determines share allocation
@@ -127,24 +133,32 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         }
     }
 
-    /// @notice Call releaseToken() for multiple tokens
+    /// @notice Release multiple tokens and handle ETH unwrapping
     /// @param _tokens ERC20 tokens to release
     function releaseTokens(IERC20[] calldata _tokens) external nonReentrant {
+        uint256 amount;
         for (uint256 i = 0; i < _tokens.length; i++) {
-            uint256 amount = _releaseToken(_msgSender(), _tokens[i]);
-            _tokens[i].safeTransfer(_msgSender(), amount);
+            amount = _releaseToken(_msgSender(), _tokens[i]);
+            if (address(_tokens[i]) == weth) {
+                IWETH(weth).withdraw(amount);
+                (bool success, ) = _msgSender().call{ value: amount }("");
+                require(success, "FS: ETH_TRANFER_ERROR");
+            } else {
+                _tokens[i].safeTransfer(_msgSender(), amount);
+            }
             emit PaymentReleased(_msgSender(), address(_tokens[i]), amount);
         }
     }
 
-    /// @dev Triggers a transfer to `msg.sender` of the amount of Ether they are owed, according to
-    /// the amount of shares they own and their previous withdrawals.
-    function releaseETH() external nonReentrant {
-        uint256 amount = _releaseToken(_msgSender(), IERC20(weth));
-        IWETH(weth).withdraw(amount);
-        (bool success, ) = _msgSender().call{ value: amount }("");
-        require(success, "FS: ETH_TRANFER_ERROR");
-        emit PaymentReleased(_msgSender(), ETH, amount);
+    /// @notice Release multiple tokens without ETH unwrapping
+    /// @param _tokens ERC20 tokens to release
+    function releaseTokensNoETH(IERC20[] calldata _tokens) external nonReentrant {
+        uint256 amount;
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            amount = _releaseToken(_msgSender(), _tokens[i]); 
+            _tokens[i].safeTransfer(_msgSender(), amount);
+            emit PaymentReleased(_msgSender(), address(_tokens[i]), amount);
+        }
     }
 
     /// @notice Sends a fee to this contract for splitting, as an ERC20 token. No royalties are expected.
@@ -176,13 +190,13 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         uint256 balanceBeforeTransfer = _token.balanceOf(address(this));
         _token.safeTransferFrom(_msgSender(), address(this), _amount);
         uint256 amountReceived = _token.balanceOf(address(this)) - balanceBeforeTransfer;
+        
+        uint256 royaltiesAmount = _computeShareCount(amountReceived, royaltiesWeight, totalWeights);
 
         _sendFees(_token, amountReceived, totalWeights);
-        _addShares(
-            _royaltiesTarget,
-            _computeShareCount(amountReceived, royaltiesWeight, totalWeights),
-            address(_token)
-        );
+        _addShares(_royaltiesTarget, royaltiesAmount, address(_token));
+        
+        emit RoyaltiesReceived(_royaltiesTarget, address(_token), royaltiesAmount);
     }
 
     /// @notice Updates weight for a shareholder

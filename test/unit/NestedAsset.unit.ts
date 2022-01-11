@@ -32,7 +32,7 @@ describe("NestedAsset", () => {
     });
 
     describe("#mint", () => {
-        describe("when creating NFTs from scratch", async () => {
+        describe("when creating NFTs from scratch", () => {
             it("should create ERC-721 tokens with relevant tokenIds", async () => {
                 await asset.mint(alice.address, 0);
                 await asset.mint(alice.address, 0);
@@ -45,7 +45,7 @@ describe("NestedAsset", () => {
             });
         });
 
-        describe("when replicating NFTs", async () => {
+        describe("when replicating NFTs", () => {
             it("should create ERC-721s and store the original asset used for replication", async () => {
                 await asset.mint(alice.address, 0);
                 await asset.mint(alice.address, 1);

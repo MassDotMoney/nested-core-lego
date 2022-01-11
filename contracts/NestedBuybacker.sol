@@ -42,6 +42,8 @@ contract NestedBuybacker is Ownable {
     /// @dev Part of the bought tokens to be burned (100% = 1000)
     uint256 public burnPercentage;
 
+    receive() external payable {}
+
     constructor(
         address _NST,
         address _nstReserve,
@@ -92,8 +94,9 @@ contract NestedBuybacker is Ownable {
         if (feeSplitter.getAmountDue(address(this), _sellToken) != 0) {
             IERC20[] memory tokens = new IERC20[](1);
             tokens[0] = _sellToken;
-            feeSplitter.releaseTokens(tokens);
+            feeSplitter.releaseTokensNoETH(tokens);
         }
+
         require(ExchangeHelpers.fillQuote(_sellToken, _swapTarget, _swapCallData), "NB : FAILED_SWAP");
         trigger();
         emit BuybackTriggered(_sellToken);

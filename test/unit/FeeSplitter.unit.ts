@@ -82,7 +82,7 @@ describe("Fee Splitter", () => {
         mockWETH.deposit({ value: amount });
         await feeSplitter.sendFees(mockWETH.address, amount);
         const balanceBobBefore = await bob.getBalance();
-        const tx = await feeSplitter.connect(bob).releaseETH();
+        const tx = await feeSplitter.connect(bob).releaseTokens([mockWETH.address]);
         const spentOnGas = await getETHSpentOnGas(tx);
         const balanceBobAfter = await bob.getBalance();
         const amountReleased = amount.mul(3000).div(8000);
@@ -177,16 +177,38 @@ describe("Fee Splitter", () => {
             const amount = ethers.utils.parseEther("3");
             await ERC20Mocks[0].approve(feeSplitter.address, amount);
             await ERC20Mocks[1].approve(feeSplitter.address, amount);
-            await ERC20Mocks[2].approve(feeSplitter.address, amount);
+            await mockWETH.approve(feeSplitter.address, amount)
             await feeSplitter.sendFees(ERC20Mocks[0].address, amount);
             await feeSplitter.sendFees(ERC20Mocks[1].address, amount);
-            await feeSplitter.sendFees(ERC20Mocks[2].address, amount);
-            await feeSplitter.connect(bob).releaseTokens(ERC20Mocks.map(c => c.address));
+            await mockWETH.deposit({ value: amount })
+            await feeSplitter.sendFees(mockWETH.address, amount)
+
+            const ethBalanceBefore = await bob.getBalance()
+            const tx = await feeSplitter
+                .connect(bob)
+                .releaseTokens([ERC20Mocks[0].address, ERC20Mocks[1].address, mockWETH.address])
+            const txSpent = await getETHSpentOnGas(tx)
+            const ethBalanceAfter = await bob.getBalance()
 
             // 1.125 = 3 * 37.5%
             expect(await ERC20Mocks[0].balanceOf(bob.address)).to.equal(ethers.utils.parseEther("1.125"));
             expect(await ERC20Mocks[1].balanceOf(bob.address)).to.equal(ethers.utils.parseEther("1.125"));
+
+            // Bob should receive ETH instead of WETH
+            expect(ethBalanceAfter.sub(ethBalanceBefore).add(txSpent)).to.equal(ethers.utils.parseEther("1.125"))
+            expect(await mockWETH.balanceOf(bob.address)).to.equal(ethers.utils.parseEther("0"))
         });
+
+        it("emits an event for Royalties", async () => {
+            const amount = ethers.utils.parseEther("3")
+            const token = ERC20Mocks[0]
+            await token.approve(feeSplitter.address, amount)
+            expect(
+                await feeSplitter.sendFeesWithRoyalties(wallet3.address, token.address, amount)
+            ).to
+            .emit(feeSplitter, "RoyaltiesReceived")
+            .withArgs(wallet3.address, token.address, ethers.utils.parseUnits('0.6'));
+        })
     });
 
     describe("Changing weights", () => {

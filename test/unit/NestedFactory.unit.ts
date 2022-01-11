@@ -1712,9 +1712,7 @@ describe("NestedFactory", () => {
 
             let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
-            await expect(context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders))
-                .to.emit(context.nestedFactory, "NftBurned")
-                .withArgs(1);
+            await context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders)
 
             expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(getExpectedFees(kncSold));
 
@@ -1751,9 +1749,7 @@ describe("NestedFactory", () => {
 
             let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
-            await expect(context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders))
-                .to.emit(context.nestedFactory, "NftBurned")
-                .withArgs(1);
+            await context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders)
 
             expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(
                 getExpectedFees(usdcBought),
@@ -1778,9 +1774,7 @@ describe("NestedFactory", () => {
 
             let orders: OrderStruct[] = getWethWithUniAndKncOrders(uniSold, kncSold);
 
-            await expect(context.nestedFactory.connect(context.user1).destroy(1, context.WETH.address, orders))
-                .to.emit(context.nestedFactory, "NftBurned")
-                .withArgs(1);
+            await context.nestedFactory.connect(context.user1).destroy(1, context.WETH.address, orders)
 
             expect(await context.WETH.balanceOf(context.feeSplitter.address)).to.be.equal(getExpectedFees(wethBought));
 
@@ -1803,9 +1797,7 @@ describe("NestedFactory", () => {
 
             let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSoldOrder, kncSold);
 
-            await expect(context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders))
-                .to.emit(context.nestedFactory, "NftBurned")
-                .withArgs(1);
+            await context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders)
 
             expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(
                 getExpectedFees(usdcBought),

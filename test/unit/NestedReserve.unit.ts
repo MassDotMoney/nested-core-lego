@@ -29,7 +29,7 @@ describe("NestedReserve", () => {
         await mockUNI.mint(reserve.address, amountToTransfer);
     });
 
-    describe("#transfer", async () => {
+    describe("#transfer", () => {
         it("transfer the funds", async () => {
             await reserve.transfer(alice.address, mockUNI.address, amountToTransfer);
             expect(await mockUNI.balanceOf(alice.address)).to.eq(amountToTransfer);
@@ -60,7 +60,7 @@ describe("NestedReserve", () => {
         });
     });
 
-    describe("#withdraw", async () => {
+    describe("#withdraw", () => {
         it("transfer the funds", async () => {
             await reserve.withdraw(mockUNI.address, amountToTransfer);
             expect(await mockUNI.balanceOf(factory.address)).to.eq(amountToTransfer);
