@@ -291,7 +291,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         bool _reserved,
         bool _fromReserve
     ) private returns (uint256 feesAmount, IERC20 tokenSold) {
-        _inputToken = _transferInputTokens(_nftId, _inputToken, _inputTokenAmount, _fromReserve);
+        (_inputToken, _inputTokenAmount) = _transferInputTokens(_nftId, _inputToken, _inputTokenAmount, _fromReserve);
         uint256 amountSpent;
         for (uint256 i = 0; i < _orders.length; i++) {
             amountSpent += _submitOrder(address(_inputToken), _orders[i].token, _nftId, _orders[i], _reserved);
@@ -333,7 +333,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         uint256 _outputTokenInitialBalance = _outputToken.balanceOf(address(this));
 
         for (uint256 i = 0; i < _orders.length; i++) {
-            IERC20 _inputToken = _transferInputTokens(
+            IERC20 _inputToken;
+            (_inputToken, _inputTokenAmounts[i]) = _transferInputTokens(
                 _nftId,
                 IERC20(_orders[i].token),
                 _inputTokenAmounts[i],
@@ -444,30 +445,33 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     /// @param _inputToken The token to receive
     /// @param _inputTokenAmount Amount to transfer
     /// @param _fromReserve True to transfer from the reserve
-    /// @return tokenUsed Token transfered (in case of ETH)
+    /// @return Token transfered (in case of ETH)
+    ///         The real amount received after the transfer to the factory
     function _transferInputTokens(
         uint256 _nftId,
         IERC20 _inputToken,
         uint256 _inputTokenAmount,
         bool _fromReserve
-    ) private returns (IERC20 tokenUsed) {
+    ) private returns (IERC20, uint256) {
+        if (address(_inputToken) == ETH) {
+            require(msg.value == _inputTokenAmount, "NF: INVALID_AMOUNT_IN");
+            weth.deposit{ value: msg.value }();
+            return (IERC20(address(weth)), msg.value);
+        }
+        
+        uint256 balanceBefore = _inputToken.balanceOf(address(this));
         if (_fromReserve) {
             require(
                 nestedRecords.getAssetHolding(_nftId, address(_inputToken)) >= _inputTokenAmount,
                 "NF: INSUFFICIENT_AMOUNT_IN"
             );
-
             // Get input from reserve
             reserve.withdraw(IERC20(_inputToken), _inputTokenAmount);
-        } else if (address(_inputToken) == ETH) {
-            require(msg.value == _inputTokenAmount, "NF: INVALID_AMOUNT_IN");
-            weth.deposit{ value: msg.value }();
-            _inputToken = IERC20(address(weth));
         } else {
             require(msg.value == 0, "NF: UNSUPPORTED_ETH_TRANSFER");
             _inputToken.safeTransferFrom(_msgSender(), address(this), _inputTokenAmount);
         }
-        tokenUsed = _inputToken;
+        return (_inputToken, _inputToken.balanceOf(address(this)) - balanceBefore);
     }
 
     /// @dev Send a fee to the FeeSplitter, royalties will be paid to the owner of the original asset
