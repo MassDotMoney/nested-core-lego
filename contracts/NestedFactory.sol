@@ -291,7 +291,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         bool _reserved,
         bool _fromReserve
     ) private returns (uint256 feesAmount, IERC20 tokenSold) {
-        _inputToken = _transferInputTokens(_nftId, _inputToken, _inputTokenAmount, _fromReserve);
+        (_inputToken, _inputTokenAmount) = _transferInputTokens(_nftId, _inputToken, _inputTokenAmount, _fromReserve);
         uint256 amountSpent;
         for (uint256 i = 0; i < _orders.length; i++) {
             amountSpent += _submitOrder(address(_inputToken), _orders[i].token, _nftId, _orders[i], _reserved);
@@ -299,13 +299,14 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         feesAmount = amountSpent / 100;
         require(amountSpent <= _inputTokenAmount - feesAmount, "NestedFactory::_submitInOrders: Overspent");
 
-        // If input is from the reserve, update the records
-        if (_fromReserve) {
-            _decreaseHoldingAmount(_nftId, address(_inputToken), _inputTokenAmount);
+        uint256 underSpentAmount = _inputTokenAmount - feesAmount - amountSpent;
+        if (underSpentAmount != 0) {
+            _inputToken.safeTransfer(_fromReserve ? address(reserve) : _msgSender(), underSpentAmount);
         }
 
-        if (_inputTokenAmount - feesAmount > amountSpent) {
-            _handleUnderSpending(_inputTokenAmount - feesAmount, amountSpent, _inputToken);
+        // If input is from the reserve, update the records
+        if (_fromReserve) {
+            _decreaseHoldingAmount(_nftId, address(_inputToken), _inputTokenAmount - underSpentAmount);
         }
 
         tokenSold = _inputToken;
@@ -330,9 +331,10 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         bool _fromReserve
     ) private returns (uint256 feesAmount, uint256 amountBought) {
         uint256 _outputTokenInitialBalance = _outputToken.balanceOf(address(this));
-
+        
+        IERC20 _inputToken;
         for (uint256 i = 0; i < _orders.length; i++) {
-            IERC20 _inputToken = _transferInputTokens(
+            (_inputToken, _inputTokenAmounts[i]) = _transferInputTokens(
                 _nftId,
                 IERC20(_orders[i].token),
                 _inputTokenAmounts[i],
@@ -343,13 +345,13 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             uint256 amountSpent = _submitOrder(address(_inputToken), address(_outputToken), _nftId, _orders[i], false);
             require(amountSpent <= _inputTokenAmounts[i], "NestedFactory::_submitOutOrders: Overspent");
 
-            if (_fromReserve) {
-                _decreaseHoldingAmount(_nftId, address(_inputToken), _inputTokenAmounts[i]);
+            uint256 underSpentAmount = _inputTokenAmounts[i] - amountSpent;
+            if (underSpentAmount != 0) {
+                _inputToken.safeTransfer(_fromReserve ? address(reserve) : _msgSender(), underSpentAmount);
             }
 
-            // Under spent input amount send to fee splitter
-            if (_inputTokenAmounts[i] > amountSpent) {
-                _handleUnderSpending(_inputTokenAmounts[i], amountSpent, _inputToken);
+            if (_fromReserve) {
+                _decreaseHoldingAmount(_nftId, address(_inputToken), _inputTokenAmounts[i] - underSpentAmount);
             }
         }
 
@@ -409,7 +411,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             (uint256[] memory amounts, ) = OperatorHelpers.decodeDataAndRequire(data, _inputToken, _outputToken);
             require(amounts[1] <= _amountToSpend, "NestedFactory::_safeSubmitOrder: Overspent");
             if (_amountToSpend > amounts[1]) {
-                _handleUnderSpending(_amountToSpend, amounts[1], IERC20(_inputToken));
+                IERC20(_inputToken).safeTransfer(_msgSender(), _amountToSpend - amounts[1]);
             }
         } else {
             _safeTransferWithFees(IERC20(_inputToken), _amountToSpend, _msgSender(), _nftId);
@@ -443,45 +445,33 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     /// @param _inputToken The token to receive
     /// @param _inputTokenAmount Amount to transfer
     /// @param _fromReserve True to transfer from the reserve
-    /// @return tokenUsed Token transfered (in case of ETH)
+    /// @return Token transfered (in case of ETH)
+    ///         The real amount received after the transfer to the factory
     function _transferInputTokens(
         uint256 _nftId,
         IERC20 _inputToken,
         uint256 _inputTokenAmount,
         bool _fromReserve
-    ) private returns (IERC20 tokenUsed) {
+    ) private returns (IERC20, uint256) {
+        if (address(_inputToken) == ETH) {
+            require(msg.value == _inputTokenAmount, "NF: INVALID_AMOUNT_IN");
+            weth.deposit{ value: msg.value }();
+            return (IERC20(address(weth)), msg.value);
+        }
+        
+        uint256 balanceBefore = _inputToken.balanceOf(address(this));
         if (_fromReserve) {
             require(
                 nestedRecords.getAssetHolding(_nftId, address(_inputToken)) >= _inputTokenAmount,
                 "NF: INSUFFICIENT_AMOUNT_IN"
             );
-
             // Get input from reserve
             reserve.withdraw(IERC20(_inputToken), _inputTokenAmount);
-        } else if (address(_inputToken) == ETH) {
-            require(msg.value == _inputTokenAmount, "NF: INVALID_AMOUNT_IN");
-            weth.deposit{ value: msg.value }();
-            _inputToken = IERC20(address(weth));
         } else {
             require(msg.value == 0, "NF: UNSUPPORTED_ETH_TRANSFER");
             _inputToken.safeTransferFrom(_msgSender(), address(this), _inputTokenAmount);
         }
-        tokenUsed = _inputToken;
-    }
-
-    /// @dev Send the under spent amount to the FeeSplitter without the royalties.
-    ///      The "under spent" amount is the positive difference between the amount supposed
-    ///      to be spent and the amount really spent.
-    /// @param _amountToSpend The amount supposed to be spent
-    /// @param _amountSpent The amount really spent
-    /// @param _token The amount-related token
-    function _handleUnderSpending(
-        uint256 _amountToSpend,
-        uint256 _amountSpent,
-        IERC20 _token
-    ) private {
-        ExchangeHelpers.setMaxAllowance(_token, address(feeSplitter));
-        feeSplitter.sendFees(_token, _amountToSpend - _amountSpent);
+        return (_inputToken, _inputToken.balanceOf(address(this)) - balanceBefore);
     }
 
     /// @dev Send a fee to the FeeSplitter, royalties will be paid to the owner of the original asset
