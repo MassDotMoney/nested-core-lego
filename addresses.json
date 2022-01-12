@@ -2,7 +2,8 @@
     "1": {
         "name": "mainnet",
         "Deployer": "",
-        "NestedFactory": "",
+        "NestedFactoryProxy": "",
+        "NestedFactory_1": "",
         "NestedRecords": "",
         "NestedReserve": "",
         "NestedAsset": "",
@@ -22,7 +23,8 @@
     "56": {
         "name": "bsc",
         "Deployer": "",
-        "NestedFactory": "",
+        "NestedFactoryProxy": "",
+        "NestedFactory_1": "",
         "NestedRecords": "",
         "NestedReserve": "",
         "NestedAsset": "",
@@ -42,7 +44,8 @@
     "137": {
         "name": "polygon",
         "Deployer": "",
-        "NestedFactory": "",
+        "NestedFactoryProxy": "",
+        "NestedFactory_1": "",
         "NestedRecords": "",
         "NestedReserve": "",
         "NestedAsset": "",
@@ -55,14 +58,15 @@
             "maxHoldingsCount": 15,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
-            "multisig": "",
-            "nestedTreasury": ""
+            "multisig": "0x18D05ACe27c6BCF2C4e839fA06bd9B53B213e29b",
+            "nestedTreasury": "0x18D05ACe27c6BCF2C4e839fA06bd9B53B213e29b"
         }
     },
     "42220": {
         "name": "celo",
         "Deployer": "",
-        "NestedFactory": "",
+        "NestedFactoryProxy": "",
+        "NestedFactory_1": "",
         "NestedRecords": "",
         "NestedReserve": "",
         "NestedAsset": "",
@@ -82,7 +86,8 @@
     "43114": {
         "name": "avalanche",
         "Deployer": "",
-        "NestedFactory": "",
+        "NestedFactoryProxy": "",
+        "NestedFactory_1": "",
         "NestedRecords": "",
         "NestedReserve": "",
         "NestedAsset": "",

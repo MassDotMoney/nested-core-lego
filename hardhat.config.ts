@@ -94,7 +94,10 @@ const config: HardhatUserConfig = {
         excludeContracts: ["contracts/mocks/", "contracts/libraries/", "contracts/interfaces/"],
     },
     dependencyCompiler: {
-        paths: ["@openzeppelin/contracts/governance/TimelockController.sol"],
+        paths: [
+            "@openzeppelin/contracts/governance/TimelockController.sol", 
+            "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol"
+        ],
     },
 };
 
