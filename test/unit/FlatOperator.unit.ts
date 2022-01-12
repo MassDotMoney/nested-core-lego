@@ -147,7 +147,7 @@ describe("FlatOperator", () => {
             .withArgs(1, 0);
 
         // Remove 10 UNI (with same order)
-        context.nestedFactory.connect(context.user1).destroy(1, context.mockUNI.address, orders)
+        await context.nestedFactory.connect(context.user1).destroy(1, context.mockUNI.address, orders)
 
         // UNI from create and from destroy to FeeSplitter (so, two times 1% of 10 UNI)
         expect(await context.mockUNI.balanceOf(context.feeSplitter.address)).to.be.equal(
