@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.9;
+pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -33,12 +33,10 @@ library ExchangeHelpers {
      */
     function setMaxAllowance(IERC20 _token, address _spender) internal {
         uint256 _currentAllowance = _token.allowance(address(this), _spender);
-        if (_currentAllowance == 0) {
-            _token.safeApprove(_spender, type(uint256).max);
-        } else if (_currentAllowance != type(uint256).max) {
-            // Approve 0 first for tokens mitigating the race condition
-            _token.safeApprove(_spender, 0);
-            _token.safeApprove(_spender, type(uint256).max);
+        if (_currentAllowance != type(uint256).max) {
+            // Decrease to 0 first for tokens mitigating the race condition
+            _token.safeDecreaseAllowance(_spender, _currentAllowance);
+            _token.safeIncreaseAllowance(_spender, type(uint256).max);
         }
     }
 }

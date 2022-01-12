@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.9;
+pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../NestedReserve.sol";
@@ -24,6 +24,19 @@ interface INestedFactory {
     /// @param nftId The NFT token Id
     event NftUpdated(uint256 indexed nftId);
 
+    /// @dev Emitted when a new operator is added
+    /// @param newOperator The new operator bytes name
+    event OperatorAdded(bytes32 newOperator);
+
+    /// @dev Emitted when an operator is removed
+    /// @param oldOperator The old operator bytes name
+    event OperatorRemoved(bytes32 oldOperator);
+
+    /// @dev Emitted when tokens are unlocked (sent to the owner)
+    /// @param token The unlocked token address
+    /// @param amount The unlocked amount
+    event TokensUnlocked(address token, uint256 amount);
+
     /// @dev Represent an order made to the factory when creating/editing an NFT
     /// @param operator The bytes32 name of the Operator
     /// @param token The expected token address in output/input
@@ -43,10 +56,6 @@ interface INestedFactory {
     /// @notice Remove an operator (name) for building cache
     /// @param operator The operator name to remove
     function removeOperator(bytes32 operator) external;
-
-    /// @notice Sets the reserve where the funds are stored
-    /// @param _reserve the address of the new reserve
-    function setReserve(NestedReserve _reserve) external;
 
     /// @notice Sets the address receiving the fees
     /// @param _feeSplitter The address of the receiver

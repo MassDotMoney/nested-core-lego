@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.9;
+pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -12,7 +12,6 @@ import "./libraries/ExchangeHelpers.sol";
 /// @dev Some of it is burned, the rest is sent to a pool that will redistribute
 ///      to the NST ecosystem and community.
 contract NestedBuybacker is Ownable {
-    using SafeERC20 for IERC20;
     using SafeERC20 for INestedToken;
 
     /// @dev Emitted when the reserve address is updated
@@ -43,28 +42,26 @@ contract NestedBuybacker is Ownable {
     /// @dev Part of the bought tokens to be burned (100% = 1000)
     uint256 public burnPercentage;
 
+    receive() external payable {}
+
     constructor(
         address _NST,
         address _nstReserve,
         address payable _feeSplitter,
         uint256 _burnPercentage
     ) {
-        require(_burnPercentage <= 1000, "NestedBuybacker::constructor: Burn part to high");
+        require(_burnPercentage <= 1000, "NB: INVALID_BURN_PART");
+        require(_NST != address(0) && _nstReserve != address(0) && _feeSplitter != address(0), "NB: INVALID_ADDRESS");
         burnPercentage = _burnPercentage;
         NST = INestedToken(_NST);
         feeSplitter = FeeSplitter(_feeSplitter);
         nstReserve = _nstReserve;
     }
 
-    /// @notice Claim awarded fees from the FeeSplitter contract
-    /// @param _token Token address for the fees
-    function claimFees(IERC20 _token) public {
-        feeSplitter.releaseToken(_token);
-    }
-
     /// @notice Update the nested reserve address
     /// @param _nstReserve New reserve contract address
     function setNestedReserve(address _nstReserve) external onlyOwner {
+        require(_nstReserve != address(0), "NB: INVALID_ADDRESS");
         nstReserve = _nstReserve;
         emit ReserveUpdated(nstReserve);
     }
@@ -72,14 +69,15 @@ contract NestedBuybacker is Ownable {
     /// @notice Update the fee splitter address
     /// @param _feeSplitter The new fee splitter contract address
     function setFeeSplitter(FeeSplitter _feeSplitter) external onlyOwner {
+        require(address(_feeSplitter) != address(0), "NB: INVALID_ADDRESS");
         feeSplitter = _feeSplitter;
         emit FeeSplitterUpdated(feeSplitter);
     }
 
     /// @notice Update parts deciding what amount is sent to reserve or burned
     /// @param _burnPercentage The new burn percentage
-    function setBurnPart(uint256 _burnPercentage) public onlyOwner {
-        require(_burnPercentage <= 1000, "NestedBuybacker::setBurnPart: Burn part to high");
+    function setBurnPart(uint256 _burnPercentage) external onlyOwner {
+        require(_burnPercentage <= 1000, "NB: INVALID_BURN_PART");
         burnPercentage = _burnPercentage;
         emit BurnPartUpdated(burnPercentage);
     }
@@ -93,12 +91,13 @@ contract NestedBuybacker is Ownable {
         address payable _swapTarget,
         IERC20 _sellToken
     ) external onlyOwner {
-        if (feeSplitter.getAmountDue(address(this), _sellToken) > 0) {
-            claimFees(_sellToken);
+        if (feeSplitter.getAmountDue(address(this), _sellToken) != 0) {
+            IERC20[] memory tokens = new IERC20[](1);
+            tokens[0] = _sellToken;
+            feeSplitter.releaseTokensNoETH(tokens);
         }
 
-        uint256 balance = _sellToken.balanceOf(address(this));
-        ExchangeHelpers.fillQuote(_sellToken, _swapTarget, _swapCallData);
+        require(ExchangeHelpers.fillQuote(_sellToken, _swapTarget, _swapCallData), "NB : FAILED_SWAP");
         trigger();
         emit BuybackTriggered(_sellToken);
     }
@@ -108,13 +107,7 @@ contract NestedBuybacker is Ownable {
         uint256 balance = NST.balanceOf(address(this));
         uint256 toBurn = (balance * burnPercentage) / 1000;
         uint256 toSendToReserve = balance - toBurn;
-        _burnNST(toBurn);
+        NST.burn(toBurn);
         NST.safeTransfer(nstReserve, toSendToReserve);
-    }
-
-    /// @dev Burn NST token from the smart contract
-    /// @param _amount The amount to burn
-    function _burnNST(uint256 _amount) private {
-        NST.burn(_amount);
     }
 }

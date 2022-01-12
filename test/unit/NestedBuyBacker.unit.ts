@@ -45,11 +45,11 @@ describe("NestedBuybacker", () => {
         dummyRouter = await DummyRouterFactory.deploy();
     });
 
-    it("should revert with BURN_PART_TOO_HIGH", async () => {
+    it("should revert with INVALID_BURN_PART", async () => {
         const NestedBuybackerFactory = await ethers.getContractFactory("NestedBuybacker");
         await expect(
             NestedBuybackerFactory.deploy(mockNST.address, communityReserve.address, feeSplitter.address, 1200),
-        ).to.be.revertedWith("NestedBuybacker::constructor: Burn part to high");
+        ).to.be.revertedWith("NB: INVALID_BURN_PART");
     });
 
     it("sets the nested reserve address", async () => {

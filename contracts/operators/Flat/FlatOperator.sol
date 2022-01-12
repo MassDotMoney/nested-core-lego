@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.9;
+pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./IFlatOperator.sol";
@@ -15,7 +15,7 @@ contract FlatOperator is IFlatOperator, IOperatorSelector {
         address token,
         uint256 amount
     ) external payable override returns (uint256[] memory amounts, address[] memory tokens) {
-        require(amount > 0, "FlatOperator::commitAndRevert: Amount must be greater than zero");
+        require(amount != 0, "FO: INVALID_AMOUNT");
 
         amounts = new uint256[](2);
         tokens = new address[](2);

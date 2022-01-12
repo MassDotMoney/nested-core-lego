@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.9;
+pragma solidity 0.8.11;
 
 import "./OperatorResolver.sol";
 
@@ -26,13 +26,15 @@ abstract contract MixinOperatorResolver {
     function resolverAddressesRequired() public view virtual returns (bytes32[] memory addresses) {}
 
     /// @notice Rebuild the addressCache
-    function rebuildCache() public {
+    function rebuildCache() external {
         bytes32[] memory requiredAddresses = resolverAddressesRequired();
+        bytes32 name;
+        address destination;
         // The resolver must call this function whenever it updates its state
         for (uint256 i = 0; i < requiredAddresses.length; i++) {
-            bytes32 name = requiredAddresses[i];
+            name = requiredAddresses[i];
             // Note: can only be invoked once the resolver has all the targets needed added
-            address destination = resolver.getAddress(name);
+            destination = resolver.getAddress(name);
             if (destination != address(0)) {
                 addressCache[name] = destination;
             } else {
@@ -45,10 +47,13 @@ abstract contract MixinOperatorResolver {
     /// @notice Check the state of addressCache
     function isResolverCached() external view returns (bool) {
         bytes32[] memory requiredAddresses = resolverAddressesRequired();
+        bytes32 name;
+        address cacheTmp;
         for (uint256 i = 0; i < requiredAddresses.length; i++) {
-            bytes32 name = requiredAddresses[i];
+            name = requiredAddresses[i];
+            cacheTmp = addressCache[name];
             // false if our cache is invalid or if the resolver doesn't have the required address
-            if (resolver.getAddress(name) != addressCache[name] || addressCache[name] == address(0)) {
+            if (resolver.getAddress(name) != cacheTmp || cacheTmp == address(0)) {
                 return false;
             }
         }
@@ -60,7 +65,7 @@ abstract contract MixinOperatorResolver {
     /// @return The operator address
     function requireAndGetAddress(bytes32 name) internal view returns (address) {
         address _foundAddress = addressCache[name];
-        require(_foundAddress != address(0), string(abi.encodePacked("Missing operator : ", name)));
+        require(_foundAddress != address(0), string(abi.encodePacked("MOR: MISSING_OPERATOR: ", name)));
         return _foundAddress;
     }
 }

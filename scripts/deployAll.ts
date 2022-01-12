@@ -55,6 +55,11 @@ async function main(): Promise<void> {
     await verify("NestedRecords", nestedRecords, [maxHoldingsCount]);
     console.log("NestedRecords deployed : ", nestedRecords.address);
 
+    // Deploy NestedReserve
+    const nestedReserve = await nestedReserveFactory.deploy();
+    await verify("NestedReserve", nestedReserve, []);
+    console.log("NestedReserve deployed : ", nestedReserve.address);
+
     // Deploy OperatorResolver
     const operatorResolver = await operatorResolverFactory.deploy();
     await verify("OperatorResolver", operatorResolver, []);
@@ -75,30 +80,25 @@ async function main(): Promise<void> {
         .deploy(
             nestedAsset.address,
             nestedRecords.address,
+            nestedReserve.address,
             feeSplitter.address,
             WETH,
             operatorResolver.address,
         );
     await verify("NestedFactory", nestedFactory, [nestedAsset.address,
         nestedRecords.address,
+        nestedReserve.address,
         feeSplitter.address,
         WETH,
         operatorResolver.address]);
     console.log("NestedFactory deployed : ", nestedFactory.address);
 
-    // Deploy NestedReserve
-    const nestedReserve = await nestedReserveFactory.deploy(nestedFactory.address);
-    await verify("NestedReserve", nestedReserve, [nestedFactory.address]);
-    console.log("NestedReserve deployed : ", nestedReserve.address);
-
-    // Set factory to asset and records
-    let tx = await nestedAsset.setFactory(nestedFactory.address);
+    // Set factory to asset, records and reserve
+    let tx = await nestedAsset.addFactory(nestedFactory.address);
     await tx.wait();
-    tx = await nestedRecords.setFactory(nestedFactory.address);
+    tx = await nestedRecords.addFactory(nestedFactory.address);
     await tx.wait();
-
-    // Set reserve to factory
-    tx = await nestedFactory.setReserve(nestedReserve.address);
+    tx = await nestedReserve.addFactory(nestedFactory.address);
     await tx.wait();
 
     // Add operators to OperatorResolver
@@ -108,6 +108,7 @@ async function main(): Promise<void> {
         .importOperators(
             [zeroExOperatorNameBytes32, flatOperatorNameBytes32],
             [zeroExOperator.address, flatOperator.address],
+            []
         );
     await tx.wait();    
     

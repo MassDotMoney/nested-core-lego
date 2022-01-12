@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.9;
+pragma solidity 0.8.11;
 
 import "./interfaces/IOperatorResolver.sol";
 import "./MixinOperatorResolver.sol";
@@ -30,7 +30,9 @@ contract OperatorResolver is IOperatorResolver, Ownable {
         override
         returns (bool)
     {
-        for (uint256 i = 0; i < names.length; i++) {
+        uint256 namesLength = names.length;
+        require(namesLength == destinations.length, "OR: INPUTS_LENGTH_MUST_MATCH");
+        for (uint256 i = 0; i < namesLength; i++) {
             if (operators[names[i]] != destinations[i]) {
                 return false;
             }
@@ -39,20 +41,26 @@ contract OperatorResolver is IOperatorResolver, Ownable {
     }
 
     /// @inheritdoc IOperatorResolver
-    function importOperators(bytes32[] calldata names, address[] calldata destinations) external override onlyOwner {
-        require(names.length == destinations.length, "OperatorResolver::importOperators: Input lengths must match");
-
+    function importOperators(
+        bytes32[] calldata names,
+        address[] calldata operatorAdrrs,
+        MixinOperatorResolver[] calldata destinations
+    ) external override onlyOwner {
+        require(names.length == operatorAdrrs.length, "OR: INPUTS_LENGTH_MUST_MATCH");
+        bytes32 name;
+        address destination;
         for (uint256 i = 0; i < names.length; i++) {
-            bytes32 name = names[i];
-            address destination = destinations[i];
+            name = names[i];
+            destination = operatorAdrrs[i];
             operators[name] = destination;
             emit OperatorImported(name, destination);
         }
+        rebuildCaches(destinations);
     }
 
     /// @notice rebuild the caches of mixin smart contracts
     /// @param destinations The list of mixinOperatorResolver to rebuild
-    function rebuildCaches(MixinOperatorResolver[] calldata destinations) external {
+    function rebuildCaches(MixinOperatorResolver[] calldata destinations) public {
         for (uint256 i = 0; i < destinations.length; i++) {
             destinations[i].rebuildCache();
         }

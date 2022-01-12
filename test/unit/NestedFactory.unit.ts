@@ -76,6 +76,24 @@ describe("NestedFactory", () => {
                 context.nestedFactory.connect(context.user1).addOperator(toBytes32("test")),
             ).to.be.revertedWith("Ownable: caller is not the owner");
         });
+
+        it("cant add already existent operator", async () => {
+            await context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("test"));
+            await context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("test1"));
+            await expect(
+                context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("test")),
+            ).to.be.revertedWith("NF: EXISTENT_OPERATOR");
+            await expect(
+                context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("test1")),
+            ).to.be.revertedWith("NF: EXISTENT_OPERATOR");
+        });
+
+        it("cant add empty operator name", async () => {
+            await expect(
+                context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("")),
+            ).to.be.revertedWith("NF: INVALID_OPERATOR_NAME");
+        });
+
         it("add a new operator", async () => {
             // Add the operator named "test"
             await context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("test"));
@@ -102,22 +120,22 @@ describe("NestedFactory", () => {
             // Add the operator named "test"
             await context.operatorResolver
                 .connect(context.masterDeployer)
-                .importOperators([toBytes32("test")], [testAddress]);
+                .importOperators([toBytes32("test")], [testAddress], []);
             await context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("test"));
             await context.nestedFactory.connect(context.masterDeployer).rebuildCache();
 
             // Then remove the operator
             await context.operatorResolver
                 .connect(context.masterDeployer)
-                .importOperators([toBytes32("test")], [ethers.constants.AddressZero]);
+                .importOperators([toBytes32("test")], [ethers.constants.AddressZero], []);
             await context.nestedFactory.connect(context.masterDeployer).rebuildCache();
             await context.nestedFactory.connect(context.masterDeployer).removeOperator(toBytes32("test"));
 
             // Get the operators from the factory
-            const operators = await context.nestedFactory.resolverAddressesRequired();
+            let operators = await context.nestedFactory.resolverAddressesRequired();
 
             // Must have 2 operators ("ZeroEx" from Fixture and "test")
-            expect(operators.length).to.be.equal(3);
+            expect(operators.length).to.be.equal(2);
             expect(operators[0]).to.be.equal(context.zeroExOperatorNameBytes32);
             expect(operators[1]).to.be.equal(context.flatOperatorNameBytes32);
             expect(operators[2]).to.not.be.equal(toBytes32("test"));
@@ -143,34 +161,11 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .create(0, context.mockDAI.address, appendDecimals(5), orders),
-            ).to.be.revertedWith("Missing operator : test");
-        });
-    });
+            ).to.be.revertedWith("MOR: MISSING_OPERATOR: test");
 
-    describe("setReserve()", () => {
-        const newReserve = Wallet.createRandom().address;
-        it("cant be invoked by an user", async () => {
-            await expect(context.nestedFactory.connect(context.user1).setReserve(newReserve)).to.be.revertedWith(
-                "Ownable: caller is not the owner",
-            );
-        });
-
-        it("cant set address (immutable)", async () => {
-            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
-            await expect(
-                context.nestedFactory.connect(context.masterDeployer).setReserve(newReserve),
-            ).to.be.revertedWith("NestedFactory::setReserve: Reserve is immutable");
-        });
-
-        it("set value", async () => {
-            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
-            expect(await context.nestedFactory.reserve()).to.be.equal(context.nestedReserve.address);
-        });
-
-        it("emit ReserveUpdated event", async () => {
-            await expect(context.nestedFactory.connect(context.masterDeployer).setReserve(newReserve))
-                .to.emit(context.nestedFactory, "ReserveUpdated")
-                .withArgs(newReserve);
+            await context.nestedFactory.connect(context.masterDeployer).removeOperator(context.zeroExOperatorNameBytes32);
+            operators = await context.nestedFactory.resolverAddressesRequired();
+            expect(operators[0]).to.be.equal(context.flatOperatorNameBytes32);
         });
     });
 
@@ -185,7 +180,7 @@ describe("NestedFactory", () => {
         it("cant set zero address", async () => {
             await expect(
                 context.nestedFactory.connect(context.masterDeployer).setFeeSplitter(ethers.constants.AddressZero),
-            ).to.be.revertedWith("NestedFactory::setFeeSplitter: Invalid feeSplitter address");
+            ).to.be.revertedWith("NF: INVALID_FEE_SPLITTER_ADDRESS");
         });
 
         it("set value", async () => {
@@ -201,15 +196,11 @@ describe("NestedFactory", () => {
     });
 
     describe("create()", () => {
-        beforeEach("Set reserve", async () => {
-            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
-        });
-
         it("reverts if Orders list is empty", async () => {
             let orders: OrderStruct[] = [];
             await expect(
                 context.nestedFactory.connect(context.user1).create(0, context.mockDAI.address, 0, orders),
-            ).to.be.revertedWith("NestedFactory::create: Missing orders");
+            ).to.be.revertedWith("NF: INVALID_ORDERS");
         });
 
         it("reverts if bad calldatas", async () => {
@@ -237,7 +228,7 @@ describe("NestedFactory", () => {
 
             await expect(
                 context.nestedFactory.connect(context.user1).create(0, context.mockDAI.address, totalToSpend, orders),
-            ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
         it("reverts if wrong output token in calldata", async () => {
@@ -266,7 +257,7 @@ describe("NestedFactory", () => {
 
             await expect(
                 context.nestedFactory.connect(context.user1).create(0, context.mockDAI.address, totalToSpend, orders),
-            ).to.be.revertedWith("OperatorHelpers::decodeDataAndRequire: Wrong output token");
+            ).to.be.revertedWith("OH: INVALID_OUTPUT_TOKEN");
         });
 
         it("reverts if the DAI amount is less than total sum of DAI sales", async () => {
@@ -285,7 +276,7 @@ describe("NestedFactory", () => {
             // Revert because not enough funds to swap, the order amounts > totalToSpend
             await expect(
                 context.nestedFactory.connect(context.user1).create(0, context.mockDAI.address, totalToSpend, orders),
-            ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
         it("reverts if not enough to pay fees", async () => {
@@ -326,6 +317,24 @@ describe("NestedFactory", () => {
                     .connect(context.user1)
                     .create(0, ETH, totalToSpend, orders, { value: totalToSpend }),
             ).to.be.reverted;
+        });
+
+        it("reverts if ETH sent for non-ETH transfer", async () => {
+            // All the amounts for this test
+            const uniBought = appendDecimals(6);
+            const kncBought = appendDecimals(4);
+            const totalToBought = uniBought.add(kncBought);
+            const expectedFee = getExpectedFees(totalToBought);
+            const totalToSpend = totalToBought.add(expectedFee);
+
+            // Orders for UNI and KNC
+            let orders: OrderStruct[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
+
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .create(0, context.mockDAI.address, totalToSpend, orders, { value: 1 }),
+            ).to.be.revertedWith("NF: UNSUPPORTED_ETH_TRANSFER");
         });
 
         it("Creates NFT from DAI with KNI and UNI inside (ZeroExOperator) with right amounts", async () => {
@@ -370,12 +379,10 @@ describe("NestedFactory", () => {
             );
 
             // Must have the right amount in the holdings
-            const holdingsUNI = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
-            expect(holdingsUNI.token).to.be.equal(context.mockUNI.address);
-            expect(holdingsUNI.amount).to.be.equal(uniBought);
-            const holdingsKNC = await context.nestedRecords.getAssetHolding(1, context.mockKNC.address);
-            expect(holdingsKNC.token).to.be.equal(context.mockKNC.address);
-            expect(holdingsKNC.amount).to.be.equal(kncBought);
+            const holdingsUNIAmount = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
+            expect(holdingsUNIAmount).to.be.equal(uniBought);
+            const holdingsKNCAmount = await context.nestedRecords.getAssetHolding(1, context.mockKNC.address);
+            expect(holdingsKNCAmount).to.be.equal(kncBought);
         });
 
         it("Creates NFT from DAI with KNI and UNI inside (ZeroExOperator) with more than needed", async () => {
@@ -399,9 +406,10 @@ describe("NestedFactory", () => {
                 .to.emit(context.nestedFactory, "NftCreated")
                 .withArgs(1, 0);
 
-            // The FeeSplitter must receive the DAI in excess
-            expect(await context.mockDAI.balanceOf(context.feeSplitter.address)).to.be.equal(
-                totalToSpend.sub(totalToBought),
+            // The user must receive the DAI in excess
+            expect(await context.mockDAI.balanceOf(context.user1.address)).to.be.equal(
+                // (1000 - 20) + (20 - 10 - 0.1)
+                context.baseAmount.sub(totalToSpend).add(totalToSpend.sub(totalToBought).sub(totalToBought.div(100))),
             );
 
             const totalWeigths = await context.feeSplitter.totalWeights();
@@ -410,10 +418,10 @@ describe("NestedFactory", () => {
             // Shareholders DAI received
             expect(
                 await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockDAI.address),
-            ).to.equal(totalToSpend.sub(totalToBought).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
+            ).to.equal(totalToBought.div(100).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
             expect(
                 await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockDAI.address),
-            ).to.equal(totalToSpend.sub(totalToBought).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
+            ).to.equal(totalToBought.div(100).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
         });
 
         it("Replicates NFT from DAI with KNI and UNI inside (ZeroExOperator) with more than needed", async () => {
@@ -446,9 +454,13 @@ describe("NestedFactory", () => {
                 .to.emit(context.nestedFactory, "NftCreated")
                 .withArgs(2, 1);
 
-            // The FeeSplitter must receive the DAI in excess
-            expect(await context.mockDAI.balanceOf(context.feeSplitter.address)).to.be.equal(
-                totalToSpend.sub(totalToBought).add(getExpectedFees(totalToBought)),
+            // The user must receive the DAI in excess
+            expect(await context.mockDAI.balanceOf(context.user1.address)).to.be.equal(
+                // (1000 - 20) + (20 - 10 - 0.1)
+                context.baseAmount
+                    .sub(appendDecimals(10).add(getExpectedFees(totalToBought)))
+                    .sub(totalToSpend)
+                    .add(totalToSpend.sub(totalToBought).sub(totalToBought.div(100))),
             );
 
             const totalWeigths = await context.feeSplitter.totalWeights();
@@ -457,22 +469,22 @@ describe("NestedFactory", () => {
             expect(
                 await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockDAI.address),
             ).to.equal(
-                totalToSpend
-                    .sub(totalToBought)
+                totalToBought
+                    .div(100)
                     .mul(1000)
                     .div(totalWeigths.sub(royaltiesWeight))
-                    .add(getExpectedFees(totalToBought).mul(1000).div(totalWeigths))
-                    .add(1),
+                    .add(getExpectedFees(totalToBought).mul(1000).div(totalWeigths)),
             );
 
             expect(
                 await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockDAI.address),
             ).to.equal(
-                totalToSpend
-                    .sub(totalToBought)
+                totalToBought
+                    .div(100)
                     .mul(1700)
                     .div(totalWeigths.sub(royaltiesWeight))
-                    .add(getExpectedFees(totalToBought).mul(1700).div(totalWeigths)),
+                    .add(getExpectedFees(totalToBought).mul(1700).div(totalWeigths))
+                    .add(1),
             );
 
             expect(await context.feeSplitter.getAmountDue(context.user1.address, context.mockDAI.address)).to.equal(
@@ -528,10 +540,7 @@ describe("NestedFactory", () => {
         let baseExpectedFee = getExpectedFees(baseTotalToBought);
         let baseTotalToSpend = baseTotalToBought.add(baseExpectedFee);
 
-        beforeEach("Set reserve and create NFT (id 1)", async () => {
-            // set reserve
-            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
-
+        beforeEach("Create NFT (id 1)", async () => {
             // create nft 1 with UNI and KNC from DAI (use the base amounts)
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
@@ -543,7 +552,7 @@ describe("NestedFactory", () => {
             let orders: OrderStruct[] = [];
             await expect(
                 context.nestedFactory.connect(context.user1).addTokens(1, context.mockDAI.address, 0, orders),
-            ).to.be.revertedWith("NestedFactory::addTokens: Missing orders");
+            ).to.be.revertedWith("NF: INVALID_ORDERS");
         });
 
         it("reverts if bad calldatas", async () => {
@@ -573,7 +582,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .addTokens(1, context.mockDAI.address, totalToSpend, orders),
-            ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
         it("cant add tokens to nonexistent portfolio", async () => {
@@ -607,7 +616,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.masterDeployer)
                     .addTokens(1, context.mockDAI.address, totalToSpend, orders),
-            ).to.be.revertedWith("NestedFactory: Not the token owner");
+            ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
         it("reverts if wrong output token in calldata", async () => {
@@ -638,7 +647,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .addTokens(1, context.mockDAI.address, totalToSpend, orders),
-            ).to.be.revertedWith("OperatorHelpers::decodeDataAndRequire: Wrong output token");
+            ).to.be.revertedWith("OH: INVALID_OUTPUT_TOKEN");
         });
 
         it("reverts if the DAI amount is less than total sum of DAI sales", async () => {
@@ -730,12 +739,10 @@ describe("NestedFactory", () => {
             );
 
             // Must have the right amount in the holdings
-            const holdingsUNI = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
-            expect(holdingsUNI.token).to.be.equal(context.mockUNI.address);
-            expect(holdingsUNI.amount).to.be.equal(uniBought.add(baseUniBought));
-            const holdingsKNC = await context.nestedRecords.getAssetHolding(1, context.mockKNC.address);
-            expect(holdingsKNC.token).to.be.equal(context.mockKNC.address);
-            expect(holdingsKNC.amount).to.be.equal(kncBought.add(baseKncBought));
+            const holdingsUNIAmount = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
+            expect(holdingsUNIAmount).to.be.equal(uniBought.add(baseUniBought));
+            const holdingsKNCAmount = await context.nestedRecords.getAssetHolding(1, context.mockKNC.address);
+            expect(holdingsKNCAmount).to.be.equal(kncBought.add(baseKncBought));
         });
 
         it("increase KNI and UNI amount from DAI (ZeroExOperator) with more than needed", async () => {
@@ -756,36 +763,23 @@ describe("NestedFactory", () => {
                 .connect(context.user1)
                 .addTokens(1, context.mockDAI.address, totalToSpend, orders);
 
-            // The FeeSplitter must receive the DAI in excess
-            expect(await context.mockDAI.balanceOf(context.feeSplitter.address)).to.be.equal(
-                totalToSpend.add(baseTotalToSpend).sub(totalToBought).sub(baseTotalToBought),
+            // The user must receive the DAI in excess
+            expect(await context.mockDAI.balanceOf(context.user1.address)).to.be.equal(
+                context.baseAmount
+                    .sub(totalToSpend.add(baseTotalToSpend))
+                    .add(totalToSpend.sub(totalToBought).sub(totalToBought.div(100))),
             );
 
             const totalWeigths = await context.feeSplitter.totalWeights();
             const royaltiesWeight = await context.feeSplitter.royaltiesWeight();
+
             // add/sub one bc of solidity rounding
             expect(
                 await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockDAI.address),
-            ).to.equal(
-                totalToSpend
-                    .add(baseTotalToSpend)
-                    .sub(totalToBought)
-                    .sub(baseTotalToBought)
-                    .mul(1000)
-                    .div(totalWeigths.sub(royaltiesWeight))
-                    .add(1),
-            );
+            ).to.equal(baseExpectedFee.add(totalToBought.div(100)).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
             expect(
                 await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockDAI.address),
-            ).to.equal(
-                totalToSpend
-                    .add(baseTotalToSpend)
-                    .sub(totalToBought)
-                    .sub(baseTotalToBought)
-                    .mul(1700)
-                    .div(totalWeigths.sub(royaltiesWeight))
-                    .sub(1),
-            );
+            ).to.equal(baseExpectedFee.add(totalToBought.div(100)).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
         });
 
         it("add new token (DAI) from ETH", async () => {
@@ -825,15 +819,12 @@ describe("NestedFactory", () => {
             );
 
             // Must have the right amount in the holdings
-            const holdingsUNI = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
-            expect(holdingsUNI.token).to.be.equal(context.mockUNI.address);
-            expect(holdingsUNI.amount).to.be.equal(baseUniBought);
-            const holdingsKNC = await context.nestedRecords.getAssetHolding(1, context.mockKNC.address);
-            expect(holdingsKNC.token).to.be.equal(context.mockKNC.address);
-            expect(holdingsKNC.amount).to.be.equal(baseKncBought);
-            const holdingsDAI = await context.nestedRecords.getAssetHolding(1, context.mockDAI.address);
-            expect(holdingsDAI.token).to.be.equal(context.mockDAI.address);
-            expect(holdingsDAI.amount).to.be.equal(daiBought);
+            const holdingsUNIAmount = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
+            expect(holdingsUNIAmount).to.be.equal(baseUniBought);
+            const holdingsKNCAmount = await context.nestedRecords.getAssetHolding(1, context.mockKNC.address);
+            expect(holdingsKNCAmount).to.be.equal(baseKncBought);
+            const holdingsDAIAmount = await context.nestedRecords.getAssetHolding(1, context.mockDAI.address);
+            expect(holdingsDAIAmount).to.be.equal(daiBought);
         });
     });
 
@@ -845,10 +836,7 @@ describe("NestedFactory", () => {
         let baseExpectedFee = getExpectedFees(baseTotalToBought);
         let baseTotalToSpend = baseTotalToBought.add(baseExpectedFee);
 
-        beforeEach("Set reserve and create NFT (id 1)", async () => {
-            // set reserve
-            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
-
+        beforeEach("Create NFT (id 1)", async () => {
             // create nft 1 with UNI and KNC from DAI (use the base amounts)
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
@@ -863,7 +851,7 @@ describe("NestedFactory", () => {
                     context.nestedFactory
                         .connect(context.user1)
                         .swapTokenForTokens(1, context.mockUNI.address, 0, orders),
-                ).to.be.revertedWith("NestedFactory::addTokens: Missing orders");
+                ).to.be.revertedWith("NF: INVALID_ORDERS");
             });
         });
 
@@ -895,7 +883,7 @@ describe("NestedFactory", () => {
                     context.nestedFactory
                         .connect(context.user1)
                         .swapTokenForTokens(1, context.mockUNI.address, totalToSpend, orders),
-                ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+                ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
             });
         });
 
@@ -936,7 +924,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.masterDeployer)
                     .swapTokenForTokens(1, context.mockDAI.address, totalToSpend, orders),
-            ).to.be.revertedWith("NestedFactory: Not the token owner");
+            ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
         it("reverts if the UNI amount in portfolio is less than total sum of UNI sales", async () => {
@@ -981,7 +969,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .swapTokenForTokens(1, context.mockUNI.address, totalToSpend, orders),
-            ).to.be.revertedWith("NestedFactory:_transferInputTokens: Insufficient amount");
+            ).to.be.revertedWith("NF: INSUFFICIENT_AMOUNT_IN");
         });
 
         it("increase UNI amount from KNC in portfolio (ZeroExOperator) with right amounts", async () => {
@@ -1024,9 +1012,8 @@ describe("NestedFactory", () => {
             );
 
             // Must have the right amount in the holdings
-            const holdingsUNI = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
-            expect(holdingsUNI.token).to.be.equal(context.mockUNI.address);
-            expect(holdingsUNI.amount).to.be.equal(uniBought.add(baseUniBought));
+            const holdingsUNIAmount = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
+            expect(holdingsUNIAmount).to.be.equal(uniBought.add(baseUniBought));
         });
 
         it("increase UNI amount from KNC in portfolio (ZeroExOperator) with more than needed", async () => {
@@ -1054,19 +1041,19 @@ describe("NestedFactory", () => {
                 .to.emit(context.nestedFactory, "NftUpdated")
                 .withArgs(1);
 
-            // The FeeSplitter must receive the KNC in excess
-            expect(await context.mockKNC.balanceOf(context.feeSplitter.address)).to.be.equal(
-                totalToSpend.sub(uniBought),
+            // The user must receive the KNC in excess (inside the portfolio)
+            expect(await context.mockKNC.balanceOf(context.nestedReserve.address)).to.be.equal(
+                totalToSpend.sub(uniBought).sub(uniBought.div(100)),
             );
 
             const totalWeigths = await context.feeSplitter.totalWeights();
             const royaltiesWeight = await context.feeSplitter.royaltiesWeight();
             expect(
                 await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockKNC.address),
-            ).to.equal(totalToSpend.sub(uniBought).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
+            ).to.equal(uniBought.div(100).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
             expect(
                 await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockKNC.address),
-            ).to.equal(totalToSpend.sub(uniBought).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
+            ).to.equal(uniBought.div(100).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
         });
 
         it("swap UNI in portfolio for USDC (ZeroExOperator) with right amounts", async () => {
@@ -1100,15 +1087,12 @@ describe("NestedFactory", () => {
             );
 
             // Must have the right amount in the holdings
-            const holdingsUNI = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
-            expect(holdingsUNI.token).to.be.equal(context.mockUNI.address);
-            expect(holdingsUNI.amount).to.be.equal(baseUniBought.sub(totalToSpend));
-            const holdingsKNC = await context.nestedRecords.getAssetHolding(1, context.mockKNC.address);
-            expect(holdingsKNC.token).to.be.equal(context.mockKNC.address);
-            expect(holdingsKNC.amount).to.be.equal(baseKncBought);
-            const holdingsUSDC = await context.nestedRecords.getAssetHolding(1, context.mockUSDC.address);
-            expect(holdingsUSDC.token).to.be.equal(context.mockUSDC.address);
-            expect(holdingsUSDC.amount).to.be.equal(usdcBought);
+            const holdingsUNIAmount = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
+            expect(holdingsUNIAmount).to.be.equal(baseUniBought.sub(totalToSpend));
+            const holdingsKNCAmount = await context.nestedRecords.getAssetHolding(1, context.mockKNC.address);
+            expect(holdingsKNCAmount).to.be.equal(baseKncBought);
+            const holdingsUSDCAmount = await context.nestedRecords.getAssetHolding(1, context.mockUSDC.address);
+            expect(holdingsUSDCAmount).to.be.equal(usdcBought);
         });
     });
 
@@ -1120,10 +1104,7 @@ describe("NestedFactory", () => {
         let baseExpectedFee = getExpectedFees(baseTotalToBought);
         let baseTotalToSpend = baseTotalToBought.add(baseExpectedFee);
 
-        beforeEach("Set reserve and create NFT (id 1)", async () => {
-            // set reserve
-            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
-
+        beforeEach("Create NFT (id 1)", async () => {
             // create nft 1 with UNI and KNC from DAI (use the base amounts)
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
@@ -1135,7 +1116,7 @@ describe("NestedFactory", () => {
             let orders: OrderStruct[] = [];
             await expect(
                 context.nestedFactory.connect(context.user1).sellTokensToNft(1, context.mockDAI.address, [], orders),
-            ).to.be.revertedWith("NestedFactory::sellTokensToNft: Missing orders");
+            ).to.be.revertedWith("NF: INVALID_ORDERS");
         });
 
         it("reverts if bad calldatas", async () => {
@@ -1163,7 +1144,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToNft(1, context.mockUSDC.address, [uniSold], orders),
-            ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
         it("cant swap tokens from nonexistent portfolio", async () => {
@@ -1193,7 +1174,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.masterDeployer)
                     .sellTokensToNft(1, context.mockUSDC.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("NestedFactory: Not the token owner");
+            ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
         it("cant swap tokens if orders dont match sell amounts (array size)", async () => {
@@ -1207,7 +1188,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToNft(1, context.mockUSDC.address, [uniSold], orders),
-            ).to.be.revertedWith("NestedFactory::sellTokensToNft: Input lengths must match");
+            ).to.be.revertedWith("NF: INPUTS_LENGTH_MUST_MATCH");
         });
 
         it("revert if spend more UNI than in reserve", async () => {
@@ -1221,7 +1202,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToNft(1, context.mockUSDC.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("NestedFactory:_transferInputTokens: Insufficient amount");
+            ).to.be.revertedWith("NF: INSUFFICIENT_AMOUNT_IN");
         });
 
         it("revert if try to sell more KNC than sell amount", async () => {
@@ -1237,7 +1218,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToNft(1, context.mockUSDC.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
         it("reverts if wrong output token in calldata", async () => {
@@ -1253,7 +1234,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToNft(1, context.mockDAI.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("OperatorHelpers::decodeDataAndRequire: Wrong output token");
+            ).to.be.revertedWith("OH: INVALID_OUTPUT_TOKEN");
         });
 
         it("swap KNC and UNI for USDC (ZeroExOperator) with right amounts", async () => {
@@ -1295,14 +1276,12 @@ describe("NestedFactory", () => {
             );
 
             // Must have the right amount in the holdings
-            const holdingsUNI = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
-            expect(holdingsUNI.token).to.be.equal(context.mockUNI.address);
-            expect(holdingsUNI.amount).to.be.equal(baseUniBought.sub(uniSold));
+            const holdingsUNIAmount = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
+            expect(holdingsUNIAmount).to.be.equal(baseUniBought.sub(uniSold));
 
             // Must have the right amount in the holdings
-            const holdingsUSDC = await context.nestedRecords.getAssetHolding(1, context.mockUSDC.address);
-            expect(holdingsUSDC.token).to.be.equal(context.mockUSDC.address);
-            expect(holdingsUSDC.amount).to.be.equal(usdcBought.sub(expectedUsdcFees));
+            const holdingsUSDCAmount = await context.nestedRecords.getAssetHolding(1, context.mockUSDC.address);
+            expect(holdingsUSDCAmount).to.be.equal(usdcBought.sub(expectedUsdcFees));
         });
 
         it("swap KNC and UNI for USDC (ZeroExOperator) with more than needed", async () => {
@@ -1325,13 +1304,13 @@ describe("NestedFactory", () => {
                 .to.emit(context.nestedFactory, "NftUpdated")
                 .withArgs(1);
 
-            // 3 UNI must be in the reserve
+            // 4 UNI must be in the reserve (6 UNI - 3 UNI, but 1 UNI in excess back to the reserve)
             expect(await context.mockUNI.balanceOf(context.nestedReserve.address)).to.be.equal(
-                baseUniBought.sub(uniSold),
+                baseUniBought.sub(uniSoldOrder),
             );
-            // 0 KNC must be in the reserve
+            // 1 KNC must be in the reserve (4 KNC - 4 KNC, but 1 KNC in excess back to the reserve)
             expect(await context.mockKNC.balanceOf(context.nestedReserve.address)).to.be.equal(
-                baseKncBought.sub(kncSold),
+                baseKncBought.sub(kncSoldOrder),
             );
             // 5 USDC - fees must be in the reserve
             expect(await context.mockUSDC.balanceOf(context.nestedReserve.address)).to.be.equal(
@@ -1341,11 +1320,13 @@ describe("NestedFactory", () => {
             // The FeeSplitter must receive the right fee amount (in USDC)
             expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(orderExpectedFee);
 
-            // The FeeSplitter must receive excess UNI
-            expect(await context.mockUNI.balanceOf(context.feeSplitter.address)).to.be.equal(uniSold.sub(uniSoldOrder));
+            // The user (portfolio) must receive excess UNI
+            const holdingUNIAmount = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
+            expect(holdingUNIAmount).to.be.equal(baseUniBought.sub(uniSoldOrder));
 
-            // The FeeSplitter must receive excess KNC
-            expect(await context.mockKNC.balanceOf(context.feeSplitter.address)).to.be.equal(kncSold.sub(kncSoldOrder));
+            // The user (portfolio) must receive excess KNC
+            const holdingKNCAmount = await context.nestedRecords.getAssetHolding(1, context.mockKNC.address);
+            expect(holdingKNCAmount).to.be.equal(baseKncBought.sub(kncSoldOrder));
 
             const totalWeigths = await context.feeSplitter.totalWeights();
             const royaltiesWeight = await context.feeSplitter.royaltiesWeight();
@@ -1358,35 +1339,10 @@ describe("NestedFactory", () => {
                 await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockUSDC.address),
             ).to.equal(orderExpectedFee.mul(1700).div(totalWeigths.sub(royaltiesWeight)));
 
-            // Shareholders UNI received
-            expect(
-                await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockUNI.address),
-            ).to.equal(uniSold.sub(uniSoldOrder).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
-            expect(
-                await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockUNI.address),
-            ).to.equal(uniSold.sub(uniSoldOrder).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
-
-            // Shareholders KNC received
-            expect(
-                await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockKNC.address),
-            ).to.equal(kncSold.sub(kncSoldOrder).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
-            expect(
-                await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockKNC.address),
-            ).to.equal(kncSold.sub(kncSoldOrder).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
-
-            // Must store UNI, and USDC in the records of the NFT
+            // Must store UNI, KNC, and USDC in the records of the NFT (KNC is not removed because of excess KNC)
             expect(await context.nestedRecords.getAssetTokens(1).then(value => value.toString())).to.be.equal(
-                [context.mockUNI.address, context.mockUSDC.address].toString(),
+                [context.mockUNI.address, context.mockKNC.address, context.mockUSDC.address].toString(),
             );
-
-            // Must have the right amount in the holdings
-            const holdingsUNI = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
-            expect(holdingsUNI.token).to.be.equal(context.mockUNI.address);
-            expect(holdingsUNI.amount).to.be.equal(baseUniBought.sub(uniSold));
-
-            const holdingsUSDC = await context.nestedRecords.getAssetHolding(1, context.mockUSDC.address);
-            expect(holdingsUSDC.token).to.be.equal(context.mockUSDC.address);
-            expect(holdingsUSDC.amount).to.be.equal(usdcBoughtOrder.sub(orderExpectedFee));
         });
     });
 
@@ -1399,10 +1355,7 @@ describe("NestedFactory", () => {
         let baseExpectedFee = getExpectedFees(baseTotalToBought);
         let baseTotalToSpend = baseTotalToBought.add(baseExpectedFee);
 
-        beforeEach("Set reserve and create NFT (id 1)", async () => {
-            // set reserve
-            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
-
+        beforeEach("Create NFT (id 1)", async () => {
             // create nft 1 with UNI and KNC from DAI (use the base amounts)
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
@@ -1414,7 +1367,7 @@ describe("NestedFactory", () => {
             let orders: OrderStruct[] = [];
             await expect(
                 context.nestedFactory.connect(context.user1).sellTokensToWallet(1, context.mockDAI.address, [], orders),
-            ).to.be.revertedWith("NestedFactory::sellTokensToWallet: Missing orders");
+            ).to.be.revertedWith("NF: INVALID_ORDERS");
         });
 
         it("reverts if bad calldatas", async () => {
@@ -1442,7 +1395,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToWallet(1, context.mockUSDC.address, [uniSold], orders),
-            ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
         it("cant swap tokens from nonexistent portfolio", async () => {
@@ -1472,7 +1425,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.masterDeployer)
                     .sellTokensToWallet(1, context.mockUSDC.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("NestedFactory: Not the token owner");
+            ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
         it("cant swap tokens if orders dont match sell amounts (array size)", async () => {
@@ -1486,7 +1439,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToWallet(1, context.mockUSDC.address, [uniSold], orders),
-            ).to.be.revertedWith("NestedFactory::sellTokensToWallet: Input lengths must match");
+            ).to.be.revertedWith("NF: INPUTS_LENGTH_MUST_MATCH");
         });
 
         it("revert if spend more UNI than in reserve", async () => {
@@ -1500,7 +1453,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToWallet(1, context.mockUSDC.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("NestedFactory:_transferInputTokens: Insufficient amount");
+            ).to.be.revertedWith("NF: INSUFFICIENT_AMOUNT_IN");
         });
 
         it("revert if try to sell more KNC than sell amount", async () => {
@@ -1516,7 +1469,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToWallet(1, context.mockUSDC.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("NestedFactory::_submitOrder: Operator call failed");
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
         it("reverts if wrong output token in calldata", async () => {
@@ -1532,7 +1485,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .sellTokensToWallet(1, context.mockDAI.address, [uniSold, kncSold], orders),
-            ).to.be.revertedWith("OperatorHelpers::decodeDataAndRequire: Wrong output token");
+            ).to.be.revertedWith("OH: INVALID_OUTPUT_TOKEN");
         });
 
         it("swap KNC and UNI for USDC (ZeroExOperator) with right amounts", async () => {
@@ -1572,9 +1525,8 @@ describe("NestedFactory", () => {
             );
 
             // Must have the right amount in the holdings
-            const holdingsUNI = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
-            expect(holdingsUNI.token).to.be.equal(context.mockUNI.address);
-            expect(holdingsUNI.amount).to.be.equal(baseUniBought.sub(uniSold));
+            const holdingsUNIAmount = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
+            expect(holdingsUNIAmount).to.be.equal(baseUniBought.sub(uniSold));
 
             expect(await context.mockUSDC.balanceOf(context.user1.address)).to.be.equal(
                 context.baseAmount.add(usdcBought.sub(expectedUsdcFees)),
@@ -1600,13 +1552,13 @@ describe("NestedFactory", () => {
                 .to.emit(context.nestedFactory, "NftUpdated")
                 .withArgs(1);
 
-            // 3 UNI must be in the reserve
+            // 4 UNI must be in the reserve (6 UNI - 3 UNI, but 1 UNI in excess back to the reserve)
             expect(await context.mockUNI.balanceOf(context.nestedReserve.address)).to.be.equal(
-                baseUniBought.sub(uniSold),
+                baseUniBought.sub(uniSoldOrder),
             );
-            // 0 KNC must be in the reserve
+            // 1 KNC must be in the reserve (4 KNC - 4 KNC, but 1 KNC in excess back to the reserve)
             expect(await context.mockKNC.balanceOf(context.nestedReserve.address)).to.be.equal(
-                baseKncBought.sub(kncSold),
+                baseKncBought.sub(kncSoldOrder),
             );
             // 0 USDC must be in the reserve
             expect(await context.mockUSDC.balanceOf(context.nestedReserve.address)).to.be.equal(BigNumber.from(0));
@@ -1614,11 +1566,13 @@ describe("NestedFactory", () => {
             // The FeeSplitter must receive the right fee amount (in USDC)
             expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(orderExpectedFee);
 
-            // The FeeSplitter must receive excess UNI
-            expect(await context.mockUNI.balanceOf(context.feeSplitter.address)).to.be.equal(uniSold.sub(uniSoldOrder));
+            // The user (portfolio) must receive excess UNI
+            const holdingUNIAmount = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
+            expect(holdingUNIAmount).to.be.equal(baseUniBought.sub(uniSoldOrder));
 
-            // The FeeSplitter must receive excess KNC
-            expect(await context.mockKNC.balanceOf(context.feeSplitter.address)).to.be.equal(kncSold.sub(kncSoldOrder));
+            // The user (portfolio) must receive excess KNC
+            const holdingKNCAmount = await context.nestedRecords.getAssetHolding(1, context.mockKNC.address);
+            expect(holdingKNCAmount).to.be.equal(baseKncBought.sub(kncSoldOrder));
 
             const totalWeigths = await context.feeSplitter.totalWeights();
             const royaltiesWeight = await context.feeSplitter.royaltiesWeight();
@@ -1631,31 +1585,10 @@ describe("NestedFactory", () => {
                 await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockUSDC.address),
             ).to.equal(orderExpectedFee.mul(1700).div(totalWeigths.sub(royaltiesWeight)));
 
-            // Shareholders UNI received
-            expect(
-                await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockUNI.address),
-            ).to.equal(uniSold.sub(uniSoldOrder).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
-            expect(
-                await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockUNI.address),
-            ).to.equal(uniSold.sub(uniSoldOrder).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
-
-            // Shareholders KNC received
-            expect(
-                await context.feeSplitter.getAmountDue(context.shareholder1.address, context.mockKNC.address),
-            ).to.equal(kncSold.sub(kncSoldOrder).mul(1000).div(totalWeigths.sub(royaltiesWeight)));
-            expect(
-                await context.feeSplitter.getAmountDue(context.shareholder2.address, context.mockKNC.address),
-            ).to.equal(kncSold.sub(kncSoldOrder).mul(1700).div(totalWeigths.sub(royaltiesWeight)));
-
-            // Must store UNI, and USDC in the records of the NFT
+            // Must store UNI, and KNC (because of excess KNC) in the records of the NFT
             expect(await context.nestedRecords.getAssetTokens(1).then(value => value.toString())).to.be.equal(
-                [context.mockUNI.address].toString(),
+                [context.mockUNI.address, context.mockKNC.address].toString(),
             );
-
-            // Must have the right amount in the holdings
-            const holdingsUNI = await context.nestedRecords.getAssetHolding(1, context.mockUNI.address);
-            expect(holdingsUNI.token).to.be.equal(context.mockUNI.address);
-            expect(holdingsUNI.amount).to.be.equal(baseUniBought.sub(uniSold));
         });
     });
 
@@ -1667,10 +1600,7 @@ describe("NestedFactory", () => {
         let baseExpectedFee = getExpectedFees(baseTotalToBought);
         let baseTotalToSpend = baseTotalToBought.add(baseExpectedFee);
 
-        beforeEach("Set reserve and create NFT (id 1)", async () => {
-            // set reserve
-            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
-
+        beforeEach("Create NFT (id 1)", async () => {
             // create nft 1 with UNI and KNC from DAI (use the base amounts)
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
@@ -1682,7 +1612,7 @@ describe("NestedFactory", () => {
             let orders: OrderStruct[] = [];
             await expect(
                 context.nestedFactory.connect(context.user1).destroy(1, context.mockDAI.address, orders),
-            ).to.be.revertedWith("NestedFactory::destroy: Missing orders");
+            ).to.be.revertedWith("NF: INVALID_ORDERS");
         });
 
         it("doesnt revert if bad calldatas (safe destroy)", async () => {
@@ -1746,7 +1676,7 @@ describe("NestedFactory", () => {
             // Master Deployer is not the owner of NFT 1
             await expect(
                 context.nestedFactory.connect(context.masterDeployer).destroy(1, context.mockUSDC.address, orders),
-            ).to.be.revertedWith("NestedFactory: Not the token owner");
+            ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
         it("revert if holdings and orders don't match", async () => {
@@ -1772,7 +1702,7 @@ describe("NestedFactory", () => {
 
             await expect(
                 context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders),
-            ).to.be.revertedWith("NestedFactory::destroy: Missing sell args");
+            ).to.be.revertedWith("NF: INPUTS_LENGTH_MUST_MATCH");
         });
 
         it("doesnt revert if spend more UNI than in reserve and withdraw (safe destroy)", async () => {
@@ -1893,10 +1823,7 @@ describe("NestedFactory", () => {
         let baseExpectedFee = getExpectedFees(baseTotalToBought);
         let baseTotalToSpend = baseTotalToBought.add(baseExpectedFee);
 
-        beforeEach("Set reserve and create NFT (id 1)", async () => {
-            // set reserve
-            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
-
+        beforeEach("Create NFT (id 1)", async () => {
             // create nft 1 with UNI and KNC from DAI (use the base amounts)
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
@@ -1906,7 +1833,7 @@ describe("NestedFactory", () => {
 
         it("cant withdraw from another user portfolio", async () => {
             await expect(context.nestedFactory.connect(context.masterDeployer).withdraw(1, 1)).to.be.revertedWith(
-                "NestedFactory: Not the token owner",
+                "NF: CALLER_NOT_OWNER",
             );
         });
 
@@ -1919,7 +1846,7 @@ describe("NestedFactory", () => {
         it("cant withdraw if wrong token index", async () => {
             // KNC => Index 1
             await expect(context.nestedFactory.connect(context.user1).withdraw(1, 2)).to.be.revertedWith(
-                "NestedFactory::withdraw: Invalid token index",
+                "NF: INVALID_TOKEN_INDEX",
             );
         });
 
@@ -1948,7 +1875,7 @@ describe("NestedFactory", () => {
 
             // Should not me able to withdraw UNI (the last token)
             await expect(context.nestedFactory.connect(context.user1).withdraw(1, 0)).to.be.revertedWith(
-                "NestedFactory::withdraw: Can't withdraw the last asset",
+                "NF: UNALLOWED_EMPTY_PORTFOLIO",
             );
         });
     });
@@ -1961,10 +1888,7 @@ describe("NestedFactory", () => {
         let baseExpectedFee = getExpectedFees(baseTotalToBought);
         let baseTotalToSpend = baseTotalToBought.add(baseExpectedFee);
 
-        beforeEach("Set reserve and create NFT (id 1)", async () => {
-            // set reserve
-            await context.nestedFactory.connect(context.masterDeployer).setReserve(context.nestedReserve.address);
-
+        beforeEach("Create NFT (id 1)", async () => {
             // create nft 1 with UNI and KNC from DAI (use the base amounts)
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
@@ -1975,7 +1899,7 @@ describe("NestedFactory", () => {
         it("cant increase if another user portfolio", async () => {
             await expect(
                 context.nestedFactory.connect(context.masterDeployer).increaseLockTimestamp(1, Date.now()),
-            ).to.be.revertedWith("NestedFactory: Not the token owner");
+            ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
         it("cant increase nonexistent portfolio", async () => {
@@ -1988,7 +1912,7 @@ describe("NestedFactory", () => {
             await context.nestedFactory.connect(context.user1).increaseLockTimestamp(1, Date.now());
             await expect(
                 context.nestedFactory.connect(context.user1).increaseLockTimestamp(1, Date.now() - 1000),
-            ).to.be.revertedWith("NestedRecords::increaseLockTimestamp: Can't decrease timestamp");
+            ).to.be.revertedWith("NRC: LOCK_PERIOD_CANT_DECREASE");
         });
 
         /*
@@ -2001,7 +1925,7 @@ describe("NestedFactory", () => {
                 .withArgs(1, Date.now() + 1000);
 
             await expect(context.nestedFactory.connect(context.user1).withdraw(1, 0)).to.be.revertedWith(
-                "NestedFactory: The NFT is currently locked",
+                "NF: LOCKED_NFT",
             );
         });
 

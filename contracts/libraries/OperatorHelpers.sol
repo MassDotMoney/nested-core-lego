@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.8.9;
+pragma solidity 0.8.11;
 
 import "../interfaces/IOperatorSelector.sol";
 
@@ -46,9 +46,9 @@ library OperatorHelpers {
         bytes memory _data,
         address _inputToken,
         address _outputToken
-    ) internal returns (uint256[] memory amounts, address[] memory tokens) {
+    ) internal pure returns (uint256[] memory amounts, address[] memory tokens) {
         (amounts, tokens) = abi.decode(_data, (uint256[], address[]));
-        require(tokens[0] == _outputToken, "OperatorHelpers::decodeDataAndRequire: Wrong output token");
-        require(tokens[1] == _inputToken, "OperatorHelpers::decodeDataAndRequire: Wrong input token");
+        require(tokens[0] == _outputToken, "OH: INVALID_OUTPUT_TOKEN");
+        require(tokens[1] == _inputToken, "OH: INVALID_OUTPUT_TOKEN");
     }
 }
