@@ -28,7 +28,7 @@ describe("NestedReserve", () => {
         mockUNI = await mockERC20.deploy("Mocked UNI", "INU", 0);
         await mockUNI.mint(reserve.address, amountToTransfer);
     });
-
+  
     describe("#transfer", () => {
         it("transfer the funds", async () => {
             await reserve.transfer(alice.address, mockUNI.address, amountToTransfer);

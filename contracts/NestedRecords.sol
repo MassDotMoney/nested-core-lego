@@ -102,7 +102,7 @@ contract NestedRecords is OwnableFactoryHandler {
         records[_nftId].tokens.push(_token);
         records[_nftId].reserve = _reserve;
     }
-
+    
     /// @notice Sets the factory for Nested records
     /// @param _factory The address of the new factory
     function setFactory(address _factory) external onlyOwner {
