@@ -10,6 +10,7 @@
         "FeeSplitter": "",
         "OperatorResolver": "",
         "ZeroExOperator": "",
+        "ZeroExStorage": "",
         "FlatOperator": "",
         "Timelock": "",
         "config" : {
@@ -22,44 +23,46 @@
     },
     "56": {
         "name": "bsc",
-        "Deployer": "",
+        "Deployer": "0xb7eb3F6a9abCae7559484fB126B8F872781Cf9dD",
         "NestedFactoryProxy": "",
-        "NestedFactory_1": "",
-        "NestedRecords": "",
-        "NestedReserve": "",
-        "NestedAsset": "",
-        "FeeSplitter": "",
-        "OperatorResolver": "",
-        "ZeroExOperator": "",
-        "FlatOperator": "",
-        "Timelock": "",
+        "NestedFactory_1": "0x1dB81116467789b7dCC3B070ee8f5aA4d90D6940",
+        "NestedRecords": "0xb818DE71B8aCEe27C17a40446012663D4C71b437",
+        "NestedReserve": "0x6CBe14812B9d537878B975994948aeb917339331",
+        "NestedAsset": "0x33b28A80B270fd96D96D1B9573b3C514b25B068c",
+        "FeeSplitter": "0x75b03E73e80603F92a590c85F5BaB79AF863cbE5",
+        "OperatorResolver": "0xDB714302a7FFcc9610610a01126E1257B90a67A1",
+        "ZeroExOperator": "0x0535f1f43Ee274123291bbAB284948CAED46C65D",
+        "ZeroExStorage": "0xdf25a45bf16B2dea6f83FdaD3eD0f8D627F2e102",
+        "FlatOperator": "0x04A7307E94Fd83B2Fe88537729640EA7a0AD376B",
+        "Timelock": "0x78A7207f221B1f376A73F52dD27087B7708d829A",
         "config" : {
             "maxHoldingsCount": 15,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
-            "multisig": "",
-            "nestedTreasury": ""
+            "multisig": "0xD95c74A3041EEC4DC393F98A2180EE67903CcC4F",
+            "nestedTreasury": "0xb8725Ed917e4F3f2B3c6eb0a7C356206235f4f6A"
         }
     },
     "137": {
         "name": "polygon",
-        "Deployer": "",
+        "Deployer": "0xb7eb3F6a9abCae7559484fB126B8F872781Cf9dD",
         "NestedFactoryProxy": "",
-        "NestedFactory_1": "",
-        "NestedRecords": "",
-        "NestedReserve": "",
-        "NestedAsset": "",
-        "FeeSplitter": "",
-        "OperatorResolver": "",
-        "ZeroExOperator": "",
-        "FlatOperator": "",
-        "Timelock": "",
+        "NestedFactory_1": "0xD6D813e31558b45769B83E33Fe10cDef76128Ffc",
+        "NestedRecords": "0x0535f1f43Ee274123291bbAB284948CAED46C65D",
+        "NestedReserve": "0x04A7307E94Fd83B2Fe88537729640EA7a0AD376B",
+        "NestedAsset": "0xDB714302a7FFcc9610610a01126E1257B90a67A1",
+        "FeeSplitter": "0x6CBe14812B9d537878B975994948aeb917339331",
+        "OperatorResolver": "0x1dB81116467789b7dCC3B070ee8f5aA4d90D6940",
+        "ZeroExOperator": "0x9ca5249E3b889191980C4cB8ad6Ac55727d65a55",
+        "ZeroExStorage": "0xAD50f687E1267DD38695dB3747327AC2A03f932D",
+        "FlatOperator": "0x8792f0EE8E1dcfcDf69421fe98B9EB4752191Fe5",
+        "Timelock": "0x8b266F1D7313CF09cAe4d85ca72E3a3EbBCeaBC4",
         "config" : {
             "maxHoldingsCount": 15,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
-            "multisig": "0x18D05ACe27c6BCF2C4e839fA06bd9B53B213e29b",
-            "nestedTreasury": "0x18D05ACe27c6BCF2C4e839fA06bd9B53B213e29b"
+            "multisig": "0xf9B701cE5bc5E83C65301c733e1d91f18eF35d8E",
+            "nestedTreasury": "0x44FE6e6513BBf4e19Bbf421f3AA8ef60e15006AB"
         }
     },
     "42220": {
@@ -73,6 +76,7 @@
         "FeeSplitter": "",
         "OperatorResolver": "",
         "ZeroExOperator": "",
+        "ZeroExStorage": "",
         "FlatOperator": "",
         "Timelock": "",
         "config" : {
@@ -80,28 +84,29 @@
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0x471ece3750da237f93b8e339c536989b8978a438",
             "multisig": "",
-            "nestedTreasury": ""
+            "nestedTreasury": "0x4d32736631239B662D034724730375BBC5B8299d"
         }
     },
     "43114": {
         "name": "avalanche",
-        "Deployer": "",
+        "Deployer": "0xb7eb3F6a9abCae7559484fB126B8F872781Cf9dD",
         "NestedFactoryProxy": "",
-        "NestedFactory_1": "",
-        "NestedRecords": "",
-        "NestedReserve": "",
-        "NestedAsset": "",
-        "FeeSplitter": "",
-        "OperatorResolver": "",
-        "ZeroExOperator": "",
-        "FlatOperator": "",
-        "Timelock": "",
+        "NestedFactory_1": "0x1dB81116467789b7dCC3B070ee8f5aA4d90D6940",
+        "NestedRecords": "0xb818DE71B8aCEe27C17a40446012663D4C71b437",
+        "NestedReserve": "0x6CBe14812B9d537878B975994948aeb917339331",
+        "NestedAsset": "0x33b28A80B270fd96D96D1B9573b3C514b25B068c",
+        "FeeSplitter": "0x75b03E73e80603F92a590c85F5BaB79AF863cbE5",
+        "OperatorResolver": "0xDB714302a7FFcc9610610a01126E1257B90a67A1",
+        "ZeroExOperator": "0x0535f1f43Ee274123291bbAB284948CAED46C65D",
+        "ZeroExStorage": "0xdf25a45bf16B2dea6f83FdaD3eD0f8D627F2e102",
+        "FlatOperator": "0x04A7307E94Fd83B2Fe88537729640EA7a0AD376B",
+        "Timelock": "0x78A7207f221B1f376A73F52dD27087B7708d829A",
         "config" : {
             "maxHoldingsCount": 15,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
-            "multisig": "",
-            "nestedTreasury": ""
+            "multisig": "0x4a9101F6266E912e99477D1557997bBe7054652a",
+            "nestedTreasury": "0x16019330CCf2e14E1C2A9562092415F6621b51BC"
         }
     }
 }

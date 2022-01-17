@@ -39,8 +39,7 @@ async function main(): Promise<void> {
     const zeroExOperatorFactory = await ethers.getContractFactory("ZeroExOperator");
     const nestedFactoryFactory = await ethers.getContractFactory("NestedFactory");
     const nestedReserveFactory = await ethers.getContractFactory("NestedReserve");
-    const transparentUpgradeableProxyFactory = await ethers.getContractFactory("TransparentUpgradeableProxy");
-
+    
     // Deploy FeeSplitter
     const feeSplitter = await feeSplitterFactory.deploy([nestedTreasury], [80], 20, WETH);
     await verify("FeeSplitter", feeSplitter, [[nestedTreasury], [80], 20, WETH]);
@@ -97,19 +96,12 @@ async function main(): Promise<void> {
         operatorResolver.address]);
     console.log("NestedFactory deployed : ", nestedFactory.address);
 
-    const owner = await nestedFactory.owner();
-
-    // Deploy FactoryProxy
-    const factoryProxy = await transparentUpgradeableProxyFactory.deploy(nestedFactory.address, owner, []);
-    await verify("FactoryProxy", factoryProxy, [nestedFactory.address, owner, []]);
-    console.log("FactoryProxy deployed : ", factoryProxy.address);
-
     // Set factory to asset, records and reserve
-    let tx = await nestedAsset.addFactory(factoryProxy.address);
+    let tx = await nestedAsset.addFactory(nestedFactory.address);
     await tx.wait();
-    tx = await nestedRecords.addFactory(factoryProxy.address);
+    tx = await nestedRecords.addFactory(nestedFactory.address);
     await tx.wait();
-    tx = await nestedReserve.addFactory(factoryProxy.address);
+    tx = await nestedReserve.addFactory(nestedFactory.address);
     await tx.wait();
 
     // Add operators to OperatorResolver
@@ -128,6 +120,7 @@ async function main(): Promise<void> {
     await tx.wait();   
     tx = await nestedFactory.addOperator(flatOperatorNameBytes32);
     await tx.wait();   
+
     tx = await nestedFactory.rebuildCache();
     await tx.wait();   
 
