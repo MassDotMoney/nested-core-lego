@@ -49,6 +49,16 @@ interface INestedFactory {
         bool commit;
     }
 
+    /// @dev Represent multiple order for a token, for multiple exchanges.
+    /// @param token The token to exchange
+    /// @param amount The amount to transfer (input amount)
+    /// @param orders The orders to perform with "token" as the input token.
+    struct BatchedOrder {
+        IERC20 token;
+        uint256 amount;
+        Order[] orders;
+    }
+
     /// @notice Add an operator (name) for building cache
     /// @param operator The operator name to add
     function addOperator(bytes32 operator) external;
@@ -97,6 +107,11 @@ interface INestedFactory {
         uint256 _sellTokenAmount,
         Order[] calldata _orders
     ) external;
+
+    /// @notice Use multiple tokens from the portfolio for multiple positions.
+    /// @param _nftId The id of the NFT to update
+    /// @param  _batchedOrders Multiple orders batched
+    function swapTokensForTokens(uint256 _nftId, BatchedOrder[] calldata _batchedOrders) external;
 
     /// @notice Use one or more existing tokens from the NFT for one position.
     /// @param _nftId The id of the NFT to update

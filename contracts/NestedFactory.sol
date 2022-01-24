@@ -159,6 +159,33 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     }
 
     /// @inheritdoc INestedFactory
+    function swapTokensForTokens(uint256 _nftId, BatchedOrder[] calldata _batchedOrders)
+        external
+        override
+        nonReentrant
+        onlyTokenOwner(_nftId)
+        isUnlocked(_nftId)
+    {
+        require(_batchedOrders.length != 0, "NF: INVALID_MULTI_ORDERS");
+        require(nestedRecords.getAssetReserve(_nftId) == address(reserve), "NF: RESERVE_MISMATCH");
+
+        for (uint256 i = 0; i < _batchedOrders.length; i++) {
+            require(_batchedOrders[i].orders.length != 0, "NF: INVALID_ORDERS");
+            (uint256 fees, IERC20 tokenSold) = _submitInOrders(
+                _nftId,
+                _batchedOrders[i].token,
+                _batchedOrders[i].amount,
+                _batchedOrders[i].orders,
+                true,
+                true
+            );
+            _transferFeeWithRoyalty(fees, tokenSold, _nftId);
+        }
+
+        emit NftUpdated(_nftId);
+    }
+
+    /// @inheritdoc INestedFactory
     function sellTokensToNft(
         uint256 _nftId,
         IERC20 _buyToken,
