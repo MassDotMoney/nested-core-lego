@@ -102,14 +102,6 @@ contract NestedRecords is OwnableFactoryHandler {
         records[_nftId].tokens.push(_token);
         records[_nftId].reserve = _reserve;
     }
-    
-    /// @notice Sets the factory for Nested records
-    /// @param _factory The address of the new factory
-    function setFactory(address _factory) external onlyOwner {
-        require(_factory != address(0), "NestedRecords: INVALID_ADDRESS");
-        supportedFactories[_factory] = true;
-        emit FactoryAdded(_factory);
-    }
 
     /// @notice The factory can update the lock timestamp of a NFT record
     /// The new timestamp must be greater than the records lockTimestamp
