@@ -24,6 +24,7 @@ export type OperatorResolverFixture = { operatorResolver: OperatorResolver };
 
 export const operatorResolverFixture: Fixture<OperatorResolverFixture> = async (wallets, provider) => {
     const signer = new ActorFixture(wallets as Wallet[], provider).addressResolverOwner();
+    await network.provider.send("hardhat_setBalance", [signer.address, appendDecimals(100000000000000000).toHexString()]);
 
     const operatorResolverFactory = await ethers.getContractFactory("OperatorResolver");
     const operatorResolver = await operatorResolverFactory.connect(signer).deploy();
@@ -185,6 +186,10 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
     // Get the user1 actor
     const user1 = new ActorFixture(wallets as Wallet[], provider).user1();
 
+    // add ether to wallets
+    await network.provider.send("hardhat_setBalance", [masterDeployer.address, appendDecimals(100000000000000000).toHexString()]);
+    await network.provider.send("hardhat_setBalance", [user1.address, appendDecimals(100000000000000000).toHexString()]);
+
     // Set factory to asset, records and reserve
     await nestedAsset.connect(masterDeployer).addFactory(nestedFactory.address);
     await nestedRecords.connect(masterDeployer).addFactory(nestedFactory.address);
@@ -210,7 +215,6 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
     const baseAmount = appendDecimals(1000);
 
     // Send funds to User and router
-    await network.provider.send("hardhat_setBalance", [user1.address, baseAmount.toHexString()]);
     await mockUNI.connect(masterDeployer).transfer(dummyRouter.address, baseAmount);
     await mockKNC.connect(masterDeployer).transfer(dummyRouter.address, baseAmount);
     await mockDAI.connect(masterDeployer).transfer(dummyRouter.address, baseAmount);
