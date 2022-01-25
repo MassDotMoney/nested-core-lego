@@ -54,7 +54,7 @@
         "prettier-plugin-solidity": "^1.0.0-beta.18",
         "solhint": "^3.3.4",
         "solhint-plugin-prettier": "^0.0.5",
-        "solidity-coverage": "^0.7.16",
+        "solidity-coverage": "0.7.18",
         "synthetix": "^2.50.0-ovm-alpha",
         "ts-node": "^9.1.1",
         "typechain": "^5.1.2",
