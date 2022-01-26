@@ -73,39 +73,27 @@ interface INestedFactory {
 
     /// @notice Create a portfolio and store the underlying assets from the positions
     /// @param _originalTokenId The id of the NFT replicated, 0 if not replicating
-    /// @param _sellToken Token used to make the orders
-    /// @param _sellTokenAmount Amount of sell tokens to use
-    /// @param _orders Orders calldata
+    /// @param _batch The order to execute
     function create(
         uint256 _originalTokenId,
-        IERC20 _sellToken,
-        uint256 _sellTokenAmount,
-        Order[] calldata _orders
+        BatchedOrder calldata _batch
     ) external payable;
 
     /// @notice Add or increase one position (or more) and update the NFT
     /// @param _nftId The id of the NFT to update
-    /// @param _sellToken Token used to make the orders
-    /// @param _sellTokenAmount Amount of sell tokens to use
-    /// @param _orders Orders calldata
+    /// @param _batch The order to execute
     function addTokens(
         uint256 _nftId,
-        IERC20 _sellToken,
-        uint256 _sellTokenAmount,
-        Order[] calldata _orders
+        BatchedOrder calldata _batch
     ) external payable;
 
     /// @notice Use the output token of an existing position from
     /// the NFT for one or more positions.
     /// @param _nftId The id of the NFT to update
-    /// @param _sellToken Token used to make the orders
-    /// @param _sellTokenAmount Amount of sell tokens to use
-    /// @param _orders Orders calldata
+    /// @param _batch The order to execute
     function swapTokenForTokens(
         uint256 _nftId,
-        IERC20 _sellToken,
-        uint256 _sellTokenAmount,
-        Order[] calldata _orders
+        BatchedOrder calldata _batch
     ) external;
 
     /// @notice Use multiple tokens from the portfolio for multiple positions.
