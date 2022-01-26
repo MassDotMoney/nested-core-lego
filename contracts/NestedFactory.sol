@@ -115,7 +115,6 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         uint256 _originalTokenId,
         BatchedOrders calldata _batchedOrders
     ) external payable override nonReentrant {
-
         uint256 nftId = nestedAsset.mint(_msgSender(), _originalTokenId);
         (uint256 fees, IERC20 tokenSold) = _submitInOrders(nftId, _batchedOrders, true, false);
 
