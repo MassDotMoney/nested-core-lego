@@ -110,6 +110,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         emit FeeSplitterUpdated(address(_feeSplitter));
     }
 
+    /// @inheritdoc INestedFactory
     function increaseLockTimestamp(uint256 _nftId, uint256 _timestamp) external override onlyTokenOwner(_nftId) {
         nestedRecords.updateLockTimestamp(_nftId, _timestamp);
     }
