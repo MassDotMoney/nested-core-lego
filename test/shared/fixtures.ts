@@ -172,7 +172,7 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
 
     // Deploy NestedFactory
     const nestedFactoryFactory = await ethers.getContractFactory("NestedFactory");
-    const nestedFactory = await nestedFactoryFactory
+    const nestedFactoryImpl = await nestedFactoryFactory
         .connect(masterDeployer)
         .deploy(
             nestedAsset.address,
@@ -182,7 +182,14 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
             WETH.address,
             operatorResolver.address,
         );
-    await nestedFactory.deployed();
+    await nestedFactoryImpl.deployed();
+
+    // Deploy TransparentUpgradeableProxy for NestedFactory
+    const transparentUpgradeableProxyFactory = await ethers.getContractFactory("TransparentUpgradeableProxy");
+    const factoryProxy = await transparentUpgradeableProxyFactory.connect(masterDeployer).deploy(nestedFactoryImpl.address, masterDeployer.address, []);
+    
+    // Attach NestedFactory ABI to TransparentUpgradeableProxy
+    const nestedFactory = await nestedFactoryFactory.attach(factoryProxy.address);
 
     // Get the user1 actor
     const user1 = new ActorFixture(wallets as Wallet[], provider).user1();
@@ -205,8 +212,20 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
         nestedFactory,
     );
 
+    // Initialize the owner in proxy storage by calling upgradeToAndCall
+    // It will upgrade with the same address (no side effects)
+    const initData = await nestedFactoryImpl.interface.encodeFunctionData("initialize", [masterDeployer.address]);
+    await factoryProxy.connect(masterDeployer).upgradeToAndCall(nestedFactoryImpl.address, initData);
+
+    // Set proxy admin
+    const proxyAdmin = new ActorFixture(wallets as Wallet[], provider).proxyAdmin();
+    await factoryProxy.connect(masterDeployer).changeAdmin(proxyAdmin.address);
+
     // Add operators to factory and rebuild cache
 
+
+    // Must set FeeSPlitter in proxy storage
+    await nestedFactory.connect(masterDeployer).setFeeSplitter(feeSplitter.address);
 
     // Define the base amount
     const baseAmount = appendDecimals(1000);

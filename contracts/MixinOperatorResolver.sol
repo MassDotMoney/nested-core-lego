@@ -14,7 +14,7 @@ abstract contract MixinOperatorResolver {
     event CacheUpdated(bytes32 name, IOperatorResolver.Operator destination);
 
     /// @dev The OperatorResolver used to build the cache
-    OperatorResolver public resolver;
+    OperatorResolver public immutable resolver;
 
     /// @dev Cache operators map of the name and address
     mapping(bytes32 => IOperatorResolver.Operator) private addressCache;
