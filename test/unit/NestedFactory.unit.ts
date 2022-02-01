@@ -913,7 +913,6 @@ describe("NestedFactory", () => {
             let multiOrders: BatchedOrderStruct[] = [
                 {
                     inputToken: context.mockUNI.address,
-
                     amount: totalToSpendUsdc,
                     orders: getTokenBWithTokenAOrders(usdcToBuy, context.mockUNI.address, context.mockUSDC.address),
                 },
