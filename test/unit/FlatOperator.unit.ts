@@ -47,7 +47,7 @@ describe("FlatOperator", () => {
 
         await expect(
             context.nestedFactory.connect(context.user1).create(0, {
-                token: context.mockUNI.address,
+                inputToken: context.mockUNI.address,
                 amount: totalToSpend,
                 orders,
             }),
@@ -72,7 +72,7 @@ describe("FlatOperator", () => {
 
         await expect(
             context.nestedFactory.connect(context.user1).create(0, {
-                token: context.mockUNI.address,
+                inputToken: context.mockUNI.address,
                 amount: totalToSpend,
                 orders,
             }),
@@ -99,7 +99,7 @@ describe("FlatOperator", () => {
         // User1 creates the portfolio/NFT and emit event NftCreated
         await expect(
             context.nestedFactory.connect(context.user1).create(0, {
-                token: context.mockUNI.address,
+                inputToken: context.mockUNI.address,
                 amount: totalToSpend,
                 orders,
             }),
@@ -154,7 +154,7 @@ describe("FlatOperator", () => {
         // User1 creates the portfolio/NFT and emit event NftCreated
         await expect(
             context.nestedFactory.connect(context.user1).create(0, {
-                token: context.mockUNI.address,
+                inputToken: context.mockUNI.address,
                 amount: totalToSpend,
                 orders,
             }),

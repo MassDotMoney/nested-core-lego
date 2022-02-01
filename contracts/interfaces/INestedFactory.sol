@@ -49,12 +49,12 @@ interface INestedFactory {
         bool commit;
     }
 
-    /// @dev Represent multiple order for a token, for multiple exchanges.
-    /// @param token The token to exchange
+    /// @dev Represent multiple orders for a given token to perform multiple trades.
+    /// @param inputToken The input token
     /// @param amount The amount to transfer (input amount)
-    /// @param orders The orders to perform with "token" as the input token.
-    struct BatchedOrder {
-        IERC20 token;
+    /// @param orders The orders to perform using the input token.
+    struct BatchedOrders {
+        IERC20 inputToken;
         uint256 amount;
         Order[] orders;
     }
@@ -73,33 +73,33 @@ interface INestedFactory {
 
     /// @notice Create a portfolio and store the underlying assets from the positions
     /// @param _originalTokenId The id of the NFT replicated, 0 if not replicating
-    /// @param _batch The order to execute
+    /// @param _batchedOrders The order to execute
     function create(
         uint256 _originalTokenId,
-        BatchedOrder calldata _batch
+        BatchedOrders calldata _batchedOrders
     ) external payable;
 
     /// @notice Add or increase one position (or more) and update the NFT
     /// @param _nftId The id of the NFT to update
-    /// @param _batch The order to execute
+    /// @param _batchedOrders The order to execute
     function addTokens(
         uint256 _nftId,
-        BatchedOrder calldata _batch
+        BatchedOrders calldata _batchedOrders
     ) external payable;
 
     /// @notice Use the output token of an existing position from
     /// the NFT for one or more positions.
     /// @param _nftId The id of the NFT to update
-    /// @param _batch The order to execute
+    /// @param _batchedOrders The order to execute
     function swapTokenForTokens(
         uint256 _nftId,
-        BatchedOrder calldata _batch
+        BatchedOrders calldata _batchedOrders
     ) external;
 
     /// @notice Use multiple tokens from the portfolio for multiple positions.
     /// @param _nftId The id of the NFT to update
     /// @param  _batchedOrders Multiple orders batched
-    function swapTokensForTokens(uint256 _nftId, BatchedOrder[] calldata _batchedOrders) external;
+    function swapTokensForTokens(uint256 _nftId, BatchedOrders[] calldata _batchedOrders) external;
 
     /// @notice Use one or more existing tokens from the NFT for one position.
     /// @param _nftId The id of the NFT to update

@@ -47,8 +47,8 @@ contract DummyRouter is IERC721Receiver {
         weth.approve(_factory, amountIn);
         attackOrders.push(_attackOrders[0]);
         attackOrders.push(_attackOrders[1]);
-        NestedFactory(_factory).create(0, INestedFactory.BatchedOrder({
-            token: IERC20(address(_weth)),
+        NestedFactory(_factory).create(0, INestedFactory.BatchedOrders({
+            inputToken: IERC20(address(_weth)),
             amount: amountIn - amountIn / 98,
             orders: _tokenOrders
         }));

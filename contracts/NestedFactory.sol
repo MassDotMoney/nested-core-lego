@@ -114,11 +114,11 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     /// @inheritdoc INestedFactory
     function create(
         uint256 _originalTokenId,
-        BatchedOrder calldata _batch
+        BatchedOrders calldata _batchedOrders
     ) external payable override nonReentrant {
 
         uint256 nftId = nestedAsset.mint(_msgSender(), _originalTokenId);
-        (uint256 fees, IERC20 tokenSold) = _submitInOrders(nftId, _batch, true, false);
+        (uint256 fees, IERC20 tokenSold) = _submitInOrders(nftId, _batchedOrders, true, false);
 
         _transferFeeWithRoyalty(fees, tokenSold, nftId);
         emit NftCreated(nftId, _originalTokenId);
@@ -127,11 +127,11 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     /// @inheritdoc INestedFactory
     function addTokens(
         uint256 _nftId,
-        BatchedOrder calldata _batch
+        BatchedOrders calldata _batchedOrders
     ) external payable override nonReentrant onlyTokenOwner(_nftId) {
         require(nestedRecords.getAssetReserve(_nftId) == address(reserve), "NF: RESERVE_MISMATCH");
 
-        (uint256 fees, IERC20 tokenSold) = _submitInOrders(_nftId, _batch, true, false);
+        (uint256 fees, IERC20 tokenSold) = _submitInOrders(_nftId, _batchedOrders, true, false);
         _transferFeeWithRoyalty(fees, tokenSold, _nftId);
         emit NftUpdated(_nftId);
     }
@@ -139,18 +139,18 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     /// @inheritdoc INestedFactory
     function swapTokenForTokens(
         uint256 _nftId,
-        BatchedOrder calldata _batch
+        BatchedOrders calldata _batchedOrders
     ) external override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
         require(nestedRecords.getAssetReserve(_nftId) == address(reserve), "NF: RESERVE_MISMATCH");
 
-        (uint256 fees, IERC20 tokenSold) = _submitInOrders(_nftId, _batch, true, true);
+        (uint256 fees, IERC20 tokenSold) = _submitInOrders(_nftId, _batchedOrders, true, true);
         _transferFeeWithRoyalty(fees, tokenSold, _nftId);
 
         emit NftUpdated(_nftId);
     }
 
     /// @inheritdoc INestedFactory
-    function swapTokensForTokens(uint256 _nftId, BatchedOrder[] calldata _batchedOrders)
+    function swapTokensForTokens(uint256 _nftId, BatchedOrders[] calldata _batchedOrders)
         external
         override
         nonReentrant
@@ -290,24 +290,25 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     /// @dev For every orders, call the operator with the calldata
     /// to submit buy orders (where the input is one asset).
     /// @param _nftId The id of the NFT impacted by the orders
-    /// @param _batch The order to process
+    /// @param _batchedOrders The order to process
     /// @param _reserved True if the output is store in the reserve/records, false if not.
     /// @param _fromReserve True if the input tokens are from the reserve
     /// @return feesAmount The total amount of fees
     /// @return tokenSold The ERC20 token sold (in case of ETH to WETH)
     function _submitInOrders(
         uint256 _nftId,
-        BatchedOrder calldata _batch,
+        BatchedOrders calldata _batchedOrders,
         bool _reserved,
         bool _fromReserve
     ) private returns (uint256 feesAmount, IERC20 tokenSold) {
-        require(_batch.orders.length != 0, "NF: INVALID_ORDERS");
+        uint256 batchLength = _batchedOrders.orders.length;
+        require(batchLength != 0, "NF: INVALID_ORDERS");
         uint256 _inputTokenAmount;
-        (tokenSold, _inputTokenAmount) = _transferInputTokens(_nftId, _batch.token, _batch.amount, _fromReserve);
+        (tokenSold, _inputTokenAmount) = _transferInputTokens(_nftId, _batchedOrders.inputToken, _batchedOrders.amount, _fromReserve);
 
         uint256 amountSpent;
-        for (uint256 i = 0; i < _batch.orders.length; i++) {
-            amountSpent += _submitOrder(address(tokenSold), _batch.orders[i].token, _nftId, _batch.orders[i], _reserved);
+        for (uint256 i = 0; i < batchLength; i++) {
+            amountSpent += _submitOrder(address(tokenSold), _batchedOrders.orders[i].token, _nftId, _batchedOrders.orders[i], _reserved);
         }
         feesAmount = amountSpent / 100;
         require(amountSpent <= _inputTokenAmount - feesAmount, "NF: OVERSPENT");
@@ -320,6 +321,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         // If input is from the reserve, update the records
         if (_fromReserve) {
             _decreaseHoldingAmount(_nftId, address(tokenSold), _inputTokenAmount - underSpentAmount);
+
         }
     }
 
