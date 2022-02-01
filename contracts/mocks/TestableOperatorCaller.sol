@@ -16,13 +16,7 @@ contract TestableOperatorCaller {
         bytes calldata swapCallData
     ) external returns (bool) {
         (bool success, bytes memory data) = operator.delegatecall(
-            abi.encodeWithSignature(
-                "commitAndRevert(address,address,address,bytes)",
-                own,
-                sellToken,
-                buyToken,
-                swapCallData
-            )
+            abi.encodeWithSignature("commitAndRevert(address,address,bytes)", sellToken, buyToken, swapCallData)
         );
         require(success, "TestableOperatorCaller::zeroExCommitAndRevert: Error");
         return true;

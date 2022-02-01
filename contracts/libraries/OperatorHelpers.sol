@@ -16,20 +16,16 @@ library OperatorHelpers {
         bool _commit,
         bytes calldata _calldata
     ) internal returns (bool success, bytes memory data) {
-        // The operator address needs to be the first parameter of the operator delegatecall.
-        // We assume that the calldata given by the user are only the params, without the signature.
         // Parameters are concatenated and padded to 32 bytes.
-        // We are concatenating the selector + operator address + given params
-        bytes4 selector;
-        if (_commit) {
-            selector = IOperatorSelector(_operator).getCommitSelector();
-        } else {
-            selector = IOperatorSelector(_operator).getRevertSelector();
-        }
-
-        bytes memory safeCalldata = bytes.concat(selector, abi.encode(_operator), _calldata);
-
-        (success, data) = _operator.delegatecall(safeCalldata);
+        // We are concatenating the selector + given params
+        (success, data) = _operator.delegatecall(
+            bytes.concat(
+                _commit
+                    ? IOperatorSelector(_operator).getCommitSelector()
+                    : IOperatorSelector(_operator).getRevertSelector(),
+                _calldata
+            )
+        );
     }
 
     /// @dev Get amounts and tokens from operator call by decoding data

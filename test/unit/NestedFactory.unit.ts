@@ -30,17 +30,14 @@ function buildOrderStruct(operator: string, outToken: string, data: [RawDataType
     //     bool commit;
     // }
     const abiCoder = new ethers.utils.AbiCoder();
-    const coded = abiCoder.encode(
-        ["address", ...data.map(x => x[0])],
-        [ethers.constants.AddressZero, ...data.map(x => x[1])],
-    );
+    const coded = abiCoder.encode([...data.map(x => x[0])], [...data.map(x => x[1])]);
     return {
         // specify which operator?
         operator: operator,
         // specify the token that this order will output
         token: outToken,
         // encode the given data
-        callData: "0x" + coded.slice(64 + 2), // remove the leading 32 bytes (one address) and the leading 0x
+        callData: coded, // remove the leading 32 bytes (one address) and the leading 0x
         // callData,
         commit: true, // to remove on next contract update (commit)
     };
@@ -169,7 +166,9 @@ describe("NestedFactory", () => {
                     .create(0, {inputToken: context.mockDAI.address, amount:appendDecimals(5), orders}),
             ).to.be.revertedWith("MOR: MISSING_OPERATOR: test");
 
-            await context.nestedFactory.connect(context.masterDeployer).removeOperator(context.zeroExOperatorNameBytes32);
+            await context.nestedFactory
+                .connect(context.masterDeployer)
+                .removeOperator(context.zeroExOperatorNameBytes32);
             operators = await context.nestedFactory.resolverAddressesRequired();
             expect(operators[0]).to.be.equal(context.flatOperatorNameBytes32);
         });
@@ -1827,7 +1826,7 @@ describe("NestedFactory", () => {
 
             let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
-            await context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders)
+            await context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders);
 
             expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(getExpectedFees(kncSold));
 
@@ -1864,7 +1863,7 @@ describe("NestedFactory", () => {
 
             let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
-            await context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders)
+            await context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders);
 
             expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(
                 getExpectedFees(usdcBought),
@@ -1889,7 +1888,7 @@ describe("NestedFactory", () => {
 
             let orders: OrderStruct[] = getWethWithUniAndKncOrders(uniSold, kncSold);
 
-            await context.nestedFactory.connect(context.user1).destroy(1, context.WETH.address, orders)
+            await context.nestedFactory.connect(context.user1).destroy(1, context.WETH.address, orders);
 
             expect(await context.WETH.balanceOf(context.feeSplitter.address)).to.be.equal(getExpectedFees(wethBought));
 
@@ -1912,7 +1911,7 @@ describe("NestedFactory", () => {
 
             let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSoldOrder, kncSold);
 
-            await context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders)
+            await context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders);
 
             expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(
                 getExpectedFees(usdcBought),

@@ -77,9 +77,7 @@ When we want to "reverse" an action that we have "committed", we will "**revert*
 Since the operators are called via `delegatecall`: _how can we store/retrieve useful data?_
 <br>In fact, we cannot trust the Factory to provide all the data, like the address of the protocol. It must be stored and managed by the owner.
 
-When deploying an operator, it will also deploy the storage contract using `CREATE2` and transfer the ownership to `msgSender()`.
-
-This way, the operator can retrieve the storage address (without storing it) and get the data.
+When deploying an operator, it will also deploy the storage contract and transfer the ownership to `msgSender()`.
 
 #### Diagram
 

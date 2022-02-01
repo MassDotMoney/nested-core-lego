@@ -27,7 +27,7 @@ describe("ZeroExOperator", () => {
     });
 
     it("has swapTarget (storage)", async () => {
-        expect(context.zeroExOperator.storageAddress(context.zeroExOperator.address)).to.be.a.string;
+        expect(context.zeroExOperator.operatorStorage()).to.be.a.string;
     });
 
     describe("commitAndRevert()", () => {

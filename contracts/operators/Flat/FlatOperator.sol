@@ -10,11 +10,12 @@ import "../../interfaces/IOperatorSelector.sol";
 /// Usefull to deposit/withdraw a token without swapping in your Orders.
 contract FlatOperator is IFlatOperator, IOperatorSelector {
     /// @inheritdoc IFlatOperator
-    function commitAndRevert(
-        address self,
-        address token,
-        uint256 amount
-    ) external payable override returns (uint256[] memory amounts, address[] memory tokens) {
+    function commitAndRevert(address token, uint256 amount)
+        external
+        payable
+        override
+        returns (uint256[] memory amounts, address[] memory tokens)
+    {
         require(amount != 0, "FO: INVALID_AMOUNT");
 
         amounts = new uint256[](2);
