@@ -890,7 +890,7 @@ describe("NestedFactory", () => {
         });
     });
 
-    describe("swapTokensForTokens()", () => {
+    describe("swapTokensForTokens", () => {
         // Amount already in the portfolio
         let baseUniBought = appendDecimals(6);
         let baseKncBought = appendDecimals(4);
@@ -1007,7 +1007,7 @@ describe("NestedFactory", () => {
         });
     });
 
-    describe("swapTokenForTokens()", () => {
+    describe("swapTokenForTokens", () => {
         // Amount already in the portfolio
         let baseUniBought = appendDecimals(6);
         let baseKncBought = appendDecimals(4);
@@ -1293,7 +1293,7 @@ describe("NestedFactory", () => {
         });
     });
 
-    describe("sellTokensToNft()", () => {
+    describe("sellTokensToNft", () => {
         // Amount already in the portfolio
         let baseUniBought = appendDecimals(6);
         let baseKncBought = appendDecimals(4);
@@ -1568,7 +1568,7 @@ describe("NestedFactory", () => {
     });
 
     // Tests are very similar to sellTokensToNft(), but some expectations can be different
-    describe("sellTokensToWallet()", () => {
+    describe("sellTokensToWallet", () => {
         // Amount already in the portfolio
         let baseUniBought = appendDecimals(6);
         let baseKncBought = appendDecimals(4);
