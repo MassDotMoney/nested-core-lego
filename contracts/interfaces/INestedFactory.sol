@@ -96,7 +96,7 @@ interface INestedFactory {
         BatchedOrders calldata _batchedOrders
     ) external;
 
-    /// @notice Use multiple tokens from the portfolio for multiple positions.
+    /// @notice Perform multiple swaps using different input tokens and output tokens.
     /// @param _nftId The id of the NFT to update
     /// @param  _batchedOrders Multiple orders batched
     function swapTokensForTokens(uint256 _nftId, BatchedOrders[] calldata _batchedOrders) external;
