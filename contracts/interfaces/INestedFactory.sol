@@ -51,10 +51,12 @@ interface INestedFactory {
     /// @param inputToken The input token
     /// @param amount The amount to transfer (input amount)
     /// @param orders The orders to perform using the input token.
+    /// @param _fromReserve Specify the input token source (true if reserve, false if wallet)
     struct BatchedOrders {
         IERC20 inputToken;
         uint256 amount;
         Order[] orders;
+        bool fromReserve;
     }
 
     /// @notice Add an operator (name) for building cache
@@ -72,32 +74,12 @@ interface INestedFactory {
     /// @notice Create a portfolio and store the underlying assets from the positions
     /// @param _originalTokenId The id of the NFT replicated, 0 if not replicating
     /// @param _batchedOrders The order to execute
-    function create(
-        uint256 _originalTokenId,
-        BatchedOrders calldata _batchedOrders
-    ) external payable;
+    function create(uint256 _originalTokenId, BatchedOrders[] calldata _batchedOrders) external payable;
 
-    /// @notice Add or increase one position (or more) and update the NFT
+    /// @notice Process multiple input orders
     /// @param _nftId The id of the NFT to update
     /// @param _batchedOrders The order to execute
-    function addTokens(
-        uint256 _nftId,
-        BatchedOrders calldata _batchedOrders
-    ) external payable;
-
-    /// @notice Use the output token of an existing position from
-    /// the NFT for one or more positions.
-    /// @param _nftId The id of the NFT to update
-    /// @param _batchedOrders The order to execute
-    function swapTokenForTokens(
-        uint256 _nftId,
-        BatchedOrders calldata _batchedOrders
-    ) external;
-
-    /// @notice Perform multiple swaps using different input tokens and output tokens.
-    /// @param _nftId The id of the NFT to update
-    /// @param  _batchedOrders Multiple orders batched
-    function swapTokensForTokens(uint256 _nftId, BatchedOrders[] calldata _batchedOrders) external;
+    function processInputOrders(uint256 _nftId, BatchedOrders[] calldata _batchedOrders) external payable;
 
     /// @notice Use one or more existing tokens from the NFT for one position.
     /// @param _nftId The id of the NFT to update

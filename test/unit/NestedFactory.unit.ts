@@ -20,6 +20,7 @@ interface BatchedOrderStruct {
     inputToken: string;
     amount: BigNumberish;
     orders: OrderStruct[];
+    fromReserve: boolean;
 }
 
 function buildOrderStruct(operator: string, outToken: string, data: [RawDataType, any][]): OrderStruct {
@@ -170,7 +171,9 @@ describe("NestedFactory", () => {
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
-                    .create(0, {inputToken: context.mockDAI.address, amount:appendDecimals(5), orders}),
+                    .create(0, [
+                        { inputToken: context.mockDAI.address, amount: appendDecimals(5), orders, fromReserve: false },
+                    ]),
             ).to.be.revertedWith("MOR: MISSING_OPERATOR: test");
 
             await context.nestedFactory
@@ -211,7 +214,9 @@ describe("NestedFactory", () => {
         it("reverts if Orders list is empty", async () => {
             let orders: OrderStruct[] = [];
             await expect(
-                context.nestedFactory.connect(context.user1).create(0, {inputToken: context.mockDAI.address, amount:0, orders}),
+                context.nestedFactory
+                    .connect(context.user1)
+                    .create(0, [{ inputToken: context.mockDAI.address, amount: 0, orders, fromReserve: false }]),
             ).to.be.revertedWith("NF: INVALID_ORDERS");
         });
 
@@ -239,7 +244,11 @@ describe("NestedFactory", () => {
             ];
 
             await expect(
-                context.nestedFactory.connect(context.user1).create(0, {inputToken: context.mockDAI.address, amount:totalToSpend, orders}),
+                context.nestedFactory
+                    .connect(context.user1)
+                    .create(0, [
+                        { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: false },
+                    ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
@@ -268,7 +277,11 @@ describe("NestedFactory", () => {
             ];
 
             await expect(
-                context.nestedFactory.connect(context.user1).create(0, {inputToken: context.mockDAI.address, amount:totalToSpend, orders}),
+                context.nestedFactory
+                    .connect(context.user1)
+                    .create(0, [
+                        { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: false },
+                    ]),
             ).to.be.revertedWith("OH: INVALID_OUTPUT_TOKEN");
         });
 
@@ -287,7 +300,11 @@ describe("NestedFactory", () => {
 
             // Revert because not enough funds to swap, the order amounts > totalToSpend
             await expect(
-                context.nestedFactory.connect(context.user1).create(0, {inputToken: context.mockDAI.address, amount:totalToSpend, orders}),
+                context.nestedFactory
+                    .connect(context.user1)
+                    .create(0, [
+                        { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: false },
+                    ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
@@ -306,7 +323,11 @@ describe("NestedFactory", () => {
 
             // Should revert with "assert" (no message)
             await expect(
-                context.nestedFactory.connect(context.user1).create(0, {inputToken: context.mockDAI.address, amount:totalToSpend, orders}),
+                context.nestedFactory
+                    .connect(context.user1)
+                    .create(0, [
+                        { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: false },
+                    ]),
             ).to.be.reverted;
         });
 
@@ -327,26 +348,10 @@ describe("NestedFactory", () => {
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
-                    .create(0, {inputToken: ETH, amount:totalToSpend, orders}, { value: totalToSpend }),
+                    .create(0, [{ inputToken: ETH, amount: totalToSpend, orders, fromReserve: false }], {
+                        value: totalToSpend,
+                    }),
             ).to.be.reverted;
-        });
-
-        it("reverts if ETH sent for non-ETH transfer", async () => {
-            // All the amounts for this test
-            const uniBought = appendDecimals(6);
-            const kncBought = appendDecimals(4);
-            const totalToBought = uniBought.add(kncBought);
-            const expectedFee = getExpectedFees(totalToBought);
-            const totalToSpend = totalToBought.add(expectedFee);
-
-            // Orders for UNI and KNC
-            let orders: OrderStruct[] = getUniAndKncWithDaiOrders(uniBought, kncBought);
-
-            await expect(
-                context.nestedFactory
-                    .connect(context.user1)
-                    .create(0, {inputToken: context.mockDAI.address, amount:totalToSpend, orders}, { value: 1 }),
-            ).to.be.revertedWith("NF: UNSUPPORTED_ETH_TRANSFER");
         });
 
         it("Creates NFT from DAI with KNI and UNI inside (ZeroExOperator) with right amounts", async () => {
@@ -362,7 +367,11 @@ describe("NestedFactory", () => {
 
             // User1 creates the portfolio/NFT and emit event NftCreated
             await expect(
-                context.nestedFactory.connect(context.user1).create(0, {inputToken: context.mockDAI.address, amount:totalToSpend, orders}),
+                context.nestedFactory
+                    .connect(context.user1)
+                    .create(0, [
+                        { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: false },
+                    ]),
             )
                 .to.emit(context.nestedFactory, "NftCreated")
                 .withArgs(1, 0);
@@ -413,7 +422,11 @@ describe("NestedFactory", () => {
 
             // User1 creates the portfolio/NFT and emit event NftCreated
             await expect(
-                context.nestedFactory.connect(context.user1).create(0, {inputToken: context.mockDAI.address, amount:totalToSpend, orders}),
+                context.nestedFactory
+                    .connect(context.user1)
+                    .create(0, [
+                        { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: false },
+                    ]),
             )
                 .to.emit(context.nestedFactory, "NftCreated")
                 .withArgs(1, 0);
@@ -452,16 +465,25 @@ describe("NestedFactory", () => {
 
             // User1 creates the portfolio/NFT and emit event NftCreated (not more than needed)
             await expect(
-                context.nestedFactory
-                    .connect(context.user1)
-                    .create(0, {inputToken: context.mockDAI.address, amount: appendDecimals(10).add(getExpectedFees(totalToBought)), orders}),
+                context.nestedFactory.connect(context.user1).create(0, [
+                    {
+                        inputToken: context.mockDAI.address,
+                        amount: appendDecimals(10).add(getExpectedFees(totalToBought)),
+                        orders,
+                        fromReserve: false,
+                    },
+                ]),
             )
                 .to.emit(context.nestedFactory, "NftCreated")
                 .withArgs(1, 0);
 
             // User1 replicates the portfolio/NFT and emit event NftCreated (with the same amounts)
             await expect(
-                context.nestedFactory.connect(context.user1).create(1, {inputToken: context.mockDAI.address, amount:totalToSpend, orders}),
+                context.nestedFactory
+                    .connect(context.user1)
+                    .create(1, [
+                        { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: false },
+                    ]),
             )
                 .to.emit(context.nestedFactory, "NftCreated")
                 .withArgs(2, 1);
@@ -520,7 +542,9 @@ describe("NestedFactory", () => {
             // User1 creates the portfolio/NFT
             const tx = await context.nestedFactory
                 .connect(context.user1)
-                .create(0, {inputToken: ETH, amount: totalToSpend, orders}, { value: totalToSpend });
+                .create(0, [{ inputToken: ETH, amount: totalToSpend, orders, fromReserve: false }], {
+                    value: totalToSpend,
+                });
 
             // Get the transaction fees
             const gasPrice = tx.gasPrice;
@@ -544,7 +568,7 @@ describe("NestedFactory", () => {
         });
     });
 
-    describe("addTokens()", () => {
+    describe("addTokens", () => {
         // Amount already in the portfolio
         let baseUniBought = appendDecimals(6);
         let baseKncBought = appendDecimals(4);
@@ -557,13 +581,19 @@ describe("NestedFactory", () => {
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
                 .connect(context.user1)
-                .create(0, {inputToken: context.mockDAI.address, amount:baseTotalToSpend, orders});
+                .create(0, [
+                    { inputToken: context.mockDAI.address, amount: baseTotalToSpend, orders, fromReserve: false },
+                ]);
         });
 
         it("reverts if Orders list is empty", async () => {
             let orders: OrderStruct[] = [];
             await expect(
-                context.nestedFactory.connect(context.user1).addTokens(1, {inputToken: context.mockDAI.address, amount: 0, orders}),
+                context.nestedFactory
+                    .connect(context.user1)
+                    .processInputOrders(1, [
+                        { inputToken: context.mockDAI.address, amount: 0, orders, fromReserve: false },
+                    ]),
             ).to.be.revertedWith("NF: INVALID_ORDERS");
         });
 
@@ -593,7 +623,9 @@ describe("NestedFactory", () => {
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
-                    .addTokens(1, {inputToken: context.mockDAI.address, amount: totalToSpend, orders}),
+                    .processInputOrders(1, [
+                        { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: false },
+                    ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
@@ -610,7 +642,9 @@ describe("NestedFactory", () => {
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
-                    .addTokens(2, {inputToken: context.mockDAI.address, amount: totalToSpend, orders}),
+                    .processInputOrders(2, [
+                        { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: false },
+                    ]),
             ).to.be.revertedWith("ERC721: owner query for nonexistent token");
         });
 
@@ -627,7 +661,9 @@ describe("NestedFactory", () => {
             await expect(
                 context.nestedFactory
                     .connect(context.masterDeployer)
-                    .addTokens(1, {inputToken: context.mockDAI.address, amount: totalToSpend, orders}),
+                    .processInputOrders(1, [
+                        { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: false },
+                    ]),
             ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
@@ -658,7 +694,9 @@ describe("NestedFactory", () => {
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
-                    .addTokens(1, {inputToken: context.mockDAI.address, amount: totalToSpend, orders}),
+                    .processInputOrders(1, [
+                        { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: false },
+                    ]),
             ).to.be.revertedWith("OH: INVALID_OUTPUT_TOKEN");
         });
 
@@ -679,7 +717,9 @@ describe("NestedFactory", () => {
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
-                    .addTokens(1, {inputToken: context.mockDAI.address, amount: totalToSpend, orders}),
+                    .processInputOrders(1, [
+                        { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: false },
+                    ]),
             ).to.be.reverted;
         });
 
@@ -700,7 +740,11 @@ describe("NestedFactory", () => {
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
-                    .addTokens(1, {inputToken: context.mockDAI.address, amount: totalToSpend, orders}, { value: totalToSpend }),
+                    .processInputOrders(
+                        1,
+                        [{ inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: false }],
+                        { value: totalToSpend },
+                    ),
             ).to.be.reverted;
         });
 
@@ -719,7 +763,9 @@ describe("NestedFactory", () => {
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
-                    .addTokens(1, {inputToken: context.mockDAI.address, amount: totalToSpend, orders}),
+                    .processInputOrders(1, [
+                        { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: false },
+                    ]),
             )
                 .to.emit(context.nestedFactory, "NftUpdated")
                 .withArgs(1);
@@ -773,7 +819,9 @@ describe("NestedFactory", () => {
 
             await context.nestedFactory
                 .connect(context.user1)
-                .addTokens(1, {inputToken: context.mockDAI.address, amount: totalToSpend, orders});
+                .processInputOrders(1, [
+                    { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: false },
+                ]);
 
             // The user must receive the DAI in excess
             expect(await context.mockDAI.balanceOf(context.user1.address)).to.be.equal(
@@ -820,7 +868,9 @@ describe("NestedFactory", () => {
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
-                    .addTokens(1, {inputToken: ETH, amount: totalToSpend, orders}, { value: totalToSpend }),
+                    .processInputOrders(1, [{ inputToken: ETH, amount: totalToSpend, orders, fromReserve: false }], {
+                        value: totalToSpend,
+                    }),
             )
                 .to.emit(context.nestedFactory, "NftUpdated")
                 .withArgs(1);
@@ -853,17 +903,19 @@ describe("NestedFactory", () => {
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
                 .connect(context.user1)
-                .create(0, { inputToken: context.mockDAI.address, amount: baseTotalToSpend, orders });
+                .create(0, [
+                    { inputToken: context.mockDAI.address, amount: baseTotalToSpend, orders, fromReserve: false },
+                ]);
         });
 
         it("reverts if Orders list is empty", async () => {
             it("reverts if Orders list is empty", async () => {
                 let orders: OrderStruct[] = [];
                 let multiOrders: BatchedOrderStruct[] = [
-                    { inputToken: context.mockUNI.address, amount: 0, orders: orders },
+                    { inputToken: context.mockUNI.address, amount: 0, orders: orders, fromReserve: true },
                 ];
                 await expect(
-                    context.nestedFactory.connect(context.user1).swapTokensForTokens(1, multiOrders),
+                    context.nestedFactory.connect(context.user1).processInputOrders(1, multiOrders),
                 ).to.be.revertedWith("NF: INVALID_ORDERS");
             });
         });
@@ -892,11 +944,11 @@ describe("NestedFactory", () => {
             ];
 
             let multiOrders: BatchedOrderStruct[] = [
-                { inputToken: context.mockUNI.address, amount: totalToSpend, orders: orders },
+                { inputToken: context.mockUNI.address, amount: totalToSpend, orders: orders, fromReserve: true },
             ];
 
             await expect(
-                context.nestedFactory.connect(context.user1).swapTokensForTokens(1, multiOrders),
+                context.nestedFactory.connect(context.user1).processInputOrders(1, multiOrders),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
@@ -915,16 +967,18 @@ describe("NestedFactory", () => {
                     inputToken: context.mockUNI.address,
                     amount: totalToSpendUsdc,
                     orders: getTokenBWithTokenAOrders(usdcToBuy, context.mockUNI.address, context.mockUSDC.address),
+                    fromReserve: true,
                 },
                 {
                     inputToken: context.mockKNC.address,
                     amount: totalToSpenDdai,
                     orders: getTokenBWithTokenAOrders(daiToBuy, context.mockKNC.address, context.mockDAI.address),
+                    fromReserve: true,
                 },
             ];
 
             // User1 updates the portfolio/NFT and emit event NftUpdated
-            await expect(context.nestedFactory.connect(context.user1).swapTokensForTokens(1, multiOrders))
+            await expect(context.nestedFactory.connect(context.user1).processInputOrders(1, multiOrders))
                 .to.emit(context.nestedFactory, "NftUpdated")
                 .withArgs(1);
 
@@ -966,7 +1020,9 @@ describe("NestedFactory", () => {
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
                 .connect(context.user1)
-                .create(0, { inputToken: context.mockDAI.address, amount: baseTotalToSpend, orders });
+                .create(0, [
+                    { inputToken: context.mockDAI.address, amount: baseTotalToSpend, orders, fromReserve: false },
+                ]);
         });
 
         it("reverts if Orders list is empty", async () => {
@@ -975,7 +1031,9 @@ describe("NestedFactory", () => {
                 await expect(
                     context.nestedFactory
                         .connect(context.user1)
-                        .swapTokenForTokens(1, {inputToken: context.mockUNI.address, amount: 0, orders}),
+                        .processInputOrders(1, [
+                            { inputToken: context.mockUNI.address, amount: 0, orders, fromReserve: true },
+                        ]),
                 ).to.be.revertedWith("NF: INVALID_ORDERS");
             });
         });
@@ -1004,7 +1062,9 @@ describe("NestedFactory", () => {
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
-                    .swapTokenForTokens(1, {inputToken: context.mockUNI.address, amount: totalToSpend, orders}),
+                    .processInputOrders(1, [
+                        { inputToken: context.mockUNI.address, amount: totalToSpend, orders, fromReserve: true },
+                    ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
@@ -1024,7 +1084,9 @@ describe("NestedFactory", () => {
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
-                    .swapTokenForTokens(2, {inputToken: context.mockDAI.address, amount: totalToSpend, orders}),
+                    .processInputOrders(2, [
+                        { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: true },
+                    ]),
             ).to.be.revertedWith("ERC721: owner query for nonexistent token");
         });
 
@@ -1044,7 +1106,9 @@ describe("NestedFactory", () => {
             await expect(
                 context.nestedFactory
                     .connect(context.masterDeployer)
-                    .swapTokenForTokens(1, {inputToken: context.mockDAI.address,amount: totalToSpend, orders}),
+                    .processInputOrders(1, [
+                        { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: true },
+                    ]),
             ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
@@ -1066,7 +1130,11 @@ describe("NestedFactory", () => {
 
             // Should revert with "assert" (no message)
             await expect(
-                context.nestedFactory.connect(context.user1).create(0, {inputToken: context.mockUNI.address,amount: totalToSpend, orders}),
+                context.nestedFactory
+                    .connect(context.user1)
+                    .create(0, [
+                        { inputToken: context.mockUNI.address, amount: totalToSpend, orders, fromReserve: false },
+                    ]),
             ).to.be.reverted;
         });
 
@@ -1089,7 +1157,9 @@ describe("NestedFactory", () => {
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
-                    .swapTokenForTokens(1, {inputToken:context.mockUNI.address, amount:totalToSpend, orders}),
+                    .processInputOrders(1, [
+                        { inputToken: context.mockUNI.address, amount: totalToSpend, orders, fromReserve: true },
+                    ]),
             ).to.be.revertedWith("NF: INSUFFICIENT_AMOUNT_IN");
         });
 
@@ -1111,7 +1181,9 @@ describe("NestedFactory", () => {
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
-                    .swapTokenForTokens(1, {inputToken: context.mockKNC.address,amount: totalToSpend, orders}),
+                    .processInputOrders(1, [
+                        { inputToken: context.mockKNC.address, amount: totalToSpend, orders, fromReserve: true },
+                    ]),
             )
                 .to.emit(context.nestedFactory, "NftUpdated")
                 .withArgs(1);
@@ -1157,7 +1229,9 @@ describe("NestedFactory", () => {
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
-                    .swapTokenForTokens(1, {inputToken: context.mockKNC.address, amount: totalToSpend, orders}),
+                    .processInputOrders(1, [
+                        { inputToken: context.mockKNC.address, amount: totalToSpend, orders, fromReserve: true },
+                    ]),
             )
                 .to.emit(context.nestedFactory, "NftUpdated")
                 .withArgs(1);
@@ -1194,7 +1268,9 @@ describe("NestedFactory", () => {
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
-                    .swapTokenForTokens(1, {inputToken: context.mockUNI.address, amount: totalToSpend, orders}),
+                    .processInputOrders(1, [
+                        { inputToken: context.mockUNI.address, amount: totalToSpend, orders, fromReserve: true },
+                    ]),
             )
                 .to.emit(context.nestedFactory, "NftUpdated")
                 .withArgs(1);
@@ -1230,7 +1306,9 @@ describe("NestedFactory", () => {
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
                 .connect(context.user1)
-                .create(0, {inputToken: context.mockDAI.address, amount: baseTotalToSpend, orders});
+                .create(0, [
+                    { inputToken: context.mockDAI.address, amount: baseTotalToSpend, orders, fromReserve: false },
+                ]);
         });
 
         it("reverts if Orders list is empty", async () => {
@@ -1481,7 +1559,9 @@ describe("NestedFactory", () => {
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
                 .connect(context.user1)
-                .create(0, {inputToken: context.mockDAI.address, amount: baseTotalToSpend, orders});
+                .create(0, [
+                    { inputToken: context.mockDAI.address, amount: baseTotalToSpend, orders, fromReserve: false },
+                ]);
         });
 
         it("reverts if Orders list is empty", async () => {
@@ -1726,7 +1806,9 @@ describe("NestedFactory", () => {
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
                 .connect(context.user1)
-                .create(0, {inputToken: context.mockDAI.address, amount:baseTotalToSpend, orders});
+                .create(0, [
+                    { inputToken: context.mockDAI.address, amount: baseTotalToSpend, orders, fromReserve: false },
+                ]);
         });
 
         it("reverts if Orders list is empty", async () => {
@@ -1949,7 +2031,9 @@ describe("NestedFactory", () => {
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
                 .connect(context.user1)
-                .create(0, {inputToken: context.mockDAI.address, amount: baseTotalToSpend, orders});
+                .create(0, [
+                    { inputToken: context.mockDAI.address, amount: baseTotalToSpend, orders, fromReserve: true },
+                ]);
         });
 
         it("cant withdraw from another user portfolio", async () => {
@@ -2014,7 +2098,9 @@ describe("NestedFactory", () => {
             let orders: OrderStruct[] = getUniAndKncWithDaiOrders(baseUniBought, baseKncBought);
             await context.nestedFactory
                 .connect(context.user1)
-                .create(0,{inputToken:  context.mockDAI.address, amount:baseTotalToSpend, orders});
+                .create(0, [
+                    { inputToken: context.mockDAI.address, amount: baseTotalToSpend, orders, fromReserve: true },
+                ]);
         });
 
         it("cant increase if another user portfolio", async () => {

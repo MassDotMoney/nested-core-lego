@@ -113,46 +113,25 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     /// @inheritdoc INestedFactory
     function create(
         uint256 _originalTokenId,
-        BatchedOrders calldata _batchedOrders
+        BatchedOrders[] calldata _batchedOrders
     ) external payable override nonReentrant {
         uint256 nftId = nestedAsset.mint(_msgSender(), _originalTokenId);
-        (uint256 fees, IERC20 tokenSold) = _submitInOrders(nftId, _batchedOrders, true, false);
 
-        _transferFeeWithRoyalty(fees, tokenSold, nftId);
+        for (uint256 i = 0; i < _batchedOrders.length; i++) {
+            (uint256 fees, IERC20 tokenSold) = _submitInOrders(nftId, _batchedOrders[i], true, false);
+            _transferFeeWithRoyalty(fees, tokenSold, nftId);
+        }
+
         emit NftCreated(nftId, _originalTokenId);
     }
 
     /// @inheritdoc INestedFactory
-    function addTokens(
-        uint256 _nftId,
-        BatchedOrders calldata _batchedOrders
-    ) external payable override nonReentrant onlyTokenOwner(_nftId) {
-        require(nestedRecords.getAssetReserve(_nftId) == address(reserve), "NF: RESERVE_MISMATCH");
-
-        (uint256 fees, IERC20 tokenSold) = _submitInOrders(_nftId, _batchedOrders, true, false);
-        _transferFeeWithRoyalty(fees, tokenSold, _nftId);
-        emit NftUpdated(_nftId);
-    }
-
-    /// @inheritdoc INestedFactory
-    function swapTokenForTokens(
-        uint256 _nftId,
-        BatchedOrders calldata _batchedOrders
-    ) external override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
-        require(nestedRecords.getAssetReserve(_nftId) == address(reserve), "NF: RESERVE_MISMATCH");
-
-        (uint256 fees, IERC20 tokenSold) = _submitInOrders(_nftId, _batchedOrders, true, true);
-        _transferFeeWithRoyalty(fees, tokenSold, _nftId);
-
-        emit NftUpdated(_nftId);
-    }
-
-    /// @inheritdoc INestedFactory
-    function swapTokensForTokens(uint256 _nftId, BatchedOrders[] calldata _batchedOrders)
+    function processInputOrders(uint256 _nftId, BatchedOrders[] calldata _batchedOrders)
         external
+        payable
         override
         nonReentrant
-        onlyTokenOwner(_nftId)
+        onlyTokenOwner(_nftId) 
         isUnlocked(_nftId)
     {
         require(_batchedOrders.length != 0, "NF: INVALID_MULTI_ORDERS");
@@ -163,7 +142,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
                 _nftId,
                 _batchedOrders[i],
                 true,
-                true
+                _batchedOrders[i].fromReserve
             );
             _transferFeeWithRoyalty(fees, tokenSold, _nftId);
         }
@@ -306,7 +285,13 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
 
         uint256 amountSpent;
         for (uint256 i = 0; i < batchLength; i++) {
-            amountSpent += _submitOrder(address(tokenSold), _batchedOrders.orders[i].token, _nftId, _batchedOrders.orders[i], _reserved);
+            amountSpent += _submitOrder(
+                address(tokenSold),
+                _batchedOrders.orders[i].token,
+                _nftId,
+                _batchedOrders.orders[i],
+                _reserved
+            );
         }
         feesAmount = amountSpent / 100;
         require(amountSpent <= _inputTokenAmount - feesAmount, "NF: OVERSPENT");
@@ -474,7 +459,6 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             // Get input from reserve
             reserve.withdraw(IERC20(_inputToken), _inputTokenAmount);
         } else {
-            require(msg.value == 0, "NF: UNSUPPORTED_ETH_TRANSFER");
             _inputToken.safeTransferFrom(_msgSender(), address(this), _inputTokenAmount);
         }
         return (_inputToken, _inputToken.balanceOf(address(this)) - balanceBefore);
