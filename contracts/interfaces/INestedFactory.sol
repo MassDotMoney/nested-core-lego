@@ -93,6 +93,11 @@ interface INestedFactory {
     /// @param _batchedOrders The order to execute
     function processInputOrders(uint256 _nftId, BatchedInputOrders[] calldata _batchedOrders) external payable;
 
+    /// @notice Process multiple output orders
+    /// @param _nftId The id of the NFT to update
+    /// @param _batchedOrders The order to execute
+    function processOutputOrders(uint256 _nftId, BatchedOutputOrders[] calldata _batchedOrders) external;
+    
     /// @notice Process multiple input orders and then withdraw (one or multiple tokens).
     /// @param _nftId The id of the NFT to update
     /// @param _batchedOrders The order to execute
@@ -112,11 +117,6 @@ interface INestedFactory {
         BatchedInputOrders[] calldata _batchedInputOrders,
         BatchedOutputOrders[] calldata _batchedOutputOrders
     ) external payable;
-
-    /// @notice Process multiple output orders
-    /// @param _nftId The id of the NFT to update
-    /// @param _batchedOrders The order to execute
-    function processOutputOrders(uint256 _nftId, BatchedOutputOrders[] calldata _batchedOrders) external;
 
     /// @notice Burn NFT and Sell all tokens for a specific ERC20 then send it back to the user
     /// @dev Will unwrap WETH output to ETH
