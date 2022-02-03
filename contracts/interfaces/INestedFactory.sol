@@ -97,16 +97,6 @@ interface INestedFactory {
     /// @param _nftId The id of the NFT to update
     /// @param _batchedOrders The order to execute
     function processOutputOrders(uint256 _nftId, BatchedOutputOrders[] calldata _batchedOrders) external;
-    
-    /// @notice Process multiple input orders and then withdraw (one or multiple tokens).
-    /// @param _nftId The id of the NFT to update
-    /// @param _batchedOrders The order to execute
-    /// @param _tokenIndexes The token (indexes in records) to withdraw
-    function processInputOrdersAndWithdraw(
-        uint256 _nftId,
-        BatchedInputOrders[] calldata _batchedOrders,
-        uint256[] calldata _tokenIndexes
-    ) external payable;
 
     /// @notice Process multiple input orders and then multiple output orders
     /// @param _nftId The id of the NFT to update

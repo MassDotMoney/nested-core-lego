@@ -55,9 +55,7 @@ So, we had to deal with two issues :
 Our solution is called the "**Operator**"... A new interaction is a new operator and can be added on the fly.
 They kind of work like [libraries](https://docs.soliditylang.org/en/v0.8.9/contracts.html#libraries), but since we don't want to redeploy the factory, 
 they are contracts that are called via `delegatecall` and referenced by the `OperatorResolver`.
-
 #### Operator Resolver
-
 
 An operator allows performing a precise action, like _"swap my token A for a token B"_ with a specific function, but the operator/interface will change depending on the action/context. To interact with new operators on the fly, we must expose new interfaces to the Factory.
 The `OperatorResolver` will whitelist all the Operator (`address`) with the selectors (`bytes4`) since we can't trust the caller to provide these informations.
@@ -98,6 +96,61 @@ When deploying an operator, it will also deploy the storage contract and transfe
 | FlatOperator          | Handles deposits and withdraws. No interaction with any third parties ([read more](contracts/operators/Flat/README.md)). |
 
 _More operators will be added. e.g. CurveOperator or SynthetixOperator_
+
+### Orders
+
+The `NestedFactory` is using the operators to interact with other protocols. The call from the Factory to an Operator is an "Order".
+
+An Order has several information:
+- The operator to use.
+- If it should use "Commit" or "Revert".
+- The token processed (swapped, stacked,...) by the operator (from the portfolio or wallet).
+- The commit or revert calldatas.
+
+```javascript
+struct Order {
+    bytes32 operator;
+    address token;
+    bytes callData;
+    bool commit;
+}
+```
+
+It help us to make **one** interaction, but we want to make multiple interactions. For example, to create a portfolio with multiple tokens, we need to "batch" these orders. 
+
+**There are two types of "Batched Orders" processed by the Factory to create or edit Portfolios :**
+
+#### Batched Input Orders
+![image](https://user-images.githubusercontent.com/22816913/152330910-595122d9-68ae-49dd-a058-0f16c65ce353.png)
+- One same input for every orders but multiple outputs.
+- 1% Fee on the input.
+- The input (*source*) is from a wallet **or** a portfolio.
+- The ouput (*destination*) is the portfolio (**only**). 
+
+```javascript
+struct BatchedInputOrders {
+    IERC20 inputToken;
+    uint256 amount;
+    Order[] orders;
+    bool fromReserve;
+}
+```
+
+#### Batched Output Orders
+![image](https://user-images.githubusercontent.com/22816913/152331144-8e57397f-33f6-44bb-97e5-dff87ee6fac9.png)
+- Multiple inputs for every orders but one output.
+- 1% Fee on the output.
+- The input (*source*) is the portfolio (**only**). 
+- The ouput (*destination*) is from a wallet **or** a portfolio.
+
+```javascript
+struct BatchedOutputOrders {
+    IERC20 outputToken;
+    uint256[] amounts;
+    Order[] orders;
+    bool reserved;
+}
+```
 
 ### Ownership & Governance
 Some functions of the protocol require admin rights (`onlyOwner`).

@@ -162,23 +162,6 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     }
 
     /// @inheritdoc INestedFactory
-    function processInputOrdersAndWithdraw(
-        uint256 _nftId,
-        BatchedInputOrders[] calldata _batchedOrders,
-        uint256[] calldata _tokenIndexes
-    ) external payable override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
-        uint256 indexesLength = _tokenIndexes.length;
-        require(indexesLength != 0, "NF: INVALID_INDEXES");
-
-        _processInputOrders(_nftId, _batchedOrders);
-
-        for (uint256 i = 0; i < indexesLength; i++) {
-            _withdraw(_nftId, _tokenIndexes[i]);
-        }
-        emit NftUpdated(_nftId);
-    }
-
-    /// @inheritdoc INestedFactory
     function processInputAndOutputOrders(
         uint256 _nftId,
         BatchedInputOrders[] calldata _batchedInputOrders,
@@ -232,14 +215,6 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         onlyTokenOwner(_nftId)
         isUnlocked(_nftId)
     {
-        _withdraw(_nftId, _tokenIndex);
-        emit NftUpdated(_nftId);
-    }
-
-    /// @dev Internal logic extraction of withdraw()
-    /// @param _nftId NFT token ID
-    /// @param _tokenIndex Index in array of tokens for this NFT and holding.
-    function _withdraw(uint256 _nftId, uint256 _tokenIndex) private {
         uint256 assetTokensLength = nestedRecords.getAssetTokensLength(_nftId);
         require(assetTokensLength > _tokenIndex, "NF: INVALID_TOKEN_INDEX");
         // Use destroy instead if NFT has a single holding
@@ -253,8 +228,9 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         _safeTransferWithFees(IERC20(token), amount, _msgSender(), _nftId);
 
         nestedRecords.deleteAsset(_nftId, _tokenIndex);
+        emit NftUpdated(_nftId);
     }
-
+    
     /// @dev Internal logic extraction of processInputOrders()
     /// @param _nftId The id of the NFT to update
     /// @param _batchedOrders The order to execute
