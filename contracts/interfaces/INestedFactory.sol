@@ -63,12 +63,12 @@ interface INestedFactory {
     /// @param outputToken The output token
     /// @param amounts The amount of sell tokens to use
     /// @param orders Orders calldata
-    /// @param reserved Specify the output token destination (true if reserve, false if wallet)
+    /// @param toReserve Specify the output token destination (true if reserve, false if wallet)
     struct BatchedOutputOrders {
         IERC20 outputToken;
         uint256[] amounts;
         Order[] orders;
-        bool reserved;
+        bool toReserve;
     }
 
     /// @notice Add an operator (name) for building cache

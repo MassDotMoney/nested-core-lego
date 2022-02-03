@@ -148,7 +148,7 @@ struct BatchedOutputOrders {
     IERC20 outputToken;
     uint256[] amounts;
     Order[] orders;
-    bool reserved;
+    bool toReserve;
 }
 ```
 

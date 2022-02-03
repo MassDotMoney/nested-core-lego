@@ -262,11 +262,11 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             (uint256 feesAmount, uint256 amountBought) = _submitOutOrders(
                 _nftId,
                 _batchedOrders[i],
-                _batchedOrders[i].reserved,
+                _batchedOrders[i].toReserve,
                 true
             );
             _transferFeeWithRoyalty(feesAmount, _batchedOrders[i].outputToken, _nftId);
-            if (!_batchedOrders[i].reserved) {
+            if (!_batchedOrders[i].toReserve) {
                 _safeTransferAndUnwrap(_batchedOrders[i].outputToken, amountBought - feesAmount, _msgSender());
             }
         }
@@ -276,14 +276,14 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     /// to submit buy orders (where the input is one asset).
     /// @param _nftId The id of the NFT impacted by the orders
     /// @param _batchedOrders The order to process
-    /// @param _reserved True if the output is store in the reserve/records, false if not.
+    /// @param _toReserve True if the output is store in the reserve/records, false if not.
     /// @param _fromReserve True if the input tokens are from the reserve
     /// @return feesAmount The total amount of fees
     /// @return tokenSold The ERC20 token sold (in case of ETH to WETH)
     function _submitInOrders(
         uint256 _nftId,
         BatchedInputOrders calldata _batchedOrders,
-        bool _reserved,
+        bool _toReserve,
         bool _fromReserve
     ) private returns (uint256 feesAmount, IERC20 tokenSold) {
         uint256 batchLength = _batchedOrders.orders.length;
@@ -298,7 +298,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
                 _batchedOrders.orders[i].token,
                 _nftId,
                 _batchedOrders.orders[i],
-                _reserved
+                _toReserve
             );
         }
         feesAmount = amountSpent / 100;
@@ -320,14 +320,14 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     /// to submit sell orders (where the output is one asset).
     /// @param _nftId The id of the NFT impacted by the orders
     /// @param _batchedOrders The order to process
-    /// @param _reserved True if the output is store in the reserve/records, false if not.
+    /// @param _toReserve True if the output is store in the reserve/records, false if not.
     /// @param _fromReserve True if the input tokens are from the reserve
     /// @return feesAmount The total amount of fees
     /// @return amountBought The total amount bought
     function _submitOutOrders(
         uint256 _nftId,
         BatchedOutputOrders calldata _batchedOrders,
-        bool _reserved,
+        bool _toReserve,
         bool _fromReserve
     ) private returns (uint256 feesAmount, uint256 amountBought) {
         uint256 batchLength = _batchedOrders.orders.length;
@@ -368,7 +368,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         amountBought = _batchedOrders.outputToken.balanceOf(address(this)) - _outputTokenInitialBalance;
         feesAmount = amountBought / 100;
 
-        if (_reserved) {
+        if (_toReserve) {
             _transferToReserveAndStore(_batchedOrders.outputToken, amountBought - feesAmount, _nftId);
         }
     }
@@ -379,18 +379,18 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     /// @param _outputToken Expected output token
     /// @param _nftId The nftId
     /// @param _order The order calldata
-    /// @param _reserved True if the output is store in the reserve/records, false if not.
+    /// @param _toReserve True if the output is store in the reserve/records, false if not.
     function _submitOrder(
         address _inputToken,
         address _outputToken,
         uint256 _nftId,
         Order calldata _order,
-        bool _reserved
+        bool _toReserve
     ) private returns (uint256 amountSpent) {
         (bool success, uint256[] memory amounts) = callOperator(_order, _inputToken, _outputToken);
         require(success, "NF: OPERATOR_CALL_FAILED");
 
-        if (_reserved) {
+        if (_toReserve) {
             _transferToReserveAndStore(IERC20(_outputToken), amounts[0], _nftId);
         }
         amountSpent = amounts[1];

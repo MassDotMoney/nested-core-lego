@@ -1317,7 +1317,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(1, [
-                        { outputToken: context.mockDAI.address, amounts: [], orders, reserved: true },
+                        { outputToken: context.mockDAI.address, amounts: [], orders, toReserve: true },
                     ]),
             ).to.be.revertedWith("NF: INVALID_ORDERS");
         });
@@ -1347,7 +1347,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(1, [
-                        { outputToken: context.mockUSDC.address, amounts: [uniSold], orders, reserved: true },
+                        { outputToken: context.mockUSDC.address, amounts: [uniSold], orders, toReserve: true },
                     ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
@@ -1364,7 +1364,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(2, [
-                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, reserved: true },
+                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, toReserve: true },
                     ]),
             ).to.be.revertedWith("ERC721: owner query for nonexistent token");
         });
@@ -1381,7 +1381,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.masterDeployer)
                     .processOutputOrders(1, [
-                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, reserved: true },
+                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, toReserve: true },
                     ]),
             ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
@@ -1397,7 +1397,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(1, [
-                        { outputToken: context.mockUSDC.address, amounts: [uniSold], orders, reserved: true },
+                        { outputToken: context.mockUSDC.address, amounts: [uniSold], orders, toReserve: true },
                     ]),
             ).to.be.revertedWith("NF: INPUTS_LENGTH_MUST_MATCH");
         });
@@ -1413,7 +1413,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(1, [
-                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, reserved: true },
+                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, toReserve: true },
                     ]),
             ).to.be.revertedWith("NF: INSUFFICIENT_AMOUNT_IN");
         });
@@ -1431,7 +1431,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(1, [
-                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, reserved: true },
+                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, toReserve: true },
                     ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
@@ -1449,7 +1449,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(1, [
-                        { outputToken: context.mockDAI.address, amounts: [uniSold, kncSold], orders, reserved: true },
+                        { outputToken: context.mockDAI.address, amounts: [uniSold, kncSold], orders, toReserve: true },
                     ]),
             ).to.be.revertedWith("OH: INVALID_OUTPUT_TOKEN");
         });
@@ -1467,7 +1467,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(1, [
-                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, reserved: true },
+                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, toReserve: true },
                     ]),
             )
                 .to.emit(context.nestedFactory, "NftUpdated")
@@ -1519,7 +1519,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(1, [
-                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, reserved: true },
+                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, toReserve: true },
                     ]),
             )
                 .to.emit(context.nestedFactory, "NftUpdated")
@@ -1592,7 +1592,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(1, [
-                        { outputToken: context.mockDAI.address, amounts: [], orders, reserved: false },
+                        { outputToken: context.mockDAI.address, amounts: [], orders, toReserve: false },
                     ]),
             ).to.be.revertedWith("NF: INVALID_ORDERS");
         });
@@ -1622,7 +1622,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(1, [
-                        { outputToken: context.mockUSDC.address, amounts: [uniSold], orders, reserved: false },
+                        { outputToken: context.mockUSDC.address, amounts: [uniSold], orders, toReserve: false },
                     ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
@@ -1639,7 +1639,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(2, [
-                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, reserved: false },
+                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, toReserve: false },
                     ]),
             ).to.be.revertedWith("ERC721: owner query for nonexistent token");
         });
@@ -1656,7 +1656,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.masterDeployer)
                     .processOutputOrders(1, [
-                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, reserved: false },
+                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, toReserve: false },
                     ]),
             ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
@@ -1672,7 +1672,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(1, [
-                        { outputToken: context.mockUSDC.address, amounts: [uniSold], orders, reserved: false },
+                        { outputToken: context.mockUSDC.address, amounts: [uniSold], orders, toReserve: false },
                     ]),
             ).to.be.revertedWith("NF: INPUTS_LENGTH_MUST_MATCH");
         });
@@ -1688,7 +1688,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(1, [
-                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, reserved: false },
+                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, toReserve: false },
                     ]),
             ).to.be.revertedWith("NF: INSUFFICIENT_AMOUNT_IN");
         });
@@ -1706,7 +1706,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(1, [
-                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, reserved: false },
+                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, toReserve: false },
                     ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
@@ -1724,7 +1724,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(1, [
-                        { outputToken: context.mockDAI.address, amounts: [uniSold, kncSold], orders, reserved: false },
+                        { outputToken: context.mockDAI.address, amounts: [uniSold, kncSold], orders, toReserve: false },
                     ]),
             ).to.be.revertedWith("OH: INVALID_OUTPUT_TOKEN");
         });
@@ -1742,7 +1742,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(1, [
-                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, reserved: false },
+                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, toReserve: false },
                     ]),
             )
                 .to.emit(context.nestedFactory, "NftUpdated")
@@ -1791,7 +1791,7 @@ describe("NestedFactory", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(1, [
-                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, reserved: false },
+                        { outputToken: context.mockUSDC.address, amounts: [uniSold, kncSold], orders, toReserve: false },
                     ]),
             )
                 .to.emit(context.nestedFactory, "NftUpdated")
