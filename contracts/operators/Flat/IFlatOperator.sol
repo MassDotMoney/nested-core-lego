@@ -10,7 +10,7 @@ interface IFlatOperator {
     /// @param amount The amount
     /// @return amounts Array of output amounts
     /// @return tokens Array of output tokens
-    function commitAndRevert(address token, uint256 amount)
+    function transfer(address token, uint256 amount)
         external
         payable
         returns (uint256[] memory amounts, address[] memory tokens);

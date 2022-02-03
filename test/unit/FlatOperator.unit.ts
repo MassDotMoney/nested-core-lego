@@ -10,7 +10,6 @@ interface Order {
     operator: string;
     token: string;
     callData: string | [];
-    commit: boolean;
 }
 
 describe("FlatOperator", () => {
@@ -41,7 +40,6 @@ describe("FlatOperator", () => {
                 operator: context.flatOperatorNameBytes32,
                 token: context.mockUNI.address,
                 callData: abiCoder.encode(["address", "uint256"], [context.mockUNI.address, 0]),
-                commit: true,
             },
         ];
 
@@ -66,7 +64,6 @@ describe("FlatOperator", () => {
                 operator: context.flatOperatorNameBytes32,
                 token: context.mockUNI.address,
                 callData: abiCoder.encode(["address", "uint256"], [context.mockDAI.address, 10]),
-                commit: true,
             },
         ];
 
@@ -92,7 +89,6 @@ describe("FlatOperator", () => {
                 operator: context.flatOperatorNameBytes32,
                 token: context.mockUNI.address,
                 callData: abiCoder.encode(["address", "uint256"], [context.mockUNI.address, totalToBought]),
-                commit: true,
             },
         ];
 
@@ -147,7 +143,6 @@ describe("FlatOperator", () => {
                 operator: context.flatOperatorNameBytes32,
                 token: context.mockUNI.address,
                 callData: abiCoder.encode(["address", "uint256"], [context.mockUNI.address, totalToBought]),
-                commit: true,
             },
         ];
 

@@ -7,20 +7,20 @@ import "../MixinOperatorResolver.sol";
 interface IOperatorResolver {
     /// @notice Emitted when an operator is imported
     /// @param name The operator name
-    /// @param destination The operator address
-    event OperatorImported(bytes32 name, address destination);
+    /// @param destination The operator definition
+    event OperatorImported(bytes32 name, Operator destination);
 
     /// @notice Get the address of an operator for a given name
     /// @param name The operator name
     /// @return The operator address
-    function getAddress(bytes32 name) external view returns (address);
+    function getAddress(bytes32 name) external view returns (Operator memory);
 
     /// @notice Get the address of an operator for a given but require
     /// the operator to exist.
     /// @param name The operator name
     /// @param reason Require message
     /// @return The operator address
-    function requireAndGetAddress(bytes32 name, string calldata reason) external view returns (address);
+    function requireAndGetAddress(bytes32 name, string calldata reason) external view returns (Operator memory);
 
     /// @notice Check if some addresses are imported with the right name (and vice versa)
     /// @dev The check is performed on the index, make sure that the two arrays match
@@ -32,14 +32,22 @@ interface IOperatorResolver {
         view
         returns (bool);
 
+    /// @dev Represents an operator definition
+    /// @param implementation Contract address
+    /// @param selector Contract selector
+    struct Operator {
+        address implementation;
+        bytes4 selector;
+    }
+
     /// @notice Import/replace operators
     /// @dev names and destinations arrays must coincide
-    /// @param names Operators name
-    /// @param operators Operators address
+    /// @param names Hashes of the operators names to register
+    /// @param operatorsToImport Operators to import
     /// @param destinations Destinations to rebuild cache atomically
     function importOperators(
         bytes32[] calldata names,
-        address[] calldata operators,
+        Operator[] calldata operatorsToImport,
         MixinOperatorResolver[] calldata destinations
     ) external;
 }

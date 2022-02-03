@@ -1,9 +1,7 @@
 import hre, { ethers, network } from "hardhat";
 import { Contract } from "ethers";
-import * as fs from "fs";
-import { toBytes32 } from "../test/helpers";
 import addresses from "../addresses.json";
-import { NestedAsset } from "../typechain";
+import { importOperators, registerFlat, registerZeroEx } from './utils';
 
 interface Deployment {
     name: string;
@@ -72,7 +70,7 @@ async function main(): Promise<void> {
     console.log("ZeroExOperator deployed : ", zeroExOperator.address);
 
     // Add ZeroExStorage address
-    deployments.push({name: "ZeroExStorage", address: await zeroExOperator.storageAddress(zeroExOperator.address)})
+    deployments.push({ name: "ZeroExStorage", address: await zeroExOperator.storageAddress(zeroExOperator.address) })
 
     // Deploy FlatOperator
     const flatOperator = await flatOperatorFactory.deploy();
@@ -90,11 +88,11 @@ async function main(): Promise<void> {
             operatorResolver.address,
         );
     await verify("NestedFactory", nestedFactory, [nestedAsset.address,
-        nestedRecords.address,
-        nestedReserve.address,
-        feeSplitter.address,
+    nestedRecords.address,
+    nestedReserve.address,
+    feeSplitter.address,
         WETH,
-        operatorResolver.address]);
+    operatorResolver.address]);
     console.log("NestedFactory deployed : ", nestedFactory.address);
 
     const owner = await nestedFactory.owner();
@@ -113,24 +111,10 @@ async function main(): Promise<void> {
     await tx.wait();
 
     // Add operators to OperatorResolver
-    const zeroExOperatorNameBytes32 = toBytes32("ZeroEx");
-    const flatOperatorNameBytes32 = toBytes32("Flat");
-    tx = await operatorResolver
-        .importOperators(
-            [zeroExOperatorNameBytes32, flatOperatorNameBytes32],
-            [zeroExOperator.address, flatOperator.address],
-            []
-        );
-    await tx.wait();
-    
-    // Add operators to factory and rebuild cache
-    tx = await nestedFactory.addOperator(zeroExOperatorNameBytes32);
-    await tx.wait();   
-    tx = await nestedFactory.addOperator(flatOperatorNameBytes32);
-    await tx.wait();   
-    tx = await nestedFactory.rebuildCache();
-    await tx.wait();   
-
+    await importOperators(operatorResolver, [
+        registerFlat(flatOperator),
+        registerZeroEx(zeroExOperator),
+    ], nestedFactory);
     // Convert JSON object to string
     const data = JSON.stringify(deployments);
     console.log(data);
@@ -146,7 +130,7 @@ async function verify(name: string, contract: Contract, params: any[]) {
             constructorArguments: params,
         });
     }
-    deployments.push({name: name, address: contract.address})
+    deployments.push({ name: name, address: contract.address })
 }
 
 main()

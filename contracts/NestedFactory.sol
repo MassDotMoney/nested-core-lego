@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./libraries/ExchangeHelpers.sol";
-import "./libraries/OperatorHelpers.sol";
 import "./interfaces/external/IWETH.sol";
 import "./interfaces/INestedFactory.sol";
 import "./FeeSplitter.sol";
@@ -344,7 +343,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         bool _fromReserve
     ) private returns (uint256 feesAmount, uint256 amountBought) {
         uint256 _outputTokenInitialBalance = _outputToken.balanceOf(address(this));
-        
+
         IERC20 _inputToken;
         for (uint256 i = 0; i < _orders.length; i++) {
             (_inputToken, _inputTokenAmounts[i]) = _transferInputTokens(
@@ -390,11 +389,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         Order calldata _order,
         bool _reserved
     ) private returns (uint256 amountSpent) {
-        address operator = requireAndGetAddress(_order.operator);
-        (bool success, bytes memory data) = OperatorHelpers.callOperator(operator, _order.commit, _order.callData);
+        (bool success, uint256[] memory amounts) = callOperator(_order, _inputToken, _outputToken);
         require(success, "NF: OPERATOR_CALL_FAILED");
-
-        (uint256[] memory amounts, ) = OperatorHelpers.decodeDataAndRequire(data, _inputToken, _outputToken);
 
         if (_reserved) {
             _transferToReserveAndStore(IERC20(_outputToken), amounts[0], _nftId);
@@ -418,10 +414,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         uint256 _nftId,
         Order calldata _order
     ) private {
-        address operator = requireAndGetAddress(_order.operator);
-        (bool success, bytes memory data) = OperatorHelpers.callOperator(operator, _order.commit, _order.callData);
+        (bool success, uint256[] memory amounts) = callOperator(_order, _inputToken, _outputToken);
         if (success) {
-            (uint256[] memory amounts, ) = OperatorHelpers.decodeDataAndRequire(data, _inputToken, _outputToken);
             require(amounts[1] <= _amountToSpend, "NestedFactory::_safeSubmitOrder: Overspent");
             if (_amountToSpend > amounts[1]) {
                 IERC20(_inputToken).safeTransfer(_msgSender(), _amountToSpend - amounts[1]);
@@ -471,7 +465,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
             weth.deposit{ value: msg.value }();
             return (IERC20(address(weth)), msg.value);
         }
-        
+
         uint256 balanceBefore = _inputToken.balanceOf(address(this));
         if (_fromReserve) {
             require(

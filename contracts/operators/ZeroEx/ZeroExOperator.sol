@@ -4,11 +4,10 @@ pragma solidity 0.8.11;
 import "./IZeroExOperator.sol";
 import "./ZeroExStorage.sol";
 import "../../libraries/ExchangeHelpers.sol";
-import "../../interfaces/IOperatorSelector.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title The 0x protocol operator to execute swap with the aggregator
-contract ZeroExOperator is IZeroExOperator, IOperatorSelector {
+contract ZeroExOperator is IZeroExOperator {
     ZeroExStorage public immutable operatorStorage;
 
     /// @dev Deploy with the storage contract
@@ -19,7 +18,7 @@ contract ZeroExOperator is IZeroExOperator, IOperatorSelector {
     }
 
     /// @inheritdoc IZeroExOperator
-    function commitAndRevert(
+    function performSwap(
         IERC20 sellToken,
         IERC20 buyToken,
         bytes calldata swapCallData
@@ -34,8 +33,8 @@ contract ZeroExOperator is IZeroExOperator, IOperatorSelector {
 
         uint256 amountBought = buyToken.balanceOf(address(this)) - buyBalanceBeforePurchase;
         uint256 amountSold = sellBalanceBeforePurchase - sellToken.balanceOf(address(this));
-        require(amountBought != 0, "ZeroExOperator::commitAndRevert: amountBought cant be zero");
-        require(amountSold != 0, "ZeroExOperator::commitAndRevert: amountSold cant be zero");
+        require(amountBought != 0, "ZeroExOperator::performSwap: amountBought cant be zero");
+        require(amountSold != 0, "ZeroExOperator::performSwap: amountSold cant be zero");
 
         // Output amounts
         amounts[0] = amountBought;
@@ -43,15 +42,5 @@ contract ZeroExOperator is IZeroExOperator, IOperatorSelector {
         // Output token
         tokens[0] = address(buyToken);
         tokens[1] = address(sellToken);
-    }
-
-    /// @inheritdoc IOperatorSelector
-    function getCommitSelector() external pure override returns (bytes4) {
-        return this.commitAndRevert.selector;
-    }
-
-    /// @inheritdoc IOperatorSelector
-    function getRevertSelector() external pure override returns (bytes4) {
-        return this.commitAndRevert.selector;
     }
 }

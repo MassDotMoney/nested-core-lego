@@ -11,7 +11,7 @@ interface IZeroExOperator {
     /// @param swapCallData 0x calldata from the API
     /// @return amounts Array of output amounts
     /// @return tokens Array of output tokens
-    function commitAndRevert(
+    function performSwap(
         IERC20 sellToken,
         IERC20 buyToken,
         bytes calldata swapCallData

@@ -7,3 +7,4 @@ export const createFixtureLoader = waffle.createFixtureLoader;
 const chai = require("chai");
 chai.use(smock.matchers);
 export const expect = chai.expect;
+export const assert = chai.assert;

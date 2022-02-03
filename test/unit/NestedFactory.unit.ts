@@ -4,6 +4,7 @@ import { createFixtureLoader, expect, provider } from "../shared/provider";
 import { BigNumber, BigNumberish, BytesLike, Wallet } from "ethers";
 import { appendDecimals, getExpectedFees, toBytes32 } from "../helpers";
 import { ethers, network } from "hardhat";
+import { importOperators } from '../../scripts/utils';
 
 let loadFixture: LoadFixtureFunction;
 
@@ -120,28 +121,37 @@ describe("NestedFactory", () => {
         });
         it("remove an operator", async () => {
             const testAddress = Wallet.createRandom().address;
+            const operatorResolver = await context.operatorResolver
+                .connect(context.masterDeployer);
             // Add the operator named "test"
-            await context.operatorResolver
-                .connect(context.masterDeployer)
-                .importOperators([toBytes32("test")], [testAddress], []);
-            await context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("test"));
-            await context.nestedFactory.connect(context.masterDeployer).rebuildCache();
+            await importOperators(operatorResolver,
+                [{
+                    name: 'test',
+                    contract: testAddress,
+                    signature: 'function test()',
+                }],
+                context.nestedFactory,
+            );
 
             // Then remove the operator
-            await context.operatorResolver
-                .connect(context.masterDeployer)
-                .importOperators([toBytes32("test")], [ethers.constants.AddressZero], []);
+            await importOperators(operatorResolver,
+                [{
+                    name: "test",
+                    contract: ethers.constants.AddressZero,
+                    signature: "function test()",
+                }],
+                null,
+            );
             await context.nestedFactory.connect(context.masterDeployer).rebuildCache();
             await context.nestedFactory.connect(context.masterDeployer).removeOperator(toBytes32("test"));
 
             // Get the operators from the factory
             let operators = await context.nestedFactory.resolverAddressesRequired();
 
-            // Must have 2 operators ("ZeroEx" from Fixture and "test")
+            // Must have 2 operators ("ZeroEx" from Fixture and "Flat")
             expect(operators.length).to.be.equal(2);
             expect(operators[0]).to.be.equal(context.zeroExOperatorNameBytes32);
             expect(operators[1]).to.be.equal(context.flatOperatorNameBytes32);
-            expect(operators[2]).to.not.be.equal(toBytes32("test"));
 
             let orders: OrderStruct[] = [
                 buildOrderStruct(toBytes32("test"), context.mockUNI.address, [

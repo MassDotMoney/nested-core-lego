@@ -46,7 +46,6 @@ interface INestedFactory {
         bytes32 operator;
         address token;
         bytes callData;
-        bool commit;
     }
 
     /// @dev Represent multiple orders for a given token to perform multiple trades.

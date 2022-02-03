@@ -7,6 +7,7 @@ import { Wallet } from "ethers";
 import { ethers } from "hardhat";
 import { FakeContract, smock } from "@defi-wonderland/smock";
 import { TestableMixinResolver } from "../../typechain";
+import { computeSelector } from '../../scripts/utils';
 
 let loadFixture: LoadFixtureFunction;
 
@@ -18,6 +19,15 @@ describe("OperatorResolver", () => {
     const randomDestination2: Wallet = Wallet.createRandom();
     const randomDestination3: Wallet = Wallet.createRandom();
     const randomDestination4: Wallet = Wallet.createRandom();
+
+    function dummyOperatorDef(implementation: string, selector?: string): { implementation: string, selector: string, } & [string, string] {
+        // build something that will match both the array definition of a tuple, and its object defintion
+        // (required for deep equality tests)
+        selector ??= computeSelector(`function handle${implementation}()`);
+        const ret: any = [implementation, selector];
+        Object.assign(ret, { implementation, selector });
+        return ret;
+    }
 
     before("loader", async () => {
         loadFixture = createFixtureLoader(provider.getWallets(), provider);
@@ -36,7 +46,7 @@ describe("OperatorResolver", () => {
             await expect(
                 context.operatorResolver
                     .connect(actors.addressResolverOwner())
-                    .importOperators([toBytes32("something")], [randomDestination1.address], []),
+                    .importOperators([toBytes32("something")], [dummyOperatorDef(randomDestination1.address)], []),
             ).to.not.be.reverted;
         });
 
@@ -44,7 +54,7 @@ describe("OperatorResolver", () => {
             await expect(
                 context.operatorResolver
                     .connect(actors.user1())
-                    .importOperators([toBytes32("something")], [randomDestination1.address], []),
+                    .importOperators([toBytes32("something")], [dummyOperatorDef(randomDestination1.address)], []),
             ).to.be.revertedWith("Ownable: caller is not the owner");
         });
 
@@ -54,7 +64,7 @@ describe("OperatorResolver", () => {
                 await expect(
                     context.operatorResolver
                         .connect(actors.addressResolverOwner())
-                        .importOperators([], [randomDestination1.address], []),
+                        .importOperators([], [dummyOperatorDef(randomDestination1.address)], []),
                 ).to.be.revertedWith(revertReason);
 
                 await expect(
@@ -68,7 +78,10 @@ describe("OperatorResolver", () => {
                         .connect(actors.addressResolverOwner())
                         .importOperators(
                             [toBytes32("something")],
-                            [randomDestination1.address, randomDestination2.address],
+                            [
+                                dummyOperatorDef(randomDestination1.address),
+                                dummyOperatorDef(randomDestination2.address),
+                            ],
                             [],
                         ),
                 ).to.be.revertedWith(revertReason);
@@ -81,7 +94,8 @@ describe("OperatorResolver", () => {
                     .connect(actors.addressResolverOwner())
                     .importOperators(
                         ["first", "second", "third"].map(toBytes32),
-                        [randomDestination1.address, randomDestination2.address, randomDestination3.address],
+                        [randomDestination1.address, randomDestination2.address, randomDestination3.address]
+                            .map(a => dummyOperatorDef(a)),
                         [],
                     );
             });
@@ -103,14 +117,14 @@ describe("OperatorResolver", () => {
                 ).to.be.false;
             });
             it("then each can be looked up in turn", async () => {
-                expect(await context.operatorResolver.getAddress(toBytes32("first"))).to.be.equal(
-                    randomDestination1.address,
+                expect(await context.operatorResolver.getAddress(toBytes32("first"))).to.deep.equal(
+                    dummyOperatorDef(randomDestination1.address),
                 );
-                expect(await context.operatorResolver.getAddress(toBytes32("second"))).to.be.equal(
-                    randomDestination2.address,
+                expect(await context.operatorResolver.getAddress(toBytes32("second"))).to.deep.equal(
+                    dummyOperatorDef(randomDestination2.address),
                 );
-                expect(await context.operatorResolver.getAddress(toBytes32("third"))).to.be.equal(
-                    randomDestination3.address,
+                expect(await context.operatorResolver.getAddress(toBytes32("third"))).to.deep.equal(
+                    dummyOperatorDef(randomDestination3.address),
                 );
             });
 
@@ -120,19 +134,20 @@ describe("OperatorResolver", () => {
                         .connect(actors.addressResolverOwner())
                         .importOperators(
                             ["second", "third"].map(toBytes32),
-                            [randomDestination3.address, randomDestination4.address],
+                            [randomDestination3.address, randomDestination4.address]
+                                .map(a => dummyOperatorDef(a)),
                             [],
                         );
                 });
                 it("then the first remains the same while the other two are updated", async () => {
-                    expect(await context.operatorResolver.getAddress(toBytes32("first"))).to.be.equal(
-                        randomDestination1.address,
+                    expect(await context.operatorResolver.getAddress(toBytes32("first"))).to.deep.equal(
+                        dummyOperatorDef(randomDestination1.address),
                     );
-                    expect(await context.operatorResolver.getAddress(toBytes32("second"))).to.be.equal(
-                        randomDestination3.address,
+                    expect(await context.operatorResolver.getAddress(toBytes32("second"))).to.deep.equal(
+                        dummyOperatorDef(randomDestination3.address),
                     );
-                    expect(await context.operatorResolver.getAddress(toBytes32("third"))).to.be.equal(
-                        randomDestination4.address,
+                    expect(await context.operatorResolver.getAddress(toBytes32("third"))).to.deep.equal(
+                        dummyOperatorDef(randomDestination4.address),
                     );
                 });
             });
@@ -141,8 +156,8 @@ describe("OperatorResolver", () => {
 
     describe("getAddress()", () => {
         it("when invoked with no entries, returns 0 address", async () => {
-            expect(await context.operatorResolver.getAddress(toBytes32("first"))).to.be.equal(
-                ethers.constants.AddressZero,
+            expect(await context.operatorResolver.getAddress(toBytes32("first"))).to.deep.equal(
+                dummyOperatorDef(ethers.constants.AddressZero, '0x00000000'),
             );
         });
         describe("when three separate addresses are given", () => {
@@ -151,19 +166,20 @@ describe("OperatorResolver", () => {
                     .connect(actors.addressResolverOwner())
                     .importOperators(
                         ["first", "second", "third"].map(toBytes32),
-                        [randomDestination1.address, randomDestination2.address, randomDestination3.address],
+                        [randomDestination1.address, randomDestination2.address, randomDestination3.address]
+                            .map(a => dummyOperatorDef(a)),
                         [],
                     );
             });
             it("then getAddress returns the same as the public mapping", async () => {
-                expect(await context.operatorResolver.getAddress(toBytes32("third"))).to.be.equal(
-                    randomDestination3.address,
+                expect(await context.operatorResolver.getAddress(toBytes32("third"))).to.deep.equal(
+                    dummyOperatorDef(randomDestination3.address),
                 );
-                expect(await context.operatorResolver.operators(toBytes32("first"))).to.be.equal(
-                    randomDestination1.address,
+                expect(await context.operatorResolver.operators(toBytes32("first"))).to.deep.equal(
+                    dummyOperatorDef(randomDestination1.address),
                 );
-                expect(await context.operatorResolver.operators(toBytes32("third"))).to.be.equal(
-                    randomDestination3.address,
+                expect(await context.operatorResolver.operators(toBytes32("third"))).to.deep.equal(
+                    dummyOperatorDef(randomDestination3.address),
                 );
             });
         });
@@ -182,17 +198,18 @@ describe("OperatorResolver", () => {
                     .connect(actors.addressResolverOwner())
                     .importOperators(
                         ["first", "second", "third"].map(toBytes32),
-                        [randomDestination1.address, randomDestination2.address, randomDestination3.address],
+                        [randomDestination1.address, randomDestination2.address, randomDestination3.address]
+                            .map(a => dummyOperatorDef(a)),
                         [],
                     );
             });
             it("then requireAndGetAddress() returns the same as the public mapping", async () => {
                 expect(
                     await context.operatorResolver.requireAndGetAddress(toBytes32("second"), errorMessage),
-                ).to.be.equal(randomDestination2.address);
+                ).to.deep.equal(dummyOperatorDef(randomDestination2.address));
                 expect(
                     await context.operatorResolver.requireAndGetAddress(toBytes32("third"), errorMessage),
-                ).to.be.equal(randomDestination3.address);
+                ).to.deep.equal(dummyOperatorDef(randomDestination3.address));
             });
             it("when invoked with an unknown entry, reverts", async () => {
                 await expect(
@@ -216,7 +233,8 @@ describe("OperatorResolver", () => {
                         .connect(actors.addressResolverOwner())
                         .importOperators(
                             ["first", "second", "third"].map(toBytes32),
-                            [mixinResolver1.address, mixinResolver1.address, mixinResolver1.address],
+                            [mixinResolver1.address, mixinResolver1.address, mixinResolver1.address]
+                                .map(a => dummyOperatorDef(a)),
                             [],
                         );
 
