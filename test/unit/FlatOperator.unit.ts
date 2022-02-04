@@ -46,7 +46,11 @@ describe("FlatOperator", () => {
         ];
 
         await expect(
-            context.nestedFactory.connect(context.user1).create(0, context.mockUNI.address, totalToSpend, orders),
+            context.nestedFactory.connect(context.user1).create(0, {
+                inputToken: context.mockUNI.address,
+                amount: totalToSpend,
+                orders,
+            }),
         ).to.revertedWith("NF: OPERATOR_CALL_FAILED");
     });
 
@@ -67,7 +71,11 @@ describe("FlatOperator", () => {
         ];
 
         await expect(
-            context.nestedFactory.connect(context.user1).create(0, context.mockUNI.address, totalToSpend, orders),
+            context.nestedFactory.connect(context.user1).create(0, {
+                inputToken: context.mockUNI.address,
+                amount: totalToSpend,
+                orders,
+            }),
         ).to.revertedWith("OH: INVALID_OUTPUT_TOKEN");
     });
 
@@ -90,7 +98,11 @@ describe("FlatOperator", () => {
 
         // User1 creates the portfolio/NFT and emit event NftCreated
         await expect(
-            context.nestedFactory.connect(context.user1).create(0, context.mockUNI.address, totalToSpend, orders),
+            context.nestedFactory.connect(context.user1).create(0, {
+                inputToken: context.mockUNI.address,
+                amount: totalToSpend,
+                orders,
+            }),
         )
             .to.emit(context.nestedFactory, "NftCreated")
             .withArgs(1, 0);
@@ -141,7 +153,11 @@ describe("FlatOperator", () => {
 
         // User1 creates the portfolio/NFT and emit event NftCreated
         await expect(
-            context.nestedFactory.connect(context.user1).create(0, context.mockUNI.address, totalToSpend, orders),
+            context.nestedFactory.connect(context.user1).create(0, {
+                inputToken: context.mockUNI.address,
+                amount: totalToSpend,
+                orders,
+            }),
         )
             .to.emit(context.nestedFactory, "NftCreated")
             .withArgs(1, 0);
