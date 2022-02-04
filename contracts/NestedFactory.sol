@@ -93,12 +93,12 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     function removeOperator(bytes32 operator) external override onlyOwner {
         uint256 operatorsLength = operators.length;
         for (uint256 i = 0; i < operatorsLength; i++) {
-	        if (operators[i] == operator) {
+            if (operators[i] == operator) {
                 operators[i] = operators[operatorsLength - 1];
-		        operators.pop();
+                operators.pop();
                 emit OperatorRemoved(operator);
                 return;
-	        }
+            }
         }
         revert("NF: NON_EXISTENT_OPERATOR");
     }
@@ -122,10 +122,12 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     }
 
     /// @inheritdoc INestedFactory
-    function create(
-        uint256 _originalTokenId,
-        BatchedInputOrders[] calldata _batchedOrders
-    ) external payable override nonReentrant {
+    function create(uint256 _originalTokenId, BatchedInputOrders[] calldata _batchedOrders)
+        external
+        payable
+        override
+        nonReentrant
+    {
         uint256 nftId = nestedAsset.mint(_msgSender(), _originalTokenId);
 
         for (uint256 i = 0; i < _batchedOrders.length; i++) {
@@ -230,7 +232,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         nestedRecords.deleteAsset(_nftId, _tokenIndex);
         emit NftUpdated(_nftId);
     }
-    
+
     /// @dev Internal logic extraction of processInputOrders()
     /// @param _nftId The id of the NFT to update
     /// @param _batchedOrders The order to execute
@@ -289,7 +291,12 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         uint256 batchLength = _batchedOrders.orders.length;
         require(batchLength != 0, "NF: INVALID_ORDERS");
         uint256 _inputTokenAmount;
-        (tokenSold, _inputTokenAmount) = _transferInputTokens(_nftId, _batchedOrders.inputToken, _batchedOrders.amount, _fromReserve);
+        (tokenSold, _inputTokenAmount) = _transferInputTokens(
+            _nftId,
+            _batchedOrders.inputToken,
+            _batchedOrders.amount,
+            _fromReserve
+        );
 
         uint256 amountSpent;
         for (uint256 i = 0; i < batchLength; i++) {
@@ -312,7 +319,6 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         // If input is from the reserve, update the records
         if (_fromReserve) {
             _decreaseHoldingAmount(_nftId, address(tokenSold), _inputTokenAmount - underSpentAmount);
-
         }
     }
 
@@ -459,9 +465,9 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         bool _fromReserve
     ) private returns (IERC20, uint256) {
         if (address(_inputToken) == ETH) {
-            require(msg.value == _inputTokenAmount, "NF: INVALID_AMOUNT_IN");
-            weth.deposit{ value: msg.value }();
-            return (IERC20(address(weth)), msg.value);
+            require(address(this).balance >= _inputTokenAmount, "NF: INVALID_AMOUNT_IN");
+            weth.deposit{ value: _inputTokenAmount }();
+            return (IERC20(address(weth)), _inputTokenAmount);
         }
 
         uint256 balanceBefore = _inputToken.balanceOf(address(this));
