@@ -102,17 +102,15 @@ _More operators will be added. e.g. CurveOperator or SynthetixOperator_
 The `NestedFactory` is using the operators to interact with other protocols. The call from the Factory to an Operator is an "Order".
 
 An Order has several information:
-- The operator to use.
-- If it should use "Commit" or "Revert".
+- The operator/selector to use
 - The token processed (swapped, stacked,...) by the operator (from the portfolio or wallet).
-- The commit or revert calldatas.
+- The calldatas.
 
 ```javascript
 struct Order {
     bytes32 operator;
     address token;
     bytes callData;
-    bool commit;
 }
 ```
 
