@@ -375,7 +375,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         }
     }
 
-    /// @dev Call the operator to submit the order (commit/revert) and add the output
+    /// @dev Call the operator to submit the order and add the output
     /// assets to the reserve (if needed).
     /// @param _inputToken Token used to make the orders
     /// @param _outputToken Expected output token
@@ -398,8 +398,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         amountSpent = amounts[1];
     }
 
-    /// @dev Call the operator to submit the order (commit/revert) but dont stop if
-    /// the call to the operator fail. It will send the input token back to the msg.sender.
+    /// @dev Call the operator to submit the order but dont stop if the call to the operator fail. 
+    ///      It will send the input token back to the msg.sender.
     /// Note : The _reserved Boolean has been removed (compare to _submitOrder) since it was
     ///        useless for the only use case (destroy).
     /// @param _inputToken Token used to make the orders

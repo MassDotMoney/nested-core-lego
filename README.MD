@@ -56,21 +56,25 @@ Our solution is called the "**Operator**"... A new interaction is a new operator
 They kind of work like [libraries](https://docs.soliditylang.org/en/v0.8.9/contracts.html#libraries), but since we don't want to redeploy the factory, 
 they are contracts that are called via `delegatecall` and referenced by the `OperatorResolver`.
 
-#### One language
-To interact with new operators on the fly, they must speak the same language.
-Let's define the "interactions" common to all operators: `commit` and `revert`.
+#### Operator Resolver
 
-An operator allows performing a precise action, like _"swap my token A for a token B"_. When we want to perform this action, we will "**commit**".
-On the other hand, all the actions in DeFi can be carried out in the opposite direction, like "_swap my token B against a token A_".
-When we want to "reverse" an action that we have "committed", we will "**revert**".
 
-**Some examples:**
+An operator allows performing a precise action, like _"swap my token A for a token B"_ with a specific function, but the operator/interface will change depending on the action/context. To interact with new operators on the fly, we must expose new interfaces to the Factory.
+The `OperatorResolver` will whitelist all the Operator (`address`) with the selectors (`bytes4`) since we can't trust the caller to provide these informations.
 
-| Name     | Commit  |  Revert  |
-|----------|---------|----------|
-| Swap     | Swap token A for token B | Swap token B for token A |
-| Add Liquidity | - Swap half of token A for token B. <br> - Add liquidity to A-B pool. | - Remove liquidity from A-B pool. <br>- Swap (all) token B for token A. |
-| Liquidity Mining | - Swap half of token A for token B. <br>- Add liquidity to A-B pool. <br>- Stake LP token (for token C reward). | - Unstake LP Token. <br>- **(optional)** Swap token C for token A. <br>- Remove liquidity from A-B Pool. <br>- Swap (all) token B for token A. |
+```javascript
+struct Operator {
+    address implementation;
+    bytes4 selector;
+}
+```
+
+The caller will send the `bytes32` hash of :
+- The operator name
+- The operator address
+- The function signature
+
+The `OperatorResolver` will return the `address` + `selector` if the call is whitelisted and revert if not.
 
 #### Storage
 

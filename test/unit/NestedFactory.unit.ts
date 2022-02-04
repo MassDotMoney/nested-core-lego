@@ -14,7 +14,6 @@ interface OrderStruct {
     operator: BytesLike;
     token: string;
     callData: BytesLike;
-    commit: boolean;
 }
 
 interface BatchedOrderStruct {
@@ -28,7 +27,6 @@ function buildOrderStruct(operator: string, outToken: string, data: [RawDataType
     //     bytes32 operator;
     //     address token;
     //     bytes callData;
-    //     bool commit;
     // }
     const abiCoder = new ethers.utils.AbiCoder();
     const coded = abiCoder.encode([...data.map(x => x[0])], [...data.map(x => x[1])]);
@@ -40,7 +38,6 @@ function buildOrderStruct(operator: string, outToken: string, data: [RawDataType
         // encode the given data
         callData: coded, // remove the leading 32 bytes (one address) and the leading 0x
         // callData,
-        commit: true, // to remove on next contract update (commit)
     };
 }
 

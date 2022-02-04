@@ -5,6 +5,14 @@ import "../MixinOperatorResolver.sol";
 
 /// @title Operator address resolver interface
 interface IOperatorResolver {
+    /// @dev Represents an operator definition
+    /// @param implementation Contract address
+    /// @param selector Contract selector
+    struct Operator {
+        address implementation;
+        bytes4 selector;
+    }
+
     /// @notice Emitted when an operator is imported
     /// @param name The operator name
     /// @param destination The operator definition
@@ -31,14 +39,6 @@ interface IOperatorResolver {
         external
         view
         returns (bool);
-
-    /// @dev Represents an operator definition
-    /// @param implementation Contract address
-    /// @param selector Contract selector
-    struct Operator {
-        address implementation;
-        bytes4 selector;
-    }
 
     /// @notice Import/replace operators
     /// @dev names and destinations arrays must coincide

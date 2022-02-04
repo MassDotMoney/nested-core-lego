@@ -41,7 +41,6 @@ interface INestedFactory {
     /// @param operator The bytes32 name of the Operator
     /// @param token The expected token address in output/input
     /// @param callData The operator parameters (delegatecall)
-    /// @param commit If the order is a commit (false if it's a revert)
     struct Order {
         bytes32 operator;
         address token;
