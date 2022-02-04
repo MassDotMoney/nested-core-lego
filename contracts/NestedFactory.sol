@@ -128,6 +128,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         override
         nonReentrant
     {
+        _checkMsgValue(_batchedOrders);
         uint256 nftId = nestedAsset.mint(_msgSender(), _originalTokenId);
 
         for (uint256 i = 0; i < _batchedOrders.length; i++) {
@@ -147,6 +148,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         onlyTokenOwner(_nftId)
         isUnlocked(_nftId)
     {
+        _checkMsgValue(_batchedOrders);
         _processInputOrders(_nftId, _batchedOrders);
         emit NftUpdated(_nftId);
     }
@@ -169,6 +171,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         BatchedInputOrders[] calldata _batchedInputOrders,
         BatchedOutputOrders[] calldata _batchedOutputOrders
     ) external payable override nonReentrant onlyTokenOwner(_nftId) isUnlocked(_nftId) {
+        _checkMsgValue(_batchedInputOrders);
         _processInputOrders(_nftId, _batchedInputOrders);
         _processOutputOrders(_nftId, _batchedOutputOrders);
         emit NftUpdated(_nftId);
@@ -551,5 +554,18 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
         uint256 feeAmount = _amount / 100;
         _transferFeeWithRoyalty(feeAmount, _token, _nftId);
         _token.safeTransfer(_dest, _amount - feeAmount);
+    }
+
+    /// @dev Verify that msg.value is equal to the amount needed (in the orders)
+    /// @param _batchedOrders The batched input orders
+    function _checkMsgValue(BatchedInputOrders[] calldata _batchedOrders) private {
+        uint256 ethNeeded;
+        uint256 length = _batchedOrders.length;
+        for (uint256 i = 0; i < length; i++) {
+            if (address(_batchedOrders[i].inputToken) == ETH) {
+                ethNeeded += _batchedOrders[i].amount;
+            }
+        }
+        require(msg.value == ethNeeded, "NF: WRONG_MSG_VALUE"); 
     }
 }
