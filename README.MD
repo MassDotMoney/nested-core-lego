@@ -1,6 +1,7 @@
-![logo](https://user-images.githubusercontent.com/22816913/140889449-5c5afc92-0d4d-43c8-9d02-b3489eab093f.png)
 
-_https://nested.fi_
+<div align="center"><img width="600" src="https://user-images.githubusercontent.com/22816913/140889449-5c5afc92-0d4d-43c8-9d02-b3489eab093f.png"></div>
+
+<div align="center"><a href="https://nested.fi" > https://nested.fi </a></div>
 
 ## Introduction
 
@@ -119,7 +120,9 @@ It help us to make **one** interaction, but we want to make multiple interaction
 **There are two types of "Batched Orders" processed by the Factory to create or edit Portfolios :**
 
 #### Batched Input Orders
-![image](https://user-images.githubusercontent.com/22816913/152330910-595122d9-68ae-49dd-a058-0f16c65ce353.png)
+
+<div align="center"><img width="500" src="https://user-images.githubusercontent.com/22816913/152330910-595122d9-68ae-49dd-a058-0f16c65ce353.png"></div>
+
 - One same input for every orders but multiple outputs.
 - 1% Fee on the input.
 - The input (*source*) is from a wallet **or** a portfolio.
@@ -135,7 +138,9 @@ struct BatchedInputOrders {
 ```
 
 #### Batched Output Orders
-![image](https://user-images.githubusercontent.com/22816913/152331144-8e57397f-33f6-44bb-97e5-dff87ee6fac9.png)
+
+<div align="center"><img width="500" src="https://user-images.githubusercontent.com/22816913/152331144-8e57397f-33f6-44bb-97e5-dff87ee6fac9.png"></div>
+
 - Multiple inputs for every orders but one output.
 - 1% Fee on the output.
 - The input (*source*) is the portfolio (**only**). 
