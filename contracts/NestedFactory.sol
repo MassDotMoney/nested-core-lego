@@ -560,8 +560,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     /// @param _batchedOrders The batched input orders
     function _checkMsgValue(BatchedInputOrders[] calldata _batchedOrders) private {
         uint256 ethNeeded;
-        uint256 length = _batchedOrders.length;
-        for (uint256 i = 0; i < length; i++) {
+        for (uint256 i = 0; i < _batchedOrders.length; i++) {
             if (address(_batchedOrders[i].inputToken) == ETH) {
                 ethNeeded += _batchedOrders[i].amount;
             }

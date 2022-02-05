@@ -360,6 +360,29 @@ describe("NestedFactory", () => {
             ).to.be.reverted;
         });
 
+        it("the ETH amount is more than total sum of ETH in orders", async () => {
+            /*
+             * All the amounts for this test :
+             * - Buy 6 UNI and 4 KNC
+             * - The user needs 10 ETH (+ fees), will specify 11 ETH, but will send 12 ETH (msg.value)
+             */
+            const uniBought = appendDecimals(6);
+            const kncBought = appendDecimals(4);
+            const totalToSpend = appendDecimals(11);
+
+            // Orders for UNI and KNC
+            let orders: OrderStruct[] = getUniAndKncWithETHOrders(uniBought, kncBought);
+
+            // Should revert with "assert" (no message)
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .create(0, [{ inputToken: ETH, amount: totalToSpend, orders, fromReserve: false }], {
+                        value: totalToSpend.add(appendDecimals(1)),
+                    }),
+            ).to.be.revertedWith("NF: WRONG_MSG_VALUE");
+        });
+
         it("Creates NFT from DAI with KNI and UNI inside (ZeroExOperator) with right amounts", async () => {
             // All the amounts for this test
             const uniBought = appendDecimals(6);
