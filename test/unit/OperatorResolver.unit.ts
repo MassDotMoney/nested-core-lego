@@ -101,29 +101,29 @@ describe("OperatorResolver", () => {
             });
             it("then it can verify the imported set of addresses", async () => {
                 expect(
-                    await context.operatorResolver.areAddressesImported(["first", "second", "third"].map(toBytes32), [
+                    await context.operatorResolver.areOperatorsImported(["first", "second", "third"].map(toBytes32), [
                         randomDestination1.address,
                         randomDestination2.address,
                         randomDestination3.address,
-                    ]),
+                    ].map(a => dummyOperatorDef(a))),
                 ).to.be.true;
 
                 expect(
-                    await context.operatorResolver.areAddressesImported(["first", "second", "third"].map(toBytes32), [
+                    await context.operatorResolver.areOperatorsImported(["first", "second", "third"].map(toBytes32), [
                         randomDestination2.address,
                         randomDestination1.address,
                         randomDestination3.address,
-                    ]),
+                    ].map(a => dummyOperatorDef(a))),
                 ).to.be.false;
             });
             it("then each can be looked up in turn", async () => {
-                expect(await context.operatorResolver.getAddress(toBytes32("first"))).to.deep.equal(
+                expect(await context.operatorResolver.getOperator(toBytes32("first"))).to.deep.equal(
                     dummyOperatorDef(randomDestination1.address),
                 );
-                expect(await context.operatorResolver.getAddress(toBytes32("second"))).to.deep.equal(
+                expect(await context.operatorResolver.getOperator(toBytes32("second"))).to.deep.equal(
                     dummyOperatorDef(randomDestination2.address),
                 );
-                expect(await context.operatorResolver.getAddress(toBytes32("third"))).to.deep.equal(
+                expect(await context.operatorResolver.getOperator(toBytes32("third"))).to.deep.equal(
                     dummyOperatorDef(randomDestination3.address),
                 );
             });
@@ -140,13 +140,13 @@ describe("OperatorResolver", () => {
                         );
                 });
                 it("then the first remains the same while the other two are updated", async () => {
-                    expect(await context.operatorResolver.getAddress(toBytes32("first"))).to.deep.equal(
+                    expect(await context.operatorResolver.getOperator(toBytes32("first"))).to.deep.equal(
                         dummyOperatorDef(randomDestination1.address),
                     );
-                    expect(await context.operatorResolver.getAddress(toBytes32("second"))).to.deep.equal(
+                    expect(await context.operatorResolver.getOperator(toBytes32("second"))).to.deep.equal(
                         dummyOperatorDef(randomDestination3.address),
                     );
-                    expect(await context.operatorResolver.getAddress(toBytes32("third"))).to.deep.equal(
+                    expect(await context.operatorResolver.getOperator(toBytes32("third"))).to.deep.equal(
                         dummyOperatorDef(randomDestination4.address),
                     );
                 });
@@ -156,7 +156,7 @@ describe("OperatorResolver", () => {
 
     describe("getAddress()", () => {
         it("when invoked with no entries, returns 0 address", async () => {
-            expect(await context.operatorResolver.getAddress(toBytes32("first"))).to.deep.equal(
+            expect(await context.operatorResolver.getOperator(toBytes32("first"))).to.deep.equal(
                 dummyOperatorDef(ethers.constants.AddressZero, '0x00000000'),
             );
         });
@@ -172,7 +172,7 @@ describe("OperatorResolver", () => {
                     );
             });
             it("then getAddress returns the same as the public mapping", async () => {
-                expect(await context.operatorResolver.getAddress(toBytes32("third"))).to.deep.equal(
+                expect(await context.operatorResolver.getOperator(toBytes32("third"))).to.deep.equal(
                     dummyOperatorDef(randomDestination3.address),
                 );
                 expect(await context.operatorResolver.operators(toBytes32("first"))).to.deep.equal(
@@ -189,7 +189,7 @@ describe("OperatorResolver", () => {
         const errorMessage: string = "Error !";
         it("when invoked with no entries, reverts", async () => {
             await expect(
-                context.operatorResolver.requireAndGetAddress(toBytes32("first"), errorMessage),
+                context.operatorResolver.requireAndGetOperator(toBytes32("first"), errorMessage),
             ).to.be.revertedWith(errorMessage);
         });
         describe("when three separate addresses are given", () => {
@@ -205,15 +205,15 @@ describe("OperatorResolver", () => {
             });
             it("then requireAndGetAddress() returns the same as the public mapping", async () => {
                 expect(
-                    await context.operatorResolver.requireAndGetAddress(toBytes32("second"), errorMessage),
+                    await context.operatorResolver.requireAndGetOperator(toBytes32("second"), errorMessage),
                 ).to.deep.equal(dummyOperatorDef(randomDestination2.address));
                 expect(
-                    await context.operatorResolver.requireAndGetAddress(toBytes32("third"), errorMessage),
+                    await context.operatorResolver.requireAndGetOperator(toBytes32("third"), errorMessage),
                 ).to.deep.equal(dummyOperatorDef(randomDestination3.address));
             });
             it("when invoked with an unknown entry, reverts", async () => {
                 await expect(
-                    context.operatorResolver.requireAndGetAddress(toBytes32("other"), errorMessage),
+                    context.operatorResolver.requireAndGetOperator(toBytes32("other"), errorMessage),
                 ).to.be.revertedWith(errorMessage);
             });
         });

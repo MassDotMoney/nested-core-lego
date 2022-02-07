@@ -18,24 +18,23 @@ interface IOperatorResolver {
     /// @param destination The operator definition
     event OperatorImported(bytes32 name, Operator destination);
 
-    /// @notice Get the address of an operator for a given name
+    /// @notice Get an operator (address/selector) for a given name
     /// @param name The operator name
-    /// @return The operator address
-    function getAddress(bytes32 name) external view returns (Operator memory);
+    /// @return The operator struct (address/selector)
+    function getOperator(bytes32 name) external view returns (Operator memory);
 
-    /// @notice Get the address of an operator for a given but require
-    /// the operator to exist.
+    /// @notice Get an operator (address/selector) for a given name but require the operator to exist.
     /// @param name The operator name
     /// @param reason Require message
-    /// @return The operator address
-    function requireAndGetAddress(bytes32 name, string calldata reason) external view returns (Operator memory);
+    /// @return The operator struct (address/selector)
+    function requireAndGetOperator(bytes32 name, string calldata reason) external view returns (Operator memory);
 
-    /// @notice Check if some addresses are imported with the right name (and vice versa)
+    /// @notice Check if some operators are imported with the right name (and vice versa)
     /// @dev The check is performed on the index, make sure that the two arrays match
     /// @param names The operator names
     /// @param destinations The operator addresses
     /// @return True if all the addresses/names are correctly imported, false otherwise
-    function areAddressesImported(bytes32[] calldata names, address[] calldata destinations)
+    function areOperatorsImported(bytes32[] calldata names, Operator[] calldata destinations)
         external
         view
         returns (bool);

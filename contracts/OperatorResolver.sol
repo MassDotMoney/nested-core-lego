@@ -12,19 +12,19 @@ contract OperatorResolver is IOperatorResolver, Ownable {
     mapping(bytes32 => Operator) public operators;
 
     /// @inheritdoc IOperatorResolver
-    function getAddress(bytes32 name) external view override returns (Operator memory) {
+    function getOperator(bytes32 name) external view override returns (Operator memory) {
         return operators[name];
     }
 
     /// @inheritdoc IOperatorResolver
-    function requireAndGetAddress(bytes32 name, string calldata reason) external view override returns (Operator memory) {
-        Operator memory _foundAddress = operators[name];
-        require(_foundAddress.implementation != address(0), reason);
-        return _foundAddress;
+    function requireAndGetOperator(bytes32 name, string calldata reason) external view override returns (Operator memory) {
+        Operator memory _foundOperator = operators[name];
+        require(_foundOperator.implementation != address(0), reason);
+        return _foundOperator;
     }
 
     /// @inheritdoc IOperatorResolver
-    function areAddressesImported(bytes32[] calldata names, address[] calldata destinations)
+    function areOperatorsImported(bytes32[] calldata names, Operator[] calldata destinations)
         external
         view
         override
@@ -33,7 +33,7 @@ contract OperatorResolver is IOperatorResolver, Ownable {
         uint256 namesLength = names.length;
         require(namesLength == destinations.length, "OR: INPUTS_LENGTH_MUST_MATCH");
         for (uint256 i = 0; i < namesLength; i++) {
-            if (operators[names[i]].implementation != destinations[i]) {
+            if (operators[names[i]].implementation != destinations[i].implementation && operators[names[i]].selector != destinations[i].selector) {
                 return false;
             }
         }

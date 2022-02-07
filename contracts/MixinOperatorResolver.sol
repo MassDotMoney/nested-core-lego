@@ -36,7 +36,7 @@ abstract contract MixinOperatorResolver {
         for (uint256 i = 0; i < requiredAddresses.length; i++) {
             name = requiredAddresses[i];
             // Note: can only be invoked once the resolver has all the targets needed added
-            destination = resolver.getAddress(name);
+            destination = resolver.getOperator(name);
             if (destination.implementation != address(0)) {
                 addressCache[name] = destination;
             } else {
@@ -55,7 +55,7 @@ abstract contract MixinOperatorResolver {
         for (uint256 i = 0; i < requiredAddresses.length; i++) {
             name = requiredAddresses[i];
             cacheTmp = addressCache[name];
-            actualValue = resolver.getAddress(name);
+            actualValue = resolver.getOperator(name);
             // false if our cache is invalid or if the resolver doesn't have the required address
             if (actualValue.implementation != cacheTmp.implementation
                 || actualValue.selector != cacheTmp.selector
