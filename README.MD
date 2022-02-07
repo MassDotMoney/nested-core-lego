@@ -85,7 +85,7 @@ When deploying an operator, it will also deploy the storage contract and transfe
 
 #### Diagram
 
-![image](https://user-images.githubusercontent.com/22816913/140764920-42418305-c919-4194-9891-52f2f33122f2.png)
+![image](https://user-images.githubusercontent.com/22816913/152804758-98de74eb-e09c-44ac-8504-32b40c3624ae.png)
 
 #### Contracts
 
