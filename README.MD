@@ -3,7 +3,7 @@
 <br/>
 <div align="center"><a href="https://nested.fi" > https://nested.fi </a></div>
 
-## Introduction
+# Introduction
 
 Nested Finance is a decentralized protocol providing customizable financial products in the form of NFTs. 
 The platform allows users to put several digital assets, i.e. ERC20 tokens, inside an NFT (abbreviated as `NestedNFT`).
@@ -21,15 +21,15 @@ and enable new assets, without re-deploying.
 > The tokens are stored on a self-custodian smart contract.
 
 At the end of the creation process, the user receives the NFT which allows to control all underlying assets of the portfolio.
-Furthermore, we allow users to copy other users’ NestedNFTs. The creator of the initial NestedNFT earns royalties.
+Furthermore, we allow users to copy other users NestedNFTs. The creator of the initial NestedNFT earns royalties.
 
-#### _Further documentation and details can be found here: https://docs.nested.finance/_
+### _Further documentation and details can be found here: https://docs.nested.finance/_
 
-## Architecture
+# Architecture
 
-![diagram](https://user-images.githubusercontent.com/22816913/140886706-ee9e18f8-de84-4bcf-af20-5847b79cc508.png)
+![image](https://user-images.githubusercontent.com/22816913/152804262-e8879475-8873-43a9-9a53-18da1517b3fd.png)
 
-### Core contracts
+## Core contracts
 
 | Name             | Purpose  |
 |------------------|----------|
@@ -40,9 +40,9 @@ Furthermore, we allow users to copy other users’ NestedNFTs. The creator of th
 | **FeeSplitter**      | Receives payments in ERC20 tokens from the factory when fees are sent. Allows each party to claim the amount they are due. |
 | **NestedBuyBacker**  | Pulls tokens from the FeeSplitter, buys back NST tokens on the market, and burns a part of it. |
 
-### Operators (modularization)
+## Operators (modularization)
 
-#### What is an operator?
+### What is an operator?
 
 `NestedFactory` is the main smart contract, but it can't work without the Operators.
 
@@ -56,7 +56,8 @@ So, we had to deal with two issues :
 Our solution is called the "**Operator**"... A new interaction is a new operator and can be added on the fly.
 They kind of work like [libraries](https://docs.soliditylang.org/en/v0.8.9/contracts.html#libraries), but since we don't want to redeploy the factory, 
 they are contracts that are called via `delegatecall` and referenced by the `OperatorResolver`.
-#### Operator Resolver
+
+### Operator Resolver
 
 An operator allows performing a precise action, like _"swap my token A for a token B"_ with a specific function, but the operator/interface will change depending on the action/context. To interact with new operators on the fly, we must expose new interfaces to the Factory.
 The `OperatorResolver` will whitelist all the Operator (`address`) with the selectors (`bytes4`) since we can't trust the caller to provide these informations.
@@ -75,18 +76,18 @@ The caller will send the `bytes32` hash of :
 
 The `OperatorResolver` will return the `address` + `selector` if the call is whitelisted and revert if not.
 
-#### Storage
+### Storage
 
 Since the operators are called via `delegatecall`: _how can we store/retrieve useful data?_
 <br>In fact, we cannot trust the Factory to provide all the data, like the address of the protocol. It must be stored and managed by the owner.
 
 When deploying an operator, it will also deploy the storage contract and transfer the ownership to `msgSender()`.
 
-#### Diagram
+### Diagram
 
-![image](https://user-images.githubusercontent.com/22816913/140764920-42418305-c919-4194-9891-52f2f33122f2.png)
+![image](https://user-images.githubusercontent.com/22816913/152804758-98de74eb-e09c-44ac-8504-32b40c3624ae.png)
 
-#### Contracts
+### Contracts
 
 | Name                  | Purpose  |
 |-----------------------|----------|
@@ -156,6 +157,7 @@ struct BatchedOutputOrders {
 ```
 
 ### Ownership & Governance
+
 Some functions of the protocol require admin rights (`onlyOwner`).
 
 The contracts are owned by the [TimelockController](https://docs.openzeppelin.com/contracts/4.x/api/governance#TimelockController) contract from OpenZeppelin, set with a **7-days** delay.
@@ -164,15 +166,15 @@ This ensures the community has time to review any changes made to the protocol.
 The owner of the TimelockController is a three-party multisignature wallet.
 > During the next phase of the protocol, the ownership will be transferred to a fully decentralized DAO.
 
-## Development & Testing
+# Development & Testing
 
-### Setup
+## Setup
 - Install Node > 12
 - Install Yarn
 - `yarn install`
 - Copy `.env.example` to a new file `.env` and insert a dummy mnemonic and a mainnet api key
 
-### Commands
+## Commands
 
 - Start a local blockchain
 `yarn run`
@@ -189,5 +191,5 @@ The owner of the TimelockController is a three-party multisignature wallet.
 - Run tests
 `yarn test`
 
-## License
+# License
 [GNU General Public License v3](https://www.gnu.org/licenses/gpl-3.0.html)
