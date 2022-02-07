@@ -6,7 +6,7 @@ import "./interfaces/IOperatorResolver.sol";
 import "./interfaces/INestedFactory.sol";
 
 /// @title Mixin operator resolver
-/// @notice Store in cache operators name and address
+/// @notice Store in cache operators name and address/selector
 abstract contract MixinOperatorResolver {
     /// @notice Emitted when cache is updated
     /// @param name The operator name
@@ -25,16 +25,16 @@ abstract contract MixinOperatorResolver {
 
     /// @dev This function is public not external in order for it to be overridden and
     /// invoked via super in subclasses
-    function resolverAddressesRequired() public view virtual returns (bytes32[] memory addresses) {}
+    function resolverOperatorsRequired() public view virtual returns (bytes32[] memory addresses) {}
 
     /// @notice Rebuild the addressCache
     function rebuildCache() external {
-        bytes32[] memory requiredAddresses = resolverAddressesRequired();
+        bytes32[] memory requiredOperators = resolverOperatorsRequired();
         bytes32 name;
         IOperatorResolver.Operator memory destination;
         // The resolver must call this function whenever it updates its state
-        for (uint256 i = 0; i < requiredAddresses.length; i++) {
-            name = requiredAddresses[i];
+        for (uint256 i = 0; i < requiredOperators.length; i++) {
+            name = requiredOperators[i];
             // Note: can only be invoked once the resolver has all the targets needed added
             destination = resolver.getOperator(name);
             if (destination.implementation != address(0)) {
@@ -48,12 +48,12 @@ abstract contract MixinOperatorResolver {
 
     /// @notice Check the state of addressCache
     function isResolverCached() external view returns (bool) {
-        bytes32[] memory requiredAddresses = resolverAddressesRequired();
+        bytes32[] memory requiredOperators = resolverOperatorsRequired();
         bytes32 name;
         IOperatorResolver.Operator memory cacheTmp;
         IOperatorResolver.Operator memory actualValue;
-        for (uint256 i = 0; i < requiredAddresses.length; i++) {
-            name = requiredAddresses[i];
+        for (uint256 i = 0; i < requiredOperators.length; i++) {
+            name = requiredOperators[i];
             cacheTmp = addressCache[name];
             actualValue = resolver.getOperator(name);
             // false if our cache is invalid or if the resolver doesn't have the required address

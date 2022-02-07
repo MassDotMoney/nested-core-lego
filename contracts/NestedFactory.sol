@@ -73,8 +73,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     /// @dev Receive function
     receive() external payable {}
 
-    /// @notice Get the required operator addresses
-    function resolverAddressesRequired() public view override returns (bytes32[] memory) {
+    /// @notice Get the required operators
+    function resolverOperatorsRequired() public view override returns (bytes32[] memory) {
         return operators;
     }
 

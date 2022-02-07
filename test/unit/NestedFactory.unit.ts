@@ -100,7 +100,7 @@ describe("NestedFactory", () => {
             await context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("test"));
 
             // Get the operators from the factory
-            const operators = await context.nestedFactory.resolverAddressesRequired();
+            const operators = await context.nestedFactory.resolverOperatorsRequired();
 
             // Must have 2 operators ("ZeroEx" from Fixture and "test")
             expect(operators.length).to.be.equal(3);
@@ -143,7 +143,7 @@ describe("NestedFactory", () => {
             await context.nestedFactory.connect(context.masterDeployer).removeOperator(toBytes32("test"));
 
             // Get the operators from the factory
-            let operators = await context.nestedFactory.resolverAddressesRequired();
+            let operators = await context.nestedFactory.resolverOperatorsRequired();
 
             // Must have 2 operators ("ZeroEx" from Fixture and "Flat")
             expect(operators.length).to.be.equal(2);
@@ -176,7 +176,7 @@ describe("NestedFactory", () => {
             await context.nestedFactory
                 .connect(context.masterDeployer)
                 .removeOperator(context.zeroExOperatorNameBytes32);
-            operators = await context.nestedFactory.resolverAddressesRequired();
+            operators = await context.nestedFactory.resolverOperatorsRequired();
             expect(operators[0]).to.be.equal(context.flatOperatorNameBytes32);
         });
     });
