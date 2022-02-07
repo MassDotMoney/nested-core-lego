@@ -9,22 +9,22 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 /// @notice Resolve the operators address
 contract OperatorResolver is IOperatorResolver, Ownable {
     /// @dev Operators map of the name and address
-    mapping(bytes32 => address) public operators;
+    mapping(bytes32 => Operator) public operators;
 
     /// @inheritdoc IOperatorResolver
-    function getAddress(bytes32 name) external view override returns (address) {
+    function getOperator(bytes32 name) external view override returns (Operator memory) {
         return operators[name];
     }
 
     /// @inheritdoc IOperatorResolver
-    function requireAndGetAddress(bytes32 name, string calldata reason) external view override returns (address) {
-        address _foundAddress = operators[name];
-        require(_foundAddress != address(0), reason);
-        return _foundAddress;
+    function requireAndGetOperator(bytes32 name, string calldata reason) external view override returns (Operator memory) {
+        Operator memory _foundOperator = operators[name];
+        require(_foundOperator.implementation != address(0), reason);
+        return _foundOperator;
     }
 
     /// @inheritdoc IOperatorResolver
-    function areAddressesImported(bytes32[] calldata names, address[] calldata destinations)
+    function areOperatorsImported(bytes32[] calldata names, Operator[] calldata destinations)
         external
         view
         override
@@ -33,7 +33,7 @@ contract OperatorResolver is IOperatorResolver, Ownable {
         uint256 namesLength = names.length;
         require(namesLength == destinations.length, "OR: INPUTS_LENGTH_MUST_MATCH");
         for (uint256 i = 0; i < namesLength; i++) {
-            if (operators[names[i]] != destinations[i]) {
+            if (operators[names[i]].implementation != destinations[i].implementation && operators[names[i]].selector != destinations[i].selector) {
                 return false;
             }
         }
@@ -43,18 +43,21 @@ contract OperatorResolver is IOperatorResolver, Ownable {
     /// @inheritdoc IOperatorResolver
     function importOperators(
         bytes32[] calldata names,
-        address[] calldata operatorAdrrs,
+        Operator[] calldata operatorsToImport,
         MixinOperatorResolver[] calldata destinations
     ) external override onlyOwner {
-        require(names.length == operatorAdrrs.length, "OR: INPUTS_LENGTH_MUST_MATCH");
+        require(names.length == operatorsToImport.length, "OR: INPUTS_LENGTH_MUST_MATCH");
         bytes32 name;
-        address destination;
+        Operator calldata  destination;
         for (uint256 i = 0; i < names.length; i++) {
             name = names[i];
-            destination = operatorAdrrs[i];
+            destination = operatorsToImport[i];
             operators[name] = destination;
             emit OperatorImported(name, destination);
         }
+
+        // rebuild caches atomically
+        // see. https://github.com/code-423n4/2021-11-nested-findings/issues/217
         rebuildCaches(destinations);
     }
 

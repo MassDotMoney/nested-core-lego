@@ -27,10 +27,10 @@ describe("ZeroExOperator", () => {
     });
 
     it("has swapTarget (storage)", async () => {
-        expect(context.zeroExOperator.storageAddress(context.zeroExOperator.address)).to.be.a.string;
+        expect(context.zeroExOperator.operatorStorage()).to.be.a.string;
     });
 
-    describe("commitAndRevert()", () => {
+    describe("performSwap()", () => {
         it("Swap tokens", async () => {
             let initDaiBalance = await context.mockDAI.balanceOf(context.testableOperatorCaller.address);
             let initUniBalance = await context.mockUNI.balanceOf(context.testableOperatorCaller.address);
@@ -45,7 +45,7 @@ describe("ZeroExOperator", () => {
             // Run swap
             await context.testableOperatorCaller
                 .connect(actors.user1())
-                .zeroExCommitAndRevert(
+                .performSwap(
                     context.zeroExOperator.address,
                     context.mockDAI.address,
                     context.mockUNI.address,
@@ -74,13 +74,13 @@ describe("ZeroExOperator", () => {
             await expect(
                 context.testableOperatorCaller
                     .connect(actors.user1())
-                    .zeroExCommitAndRevert(
+                    .performSwap(
                         context.zeroExOperator.address,
                         context.mockDAI.address,
                         context.mockUNI.address,
                         calldata,
                     ),
-            ).to.be.revertedWith("TestableOperatorCaller::zeroExCommitAndRevert: Error");
+            ).to.be.revertedWith("TestableOperatorCaller::performSwap: Error");
         });
     });
 });

@@ -15,20 +15,21 @@ In fact, we just want to deposit or withdraw without swapping in some cases.
 The FlatOperator will do nothing, and return to the factory that "input = output" (for the amount and token address). This way, it "simulates" a deposit (or withdraw in the case of some factory functions).
 
 ```javascript
-/// @inheritdoc IFlatOperator
-function commitAndRevert(
-    address own,
-    address token,
-    uint256 amount
-) external payable override returns (uint256[] memory amounts, address[] memory tokens) {
+function transfer(address token, uint256 amount)
+    external
+    payable
+    override
+    returns (uint256[] memory amounts, address[] memory tokens)
+{
     require(amount != 0, "FO: INVALID_AMOUNT");
 
     amounts = new uint256[](2);
     tokens = new address[](2);
-
+    
     // Output amounts
     amounts[0] = amount;
     amounts[1] = amount;
+
     // Output token
     tokens[0] = token;
     tokens[1] = token;

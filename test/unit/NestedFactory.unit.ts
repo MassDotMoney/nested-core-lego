@@ -4,6 +4,7 @@ import { createFixtureLoader, expect, provider } from "../shared/provider";
 import { BigNumber, BigNumberish, BytesLike, Wallet } from "ethers";
 import { appendDecimals, getExpectedFees, toBytes32 } from "../helpers";
 import { ethers, network } from "hardhat";
+import { importOperators } from '../../scripts/utils';
 
 let loadFixture: LoadFixtureFunction;
 
@@ -13,7 +14,6 @@ interface OrderStruct {
     operator: BytesLike;
     token: string;
     callData: BytesLike;
-    commit: boolean;
 }
 
 interface BatchedOrderStruct {
@@ -27,22 +27,17 @@ function buildOrderStruct(operator: string, outToken: string, data: [RawDataType
     //     bytes32 operator;
     //     address token;
     //     bytes callData;
-    //     bool commit;
     // }
     const abiCoder = new ethers.utils.AbiCoder();
-    const coded = abiCoder.encode(
-        ["address", ...data.map(x => x[0])],
-        [ethers.constants.AddressZero, ...data.map(x => x[1])],
-    );
+    const coded = abiCoder.encode([...data.map(x => x[0])], [...data.map(x => x[1])]);
     return {
         // specify which operator?
         operator: operator,
         // specify the token that this order will output
         token: outToken,
         // encode the given data
-        callData: "0x" + coded.slice(64 + 2), // remove the leading 32 bytes (one address) and the leading 0x
+        callData: coded, // remove the leading 32 bytes (one address) and the leading 0x
         // callData,
-        commit: true, // to remove on next contract update (commit)
     };
 }
 
@@ -105,7 +100,7 @@ describe("NestedFactory", () => {
             await context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("test"));
 
             // Get the operators from the factory
-            const operators = await context.nestedFactory.resolverAddressesRequired();
+            const operators = await context.nestedFactory.resolverOperatorsRequired();
 
             // Must have 2 operators ("ZeroEx" from Fixture and "test")
             expect(operators.length).to.be.equal(3);
@@ -123,28 +118,37 @@ describe("NestedFactory", () => {
         });
         it("remove an operator", async () => {
             const testAddress = Wallet.createRandom().address;
+            const operatorResolver = await context.operatorResolver
+                .connect(context.masterDeployer);
             // Add the operator named "test"
-            await context.operatorResolver
-                .connect(context.masterDeployer)
-                .importOperators([toBytes32("test")], [testAddress], []);
-            await context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("test"));
-            await context.nestedFactory.connect(context.masterDeployer).rebuildCache();
+            await importOperators(operatorResolver,
+                [{
+                    name: 'test',
+                    contract: testAddress,
+                    signature: 'function test()',
+                }],
+                context.nestedFactory,
+            );
 
             // Then remove the operator
-            await context.operatorResolver
-                .connect(context.masterDeployer)
-                .importOperators([toBytes32("test")], [ethers.constants.AddressZero], []);
+            await importOperators(operatorResolver,
+                [{
+                    name: "test",
+                    contract: ethers.constants.AddressZero,
+                    signature: "function test()",
+                }],
+                null,
+            );
             await context.nestedFactory.connect(context.masterDeployer).rebuildCache();
             await context.nestedFactory.connect(context.masterDeployer).removeOperator(toBytes32("test"));
 
             // Get the operators from the factory
-            let operators = await context.nestedFactory.resolverAddressesRequired();
+            let operators = await context.nestedFactory.resolverOperatorsRequired();
 
-            // Must have 2 operators ("ZeroEx" from Fixture and "test")
+            // Must have 2 operators ("ZeroEx" from Fixture and "Flat")
             expect(operators.length).to.be.equal(2);
             expect(operators[0]).to.be.equal(context.zeroExOperatorNameBytes32);
             expect(operators[1]).to.be.equal(context.flatOperatorNameBytes32);
-            expect(operators[2]).to.not.be.equal(toBytes32("test"));
 
             let orders: OrderStruct[] = [
                 buildOrderStruct(toBytes32("test"), context.mockUNI.address, [
@@ -169,8 +173,10 @@ describe("NestedFactory", () => {
                     .create(0, {inputToken: context.mockDAI.address, amount:appendDecimals(5), orders}),
             ).to.be.revertedWith("MOR: MISSING_OPERATOR: test");
 
-            await context.nestedFactory.connect(context.masterDeployer).removeOperator(context.zeroExOperatorNameBytes32);
-            operators = await context.nestedFactory.resolverAddressesRequired();
+            await context.nestedFactory
+                .connect(context.masterDeployer)
+                .removeOperator(context.zeroExOperatorNameBytes32);
+            operators = await context.nestedFactory.resolverOperatorsRequired();
             expect(operators[0]).to.be.equal(context.flatOperatorNameBytes32);
         });
     });
@@ -1827,7 +1833,7 @@ describe("NestedFactory", () => {
 
             let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
-            await context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders)
+            await context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders);
 
             expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(getExpectedFees(kncSold));
 
@@ -1864,7 +1870,7 @@ describe("NestedFactory", () => {
 
             let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
-            await context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders)
+            await context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders);
 
             expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(
                 getExpectedFees(usdcBought),
@@ -1889,7 +1895,7 @@ describe("NestedFactory", () => {
 
             let orders: OrderStruct[] = getWethWithUniAndKncOrders(uniSold, kncSold);
 
-            await context.nestedFactory.connect(context.user1).destroy(1, context.WETH.address, orders)
+            await context.nestedFactory.connect(context.user1).destroy(1, context.WETH.address, orders);
 
             expect(await context.WETH.balanceOf(context.feeSplitter.address)).to.be.equal(getExpectedFees(wethBought));
 
@@ -1912,7 +1918,7 @@ describe("NestedFactory", () => {
 
             let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSoldOrder, kncSold);
 
-            await context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders)
+            await context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders);
 
             expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(
                 getExpectedFees(usdcBought),

@@ -12,7 +12,7 @@ contract TestableMixinResolver is MixinOperatorResolver {
 
     constructor(address _resolver) MixinOperatorResolver(_resolver) {}
 
-    function resolverAddressesRequired() public view override returns (bytes32[] memory addresses) {
+    function resolverOperatorsRequired() public view override returns (bytes32[] memory addresses) {
         addresses = new bytes32[](3);
         addresses[0] = CONTRACT_EXAMPLE_1;
         addresses[1] = CONTRACT_EXAMPLE_2;

@@ -19,6 +19,7 @@ import {
 import { BigNumber, Wallet } from "ethers";
 import { Interface } from "ethers/lib/utils";
 import { appendDecimals, toBytes32 } from "../helpers";
+import { importOperators, registerFlat, registerZeroEx } from '../../scripts/utils';
 
 export type OperatorResolverFixture = { operatorResolver: OperatorResolver };
 
@@ -196,20 +197,16 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
     await nestedReserve.connect(masterDeployer).addFactory(nestedFactory.address);
 
     // Add operators to OperatorResolver
-    const zeroExOperatorNameBytes32 = toBytes32("ZeroEx");
-    const flatOperatorNameBytes32 = toBytes32("Flat");
-    await operatorResolver
-        .connect(masterDeployer)
-        .importOperators(
-            [zeroExOperatorNameBytes32, flatOperatorNameBytes32],
-            [zeroExOperator.address, flatOperator.address],
-            []
-        );
+    await importOperators(operatorResolver,
+        [
+            registerZeroEx(zeroExOperator),
+            registerFlat(flatOperator),
+        ],
+        nestedFactory,
+    );
 
     // Add operators to factory and rebuild cache
-    await nestedFactory.connect(masterDeployer).addOperator(zeroExOperatorNameBytes32);
-    await nestedFactory.connect(masterDeployer).addOperator(flatOperatorNameBytes32);
-    await nestedFactory.connect(masterDeployer).rebuildCache();
+
 
     // Define the base amount
     const baseAmount = appendDecimals(1000);
@@ -248,9 +245,9 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
         nestedRecords,
         maxHoldingsCount,
         operatorResolver,
-        zeroExOperatorNameBytes32,
+        zeroExOperatorNameBytes32: toBytes32("ZeroEx"),
         flatOperator,
-        flatOperatorNameBytes32,
+        flatOperatorNameBytes32: toBytes32("Flat"),
         dummyRouter,
         zeroExOperator,
         nestedFactory,
