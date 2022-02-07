@@ -1,6 +1,6 @@
 
 <div align="center"><img width="600" src="https://user-images.githubusercontent.com/22816913/140889449-5c5afc92-0d4d-43c8-9d02-b3489eab093f.png"></div>
-
+<br/>
 <div align="center"><a href="https://nested.fi" > https://nested.fi </a></div>
 
 ## Introduction
@@ -121,7 +121,7 @@ It help us to make **one** interaction, but we want to make multiple interaction
 
 #### Batched Input Orders
 
-<div align="center"><img width="500" src="https://user-images.githubusercontent.com/22816913/152330910-595122d9-68ae-49dd-a058-0f16c65ce353.png"></div>
+<div align="center"><img width="650" src="https://user-images.githubusercontent.com/22816913/152816454-467afbf1-62a1-4d81-9cc3-e86403ab2e8f.png"></div>
 
 - One same input for every orders but multiple outputs.
 - 1% Fee on the input.
@@ -139,7 +139,7 @@ struct BatchedInputOrders {
 
 #### Batched Output Orders
 
-<div align="center"><img width="500" src="https://user-images.githubusercontent.com/22816913/152331144-8e57397f-33f6-44bb-97e5-dff87ee6fac9.png"></div>
+<div align="center"><img width="650" src="https://user-images.githubusercontent.com/22816913/152816552-f48f1a68-e8c2-44d3-b709-5f2ef17e9fb1.png"></div>
 
 - Multiple inputs for every orders but one output.
 - 1% Fee on the output.
