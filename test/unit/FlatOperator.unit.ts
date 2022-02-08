@@ -44,11 +44,14 @@ describe("FlatOperator", () => {
         ];
 
         await expect(
-            context.nestedFactory.connect(context.user1).create(0, {
-                inputToken: context.mockUNI.address,
-                amount: totalToSpend,
-                orders,
-            }),
+            context.nestedFactory.connect(context.user1).create(0, [
+                {
+                    inputToken: context.mockUNI.address,
+                    amount: totalToSpend,
+                    orders,
+                    fromReserve: false,
+                },
+            ]),
         ).to.revertedWith("NF: OPERATOR_CALL_FAILED");
     });
 
@@ -68,11 +71,14 @@ describe("FlatOperator", () => {
         ];
 
         await expect(
-            context.nestedFactory.connect(context.user1).create(0, {
-                inputToken: context.mockUNI.address,
-                amount: totalToSpend,
-                orders,
-            }),
+            context.nestedFactory.connect(context.user1).create(0, [
+                {
+                    inputToken: context.mockUNI.address,
+                    amount: totalToSpend,
+                    orders,
+                    fromReserve: false,
+                },
+            ]),
         ).to.revertedWith("OH: INVALID_OUTPUT_TOKEN");
     });
 
@@ -94,11 +100,14 @@ describe("FlatOperator", () => {
 
         // User1 creates the portfolio/NFT and emit event NftCreated
         await expect(
-            context.nestedFactory.connect(context.user1).create(0, {
-                inputToken: context.mockUNI.address,
-                amount: totalToSpend,
-                orders,
-            }),
+            context.nestedFactory.connect(context.user1).create(0, [
+                {
+                    inputToken: context.mockUNI.address,
+                    amount: totalToSpend,
+                    orders,
+                    fromReserve: false,
+                },
+            ]),
         )
             .to.emit(context.nestedFactory, "NftCreated")
             .withArgs(1, 0);
@@ -148,11 +157,14 @@ describe("FlatOperator", () => {
 
         // User1 creates the portfolio/NFT and emit event NftCreated
         await expect(
-            context.nestedFactory.connect(context.user1).create(0, {
-                inputToken: context.mockUNI.address,
-                amount: totalToSpend,
-                orders,
-            }),
+            context.nestedFactory.connect(context.user1).create(0, [
+                {
+                    inputToken: context.mockUNI.address,
+                    amount: totalToSpend,
+                    orders,
+                    fromReserve: false,
+                },
+            ]),
         )
             .to.emit(context.nestedFactory, "NftCreated")
             .withArgs(1, 0);

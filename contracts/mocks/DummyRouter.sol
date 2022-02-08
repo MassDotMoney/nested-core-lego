@@ -34,26 +34,6 @@ contract DummyRouter is IERC721Receiver {
         NestedFactory(factory).destroy(nftId, IERC20(address(weth)), attackOrders);
     }
 
-    function prepareAttack(
-        address payable _factory,
-        IWETH _weth,
-        INestedFactory.Order[] calldata _tokenOrders,
-        INestedFactory.Order[] calldata _attackOrders
-    ) external payable {
-        factory = _factory;
-        weth = _weth;
-        uint256 amountIn = msg.value;
-        weth.deposit{ value: amountIn }();
-        weth.approve(_factory, amountIn);
-        attackOrders.push(_attackOrders[0]);
-        attackOrders.push(_attackOrders[1]);
-        NestedFactory(_factory).create(0, INestedFactory.BatchedOrders({
-            inputToken: IERC20(address(_weth)),
-            amount: amountIn - amountIn / 98,
-            orders: _tokenOrders
-        }));
-    }
-
     function setMaxAllowance(IERC20 _token, address _spender) external {
         ExchangeHelpers.setMaxAllowance(_token, _spender);
     }

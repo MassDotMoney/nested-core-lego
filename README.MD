@@ -1,6 +1,7 @@
-![logo](https://user-images.githubusercontent.com/22816913/140889449-5c5afc92-0d4d-43c8-9d02-b3489eab093f.png)
 
-_https://nested.fi_
+<div align="center"><img width="600" src="https://user-images.githubusercontent.com/22816913/140889449-5c5afc92-0d4d-43c8-9d02-b3489eab093f.png"></div>
+<br/>
+<div align="center"><a href="https://nested.fi" > https://nested.fi </a></div>
 
 # Introduction
 
@@ -58,7 +59,6 @@ they are contracts that are called via `delegatecall` and referenced by the `Ope
 
 ### Operator Resolver
 
-
 An operator allows performing a precise action, like _"swap my token A for a token B"_ with a specific function, but the operator/interface will change depending on the action/context. To interact with new operators on the fly, we must expose new interfaces to the Factory.
 The `OperatorResolver` will whitelist all the Operator (`address`) with the selectors (`bytes4`) since we can't trust the caller to provide these informations.
 
@@ -99,7 +99,65 @@ When deploying an operator, it will also deploy the storage contract and transfe
 
 _More operators will be added. e.g. CurveOperator or SynthetixOperator_
 
-## Ownership & Governance
+### Orders
+
+The `NestedFactory` is using the operators to interact with other protocols. The call from the Factory to an Operator is an "Order".
+
+An Order has several information:
+- The operator/selector to use
+- The token processed (swapped, stacked,...) by the operator (from the portfolio or wallet).
+- The calldatas.
+
+```javascript
+struct Order {
+    bytes32 operator;
+    address token;
+    bytes callData;
+}
+```
+
+It help us to make **one** interaction, but we want to make multiple interactions. For example, to create a portfolio with multiple tokens, we need to "batch" these orders. 
+
+**There are two types of "Batched Orders" processed by the Factory to create or edit Portfolios :**
+
+#### Batched Input Orders
+
+<div align="center"><img width="650" src="https://user-images.githubusercontent.com/22816913/152816454-467afbf1-62a1-4d81-9cc3-e86403ab2e8f.png"></div>
+
+- One same input for every orders but multiple outputs.
+- 1% Fee on the input.
+- The input (*source*) is from a wallet **or** a porfolio owned by the transactions signer.
+- The ouput (*destination*) is the portfolio owned by the transactions signer (**only**). 
+
+```javascript
+struct BatchedInputOrders {
+    IERC20 inputToken;
+    uint256 amount;
+    Order[] orders;
+    bool fromReserve;
+}
+```
+
+#### Batched Output Orders
+
+<div align="center"><img width="650" src="https://user-images.githubusercontent.com/22816913/152816552-f48f1a68-e8c2-44d3-b709-5f2ef17e9fb1.png"></div>
+
+- Multiple inputs for every orders but one output.
+- 1% Fee on the output.
+- The input (*source*) is the portfolio owned by the transactions signer (**only**). 
+- The ouput (*destination*) is from a wallet **or** a portfolio owned by the transactions signer.
+
+```javascript
+struct BatchedOutputOrders {
+    IERC20 outputToken;
+    uint256[] amounts;
+    Order[] orders;
+    bool toReserve;
+}
+```
+
+### Ownership & Governance
+
 Some functions of the protocol require admin rights (`onlyOwner`).
 
 The contracts are owned by the [TimelockController](https://docs.openzeppelin.com/contracts/4.x/api/governance#TimelockController) contract from OpenZeppelin, set with a **7-days** delay.

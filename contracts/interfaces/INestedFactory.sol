@@ -47,14 +47,30 @@ interface INestedFactory {
         bytes callData;
     }
 
-    /// @dev Represent multiple orders for a given token to perform multiple trades.
+    /// @dev Represent multiple input orders for a given token to perform multiple trades.
     /// @param inputToken The input token
     /// @param amount The amount to transfer (input amount)
     /// @param orders The orders to perform using the input token.
-    struct BatchedOrders {
+    /// @param _fromReserve Specify the input token source (true if reserve, false if wallet)
+    ///        Note: fromReserve can be read as "from portfolio"
+    struct BatchedInputOrders {
         IERC20 inputToken;
         uint256 amount;
         Order[] orders;
+        bool fromReserve;
+    }
+
+    /// @dev Represent multiple output orders to receive a given token
+    /// @param outputToken The output token
+    /// @param amounts The amount of sell tokens to use
+    /// @param orders Orders calldata
+    /// @param toReserve Specify the output token destination (true if reserve, false if wallet)    
+    ///        Note: toReserve can be read as "to portfolio"
+    struct BatchedOutputOrders {
+        IERC20 outputToken;
+        uint256[] amounts;
+        Order[] orders;
+        bool toReserve;
     }
 
     /// @notice Add an operator (name) for building cache
@@ -72,56 +88,27 @@ interface INestedFactory {
     /// @notice Create a portfolio and store the underlying assets from the positions
     /// @param _originalTokenId The id of the NFT replicated, 0 if not replicating
     /// @param _batchedOrders The order to execute
-    function create(
-        uint256 _originalTokenId,
-        BatchedOrders calldata _batchedOrders
-    ) external payable;
+    function create(uint256 _originalTokenId, BatchedInputOrders[] calldata _batchedOrders) external payable;
 
-    /// @notice Add or increase one position (or more) and update the NFT
+    /// @notice Process multiple input orders
     /// @param _nftId The id of the NFT to update
     /// @param _batchedOrders The order to execute
-    function addTokens(
-        uint256 _nftId,
-        BatchedOrders calldata _batchedOrders
-    ) external payable;
+    function processInputOrders(uint256 _nftId, BatchedInputOrders[] calldata _batchedOrders) external payable;
 
-    /// @notice Use the output token of an existing position from
-    /// the NFT for one or more positions.
+    /// @notice Process multiple output orders
     /// @param _nftId The id of the NFT to update
     /// @param _batchedOrders The order to execute
-    function swapTokenForTokens(
-        uint256 _nftId,
-        BatchedOrders calldata _batchedOrders
-    ) external;
+    function processOutputOrders(uint256 _nftId, BatchedOutputOrders[] calldata _batchedOrders) external;
 
-    /// @notice Perform multiple swaps using different input tokens and output tokens.
+    /// @notice Process multiple input orders and then multiple output orders
     /// @param _nftId The id of the NFT to update
-    /// @param  _batchedOrders Multiple orders batched
-    function swapTokensForTokens(uint256 _nftId, BatchedOrders[] calldata _batchedOrders) external;
-
-    /// @notice Use one or more existing tokens from the NFT for one position.
-    /// @param _nftId The id of the NFT to update
-    /// @param _buyToken The output token
-    /// @param _sellTokensAmount The amount of sell tokens to use
-    /// @param _orders Orders calldata
-    function sellTokensToNft(
+    /// @param _batchedInputOrders The input orders to execute (first)
+    /// @param _batchedOutputOrders The output orders to execute (after)
+    function processInputAndOutputOrders(
         uint256 _nftId,
-        IERC20 _buyToken,
-        uint256[] memory _sellTokensAmount,
-        Order[] calldata _orders
-    ) external;
-
-    /// @notice Liquidate one or more holdings and transfer the sale amount to the user
-    /// @param _nftId The id of the NFT to update
-    /// @param _buyToken The output token
-    /// @param _sellTokensAmount The amount of sell tokens to use
-    /// @param _orders Orders calldata
-    function sellTokensToWallet(
-        uint256 _nftId,
-        IERC20 _buyToken,
-        uint256[] memory _sellTokensAmount,
-        Order[] calldata _orders
-    ) external;
+        BatchedInputOrders[] calldata _batchedInputOrders,
+        BatchedOutputOrders[] calldata _batchedOutputOrders
+    ) external payable;
 
     /// @notice Burn NFT and Sell all tokens for a specific ERC20 then send it back to the user
     /// @dev Will unwrap WETH output to ETH
