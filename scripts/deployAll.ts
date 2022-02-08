@@ -22,6 +22,7 @@ const maxHoldingsCount = context[chainId].config.maxHoldingsCount;
 const zeroExSwapTarget = context[chainId].config.zeroExSwapTarget;
 const WETH = context[chainId].config.WETH;
 const nestedTreasury = context[chainId].config.nestedTreasury;
+const multisig = context[chainId].config.multisig;
 
 let deployments: Deployment[] = [];
 
@@ -70,7 +71,7 @@ async function main(): Promise<void> {
     console.log("ZeroExOperator deployed : ", zeroExOperator.address);
 
     // Add ZeroExStorage address
-    deployments.push({ name: "ZeroExStorage", address: await zeroExOperator.storageAddress(zeroExOperator.address) })
+    deployments.push({ name: "ZeroExStorage", address: await zeroExOperator.operatorStorage() })
 
     // Deploy FlatOperator
     const flatOperator = await flatOperatorFactory.deploy();
@@ -111,10 +112,30 @@ async function main(): Promise<void> {
     await tx.wait();
 
     // Add operators to OperatorResolver
+    const deployer = await nestedRecords.owner();
+
+    // Initialize the owner in proxy storage by calling upgradeToAndCall
+    // It will upgrade with the same address (no side effects)
+    const initData = await nestedFactory.interface.encodeFunctionData("initialize", [deployer]);
+    tx = await factoryProxy.upgradeToAndCall(nestedFactory.address, initData);
+    await tx.wait();
+
+    // Set multisig as admin of proxy, so we can call the implementation as owner
+    tx = await factoryProxy.changeAdmin(multisig);
+    await tx.wait();
+
+    // Attach factory impl to proxy address
+    const proxyImpl = await nestedFactoryFactory.attach(factoryProxy.address);
+
+    // Reset feeSplitter in proxy storage
+    tx = await proxyImpl.setFeeSplitter(feeSplitter.address);
+    await tx.wait();
+
     await importOperators(operatorResolver, [
         registerFlat(flatOperator),
         registerZeroEx(zeroExOperator),
-    ], nestedFactory);
+    ], proxyImpl);
+
     // Convert JSON object to string
     const data = JSON.stringify(deployments);
     console.log(data);

@@ -21,7 +21,7 @@ async function main(): Promise<void> {
     const nestedRecords = await nestedRecordsFactory.attach(context[chainId].NestedRecords);
     const operatorResolver = await operatorResolverFactory.attach(context[chainId].OperatorResolver);
     const zeroExOperator = await zeroExOperatorFactory.attach(context[chainId].ZeroExOperator);
-    const storageAddress = await zeroExOperator.storageAddress(zeroExOperator.address);
+    const storageAddress = await zeroExOperator.operatorStorage();
     const zeroExStorage = await zeroExStorageFactory.attach(storageAddress);
     const nestedFactory = await nestedFactoryFactory.attach(context[chainId].NestedFactory);
     const nestedReserve = await nestedReserveFactory.attach(context[chainId].NestedReserve);

@@ -9,6 +9,7 @@ export const WALLET_USER_INDEXES = {
     MASTER_DEPLOYER: 5,
     SHAREHOLDER_1: 6,
     SHAREHOLDER_2: 7,
+    PROXY_ADMIN: 8,
 };
 
 export class ActorFixture {
@@ -51,6 +52,10 @@ export class ActorFixture {
 
     shareHolder2() {
         return this._getActor(WALLET_USER_INDEXES.SHAREHOLDER_2);
+    }
+
+    proxyAdmin() {
+        return this._getActor(WALLET_USER_INDEXES.PROXY_ADMIN);
     }
 
     private _getActor(index: number): Wallet {

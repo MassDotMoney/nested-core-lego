@@ -2,8 +2,8 @@
 pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./abstracts/OwnableProxyDelegation.sol";
 import "./libraries/ExchangeHelpers.sol";
 import "./interfaces/external/IWETH.sol";
 import "./interfaces/INestedFactory.sol";
@@ -15,7 +15,7 @@ import "./NestedRecords.sol";
 
 /// @title Creates, updates and destroys NestedAssets (portfolios).
 /// @notice Responsible for the business logic of the protocol and interaction with operators
-contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperatorResolver {
+contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegation, MixinOperatorResolver {
     using SafeERC20 for IERC20;
     address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
