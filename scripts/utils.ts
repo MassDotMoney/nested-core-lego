@@ -30,7 +30,27 @@ export async function importOperators(inResolver: OperatorResolver, operators: O
     }
     tx = await nestedFactory?.rebuildCache();
     await tx?.wait();
+}
 
+export async function importOperatorsWithSigner(inResolver: OperatorResolver, operators: Op[], nestedFactory: NestedFactory | null, signer: ethers.Wallet) {
+    // Import operator in resolver
+    let tx = await inResolver.connect(signer).importOperators(
+        operators.map(o => toBytes32(o.name)),
+        operators.map(o => ({
+            implementation: o.contract,
+            selector: computeSelector(o.signature),
+        })),
+        []
+    );
+    await tx.wait();
+
+    // Add operators to factory and rebuild cache
+    for (const o of operators) {
+        tx = await nestedFactory?.connect(signer).addOperator(toBytes32(o.name));
+        await tx?.wait();
+    }
+    tx = await nestedFactory?.connect(signer).rebuildCache();
+    await tx?.wait();
 }
 
 /**

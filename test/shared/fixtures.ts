@@ -19,7 +19,7 @@ import {
 import { BigNumber, Wallet } from "ethers";
 import { Interface } from "ethers/lib/utils";
 import { appendDecimals, toBytes32 } from "../helpers";
-import { importOperators, registerFlat, registerZeroEx } from '../../scripts/utils';
+import { importOperatorsWithSigner, registerFlat, registerZeroEx } from '../../scripts/utils';
 
 export type OperatorResolverFixture = { operatorResolver: OperatorResolver };
 
@@ -30,6 +30,7 @@ export const operatorResolverFixture: Fixture<OperatorResolverFixture> = async (
     const operatorResolverFactory = await ethers.getContractFactory("OperatorResolver");
     const operatorResolver = await operatorResolverFactory.connect(signer).deploy();
 
+    return { operatorResolver };
     return { operatorResolver };
 };
 
@@ -94,6 +95,7 @@ export type FactoryAndOperatorsFixture = {
     nestedReserve: NestedReserve;
     masterDeployer: Wallet;
     user1: Wallet;
+    proxyAdmin: Wallet;
     baseAmount: BigNumber;
 };
 
@@ -184,13 +186,6 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
         );
     await nestedFactoryImpl.deployed();
 
-    // Deploy TransparentUpgradeableProxy for NestedFactory
-    const transparentUpgradeableProxyFactory = await ethers.getContractFactory("TransparentUpgradeableProxy");
-    const factoryProxy = await transparentUpgradeableProxyFactory.connect(masterDeployer).deploy(nestedFactoryImpl.address, masterDeployer.address, []);
-    
-    // Attach NestedFactory ABI to TransparentUpgradeableProxy
-    const nestedFactory = await nestedFactoryFactory.attach(factoryProxy.address);
-
     // Get the user1 actor
     const user1 = new ActorFixture(wallets as Wallet[], provider).user1();
 
@@ -198,34 +193,45 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
     await network.provider.send("hardhat_setBalance", [masterDeployer.address, appendDecimals(100000000000000000).toHexString()]);
     await network.provider.send("hardhat_setBalance", [user1.address, appendDecimals(100000000000000000).toHexString()]);
 
-    // Set factory to asset, records and reserve
-    await nestedAsset.connect(masterDeployer).addFactory(nestedFactory.address);
-    await nestedRecords.connect(masterDeployer).addFactory(nestedFactory.address);
-    await nestedReserve.connect(masterDeployer).addFactory(nestedFactory.address);
+    // Deploy FactoryProxy
+    const transparentUpgradeableProxyFactory = await ethers.getContractFactory("TransparentUpgradeableProxy");
+    const factoryProxy = await transparentUpgradeableProxyFactory.deploy(nestedFactoryImpl.address, masterDeployer.address, []);
 
-    // Add operators to OperatorResolver
-    await importOperators(operatorResolver,
-        [
-            registerZeroEx(zeroExOperator),
-            registerFlat(flatOperator),
-        ],
-        nestedFactory,
-    );
+    // Set factory to asset, records and reserve
+    let tx = await nestedAsset.addFactory(factoryProxy.address);
+    await tx.wait();
+    tx = await nestedRecords.addFactory(factoryProxy.address);
+    await tx.wait();
+    tx = await nestedReserve.addFactory(factoryProxy.address);
+    await tx.wait();
 
     // Initialize the owner in proxy storage by calling upgradeToAndCall
     // It will upgrade with the same address (no side effects)
     const initData = await nestedFactoryImpl.interface.encodeFunctionData("initialize", [masterDeployer.address]);
-    await factoryProxy.connect(masterDeployer).upgradeToAndCall(nestedFactoryImpl.address, initData);
+    tx = await factoryProxy.connect(masterDeployer).upgradeToAndCall(nestedFactoryImpl.address, initData);
+    await tx.wait();
 
-    // Set proxy admin
+    // Set multisig as admin of proxy, so we can call the implementation as owner
     const proxyAdmin = new ActorFixture(wallets as Wallet[], provider).proxyAdmin();
-    await factoryProxy.connect(masterDeployer).changeAdmin(proxyAdmin.address);
+    tx = await factoryProxy.connect(masterDeployer).changeAdmin(proxyAdmin.address);
+    await tx.wait();
 
-    // Add operators to factory and rebuild cache
+    // Attach factory impl to proxy address
+    const nestedFactory = await nestedFactoryFactory.attach(factoryProxy.address);
+   
+    // Reset feeSplitter in proxy storage
+    tx = await nestedFactory.connect(masterDeployer).setFeeSplitter(feeSplitter.address);
+    await tx.wait();
 
+    await importOperatorsWithSigner(operatorResolver, [
+        registerZeroEx(zeroExOperator),
+        registerFlat(flatOperator),
+    ], nestedFactory, masterDeployer);
 
-    // Must set FeeSPlitter in proxy storage
-    await nestedFactory.connect(masterDeployer).setFeeSplitter(feeSplitter.address);
+    // Set factory to asset, records and reserve
+    await nestedAsset.connect(masterDeployer).addFactory(nestedFactory.address);
+    await nestedRecords.connect(masterDeployer).addFactory(nestedFactory.address);
+    await nestedReserve.connect(masterDeployer).addFactory(nestedFactory.address);
 
     // Define the base amount
     const baseAmount = appendDecimals(1000);
@@ -273,6 +279,7 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
         nestedReserve,
         masterDeployer,
         user1,
+        proxyAdmin,
         baseAmount,
     };
 };

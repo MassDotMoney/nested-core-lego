@@ -4,7 +4,7 @@ import { createFixtureLoader, expect, provider } from "../shared/provider";
 import { BigNumber, BigNumberish, BytesLike, Wallet } from "ethers";
 import { appendDecimals, BIG_NUMBER_ZERO, getExpectedFees, toBytes32 } from "../helpers";
 import { ethers, network } from "hardhat";
-import { importOperators } from '../../scripts/utils';
+import { importOperatorsWithSigner } from '../../scripts/utils';
 
 let loadFixture: LoadFixtureFunction;
 
@@ -111,6 +111,7 @@ describe("NestedFactory", () => {
 
             // Must have 2 operators ("ZeroEx" from Fixture and "test")
             expect(operators.length).to.be.equal(3);
+            console.log(operators[0], operators[1], operators[2]);
             expect(operators[0]).to.be.equal(context.zeroExOperatorNameBytes32);
             expect(operators[1]).to.be.equal(context.flatOperatorNameBytes32);
             expect(operators[2]).to.be.equal(toBytes32("test"));
@@ -128,23 +129,25 @@ describe("NestedFactory", () => {
             const operatorResolver = await context.operatorResolver
                 .connect(context.masterDeployer);
             // Add the operator named "test"
-            await importOperators(operatorResolver,
+            await importOperatorsWithSigner(operatorResolver,
                 [{
                     name: 'test',
                     contract: testAddress,
                     signature: 'function test()',
                 }],
                 context.nestedFactory,
+                context.masterDeployer
             );
 
             // Then remove the operator
-            await importOperators(operatorResolver,
+            await importOperatorsWithSigner(operatorResolver,
                 [{
                     name: "test",
                     contract: ethers.constants.AddressZero,
                     signature: "function test()",
                 }],
                 null,
+                context.masterDeployer
             );
             await context.nestedFactory.connect(context.masterDeployer).rebuildCache();
             await context.nestedFactory.connect(context.masterDeployer).removeOperator(toBytes32("test"));
