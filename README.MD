@@ -81,10 +81,7 @@ struct Operator {
 }
 ```
 
-The caller will send the `bytes32` hash of :
-- The operator name
-- The operator address
-- The function signature
+The caller will send the (imported) `bytes32` name of the Operator/Function, for example "ZeroEx::performSwap".
 
 The `OperatorResolver` will return the `address` + `selector` if the call is whitelisted and revert if not.
 
@@ -118,7 +115,7 @@ The `NestedFactory` is using the operators to interact with other protocols. The
 An Order has several information:
 - The operator/selector to use
 - The token processed (swapped, stacked,...) by the operator (from the portfolio or wallet).
-- The calldatas.
+- The calldatas (without the selector).
 
 ```javascript
 struct Order {
