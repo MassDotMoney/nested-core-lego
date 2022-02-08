@@ -4,11 +4,11 @@ pragma solidity 0.8.11;
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./abstracts/OwnableProxyDelegation.sol";
+import "./abstracts/MixinOperatorResolver.sol";
 import "./libraries/ExchangeHelpers.sol";
 import "./interfaces/external/IWETH.sol";
 import "./interfaces/INestedFactory.sol";
 import "./FeeSplitter.sol";
-import "./MixinOperatorResolver.sol";
 import "./NestedReserve.sol";
 import "./NestedAsset.sol";
 import "./NestedRecords.sol";
@@ -17,6 +17,9 @@ import "./NestedRecords.sol";
 /// @notice Responsible for the business logic of the protocol and interaction with operators
 contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegation, MixinOperatorResolver {
     using SafeERC20 for IERC20;
+
+    /* ----------------------------- VARIABLES ----------------------------- */
+
     address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /// @dev Supported operators by the factory contract
@@ -27,9 +30,18 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
 
     /// @dev Current reserve contract/address
     NestedReserve public immutable reserve;
+
+    /// @dev Current nested asset (ERC721) contract/address
     NestedAsset public immutable nestedAsset;
+
+    /// @dev Wrapped Ether contract/address
+    /// Note: Will be WMATIC, WAVAX, WBNB,... Depending on the chain.
     IWETH public immutable weth;
+
+    /// @dev Current records contract/address
     NestedRecords public immutable nestedRecords;
+
+    /* ---------------------------- CONSTRUCTOR ---------------------------- */
 
     constructor(
         NestedAsset _nestedAsset,
@@ -55,6 +67,11 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         weth = _weth;
     }
 
+    /// @dev Receive function
+    receive() external payable {}
+
+    /* ------------------------------ MODIFIERS ---------------------------- */
+
     /// @dev Reverts the transaction if the caller is not the token owner
     /// @param _nftId The NFT Id
     modifier onlyTokenOwner(uint256 _nftId) {
@@ -70,13 +87,14 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         _;
     }
 
-    /// @dev Receive function
-    receive() external payable {}
+    /* ------------------------------- VIEWS ------------------------------- */
 
     /// @notice Get the required operators
     function resolverOperatorsRequired() public view override returns (bytes32[] memory) {
         return operators;
     }
+
+    /* -------------------------- OWNER FUNCTIONS -------------------------- */
 
     /// @inheritdoc INestedFactory
     function addOperator(bytes32 operator) external override onlyOwner {
@@ -111,16 +129,13 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     }
 
     /// @inheritdoc INestedFactory
-    function increaseLockTimestamp(uint256 _nftId, uint256 _timestamp) external override onlyTokenOwner(_nftId) {
-        nestedRecords.updateLockTimestamp(_nftId, _timestamp);
-    }
-
-    /// @inheritdoc INestedFactory
     function unlockTokens(IERC20 _token) external override onlyOwner {
         uint256 amount = _token.balanceOf(address(this));
         _token.safeTransfer(owner(), amount);
         emit TokensUnlocked(address(_token), amount);
     }
+
+    /* -------------------------- USERS FUNCTIONS -------------------------- */
 
     /// @inheritdoc INestedFactory
     function create(uint256 _originalTokenId, BatchedInputOrders[] calldata _batchedOrders)
@@ -129,10 +144,13 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         override
         nonReentrant
     {
+        uint256 batchedOrdersLength = _batchedOrders.length;
+        require(batchedOrdersLength != 0, "NF: INVALID_MULTI_ORDERS");
+
         _checkMsgValue(_batchedOrders);
         uint256 nftId = nestedAsset.mint(_msgSender(), _originalTokenId);
 
-        for (uint256 i = 0; i < _batchedOrders.length; i++) {
+        for (uint256 i = 0; i < batchedOrdersLength; i++) {
             (uint256 fees, IERC20 tokenSold) = _submitInOrders(nftId, _batchedOrders[i], false);
             _transferFeeWithRoyalty(fees, tokenSold, nftId);
         }
@@ -202,7 +220,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
 
         // Amount calculation to send fees and tokens
         uint256 amountBought = _buyToken.balanceOf(address(this)) - buyTokenInitialBalance;
-        uint256 amountFees = amountBought / 100;
+        uint256 amountFees = amountBought / 100; // 1% Fee
         amountBought -= amountFees;
 
         _transferFeeWithRoyalty(amountFees, _buyToken, _nftId);
@@ -236,6 +254,13 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         nestedRecords.deleteAsset(_nftId, _tokenIndex);
         emit NftUpdated(_nftId);
     }
+
+    /// @inheritdoc INestedFactory
+    function updateLockTimestamp(uint256 _nftId, uint256 _timestamp) external override onlyTokenOwner(_nftId) {
+        nestedRecords.updateLockTimestamp(_nftId, _timestamp);
+    }
+
+    /* ------------------------- PRIVATE FUNCTIONS ------------------------- */
 
     /// @dev Internal logic extraction of processInputOrders()
     /// @param _nftId The id of the NFT to update
@@ -277,11 +302,11 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     }
 
     /// @dev For every orders, call the operator with the calldata
-    /// to submit buy orders (where the input is one asset).
+    /// to submit orders (where the input is one asset).
     /// @param _nftId The id of the NFT impacted by the orders
     /// @param _batchedOrders The order to process
     /// @param _fromReserve True if the input tokens are from the reserve (portfolio)
-    /// @return feesAmount The total amount of fees
+    /// @return feesAmount The total amount of fees on the input
     /// @return tokenSold The ERC20 token sold (in case of ETH to WETH)
     function _submitInOrders(
         uint256 _nftId,
@@ -308,7 +333,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
                 true // always to the reserve
             );
         }
-        feesAmount = amountSpent / 100;
+        feesAmount = amountSpent / 100; // 1% Fee
         require(amountSpent <= _inputTokenAmount - feesAmount, "NF: OVERSPENT");
 
         uint256 underSpentAmount = _inputTokenAmount - feesAmount - amountSpent;
@@ -327,7 +352,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     /// @param _nftId The id of the NFT impacted by the orders
     /// @param _batchedOrders The order to process
     /// @param _toReserve True if the output is store in the reserve/records (portfolio), false if not.
-    /// @return feesAmount The total amount of fees
+    /// @return feesAmount The total amount of fees on the output
     /// @return amountBought The total amount bought
     function _submitOutOrders(
         uint256 _nftId,
@@ -368,7 +393,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         }
 
         amountBought = _batchedOrders.outputToken.balanceOf(address(this)) - amountBought;
-        feesAmount = amountBought / 100;
+        feesAmount = amountBought / 100; // 1% Fee
 
         if (_toReserve) {
             _transferToReserveAndStore(_batchedOrders.outputToken, amountBought - feesAmount, _nftId);
@@ -398,9 +423,9 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         amountSpent = amounts[1];
     }
 
-    /// @dev Call the operator to submit the order but dont stop if the call to the operator fail. 
+    /// @dev Call the operator to submit the order but dont stop if the call to the operator fail.
     ///      It will send the input token back to the msg.sender.
-    /// Note : The _reserved Boolean has been removed (compare to _submitOrder) since it was
+    /// Note : The _toReserve Boolean has been removed (compare to _submitOrder) since it was
     ///        useless for the only use case (destroy).
     /// @param _inputToken Token used to make the orders
     /// @param _outputToken Expected output token
@@ -544,7 +569,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         address _dest,
         uint256 _nftId
     ) private {
-        uint256 feeAmount = _amount / 100;
+        uint256 feeAmount = _amount / 100; // 1% Fee
         _transferFeeWithRoyalty(feeAmount, _token, _nftId);
         _token.safeTransfer(_dest, _amount - feeAmount);
     }
@@ -558,6 +583,6 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
                 ethNeeded += _batchedOrders[i].amount;
             }
         }
-        require(msg.value == ethNeeded, "NF: WRONG_MSG_VALUE"); 
+        require(msg.value == ethNeeded, "NF: WRONG_MSG_VALUE");
     }
 }

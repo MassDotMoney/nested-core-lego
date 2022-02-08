@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.11;
 
-import "../MixinOperatorResolver.sol";
+import "../abstracts/MixinOperatorResolver.sol";
 
 /// @title Operator address resolver interface
 interface IOperatorResolver {
     /// @dev Represents an operator definition
     /// @param implementation Contract address
-    /// @param selector Contract selector
+    /// @param selector Function selector
     struct Operator {
         address implementation;
         bytes4 selector;

@@ -2,7 +2,7 @@
 pragma solidity 0.8.11;
 
 import "./interfaces/IOperatorResolver.sol";
-import "./MixinOperatorResolver.sol";
+import "./abstracts/MixinOperatorResolver.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title Operator Resolver implementation
@@ -17,7 +17,12 @@ contract OperatorResolver is IOperatorResolver, Ownable {
     }
 
     /// @inheritdoc IOperatorResolver
-    function requireAndGetOperator(bytes32 name, string calldata reason) external view override returns (Operator memory) {
+    function requireAndGetOperator(bytes32 name, string calldata reason)
+        external
+        view
+        override
+        returns (Operator memory)
+    {
         Operator memory _foundOperator = operators[name];
         require(_foundOperator.implementation != address(0), reason);
         return _foundOperator;
@@ -33,7 +38,10 @@ contract OperatorResolver is IOperatorResolver, Ownable {
         uint256 namesLength = names.length;
         require(namesLength == destinations.length, "OR: INPUTS_LENGTH_MUST_MATCH");
         for (uint256 i = 0; i < namesLength; i++) {
-            if (operators[names[i]].implementation != destinations[i].implementation && operators[names[i]].selector != destinations[i].selector) {
+            if (
+                operators[names[i]].implementation != destinations[i].implementation &&
+                operators[names[i]].selector != destinations[i].selector
+            ) {
                 return false;
             }
         }
@@ -48,7 +56,7 @@ contract OperatorResolver is IOperatorResolver, Ownable {
     ) external override onlyOwner {
         require(names.length == operatorsToImport.length, "OR: INPUTS_LENGTH_MUST_MATCH");
         bytes32 name;
-        Operator calldata  destination;
+        Operator calldata destination;
         for (uint256 i = 0; i < names.length; i++) {
             name = names[i];
             destination = operatorsToImport[i];

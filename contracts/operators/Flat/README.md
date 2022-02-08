@@ -25,7 +25,7 @@ function transfer(address token, uint256 amount)
 
     amounts = new uint256[](2);
     tokens = new address[](2);
-    
+
     // Output amounts
     amounts[0] = amount;
     amounts[1] = amount;

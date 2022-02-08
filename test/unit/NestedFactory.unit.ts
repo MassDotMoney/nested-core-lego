@@ -4,7 +4,7 @@ import { createFixtureLoader, expect, provider } from "../shared/provider";
 import { BigNumber, BigNumberish, BytesLike, Wallet } from "ethers";
 import { appendDecimals, BIG_NUMBER_ZERO, getExpectedFees, toBytes32 } from "../helpers";
 import { ethers, network } from "hardhat";
-import { importOperatorsWithSigner } from '../../scripts/utils';
+import { importOperatorsWithSigner } from "../../scripts/utils";
 
 let loadFixture: LoadFixtureFunction;
 
@@ -111,7 +111,6 @@ describe("NestedFactory", () => {
 
             // Must have 2 operators ("ZeroEx" from Fixture and "test")
             expect(operators.length).to.be.equal(3);
-            console.log(operators[0], operators[1], operators[2]);
             expect(operators[0]).to.be.equal(context.zeroExOperatorNameBytes32);
             expect(operators[1]).to.be.equal(context.flatOperatorNameBytes32);
             expect(operators[2]).to.be.equal(toBytes32("test"));
@@ -126,28 +125,33 @@ describe("NestedFactory", () => {
         });
         it("remove an operator", async () => {
             const testAddress = Wallet.createRandom().address;
-            const operatorResolver = await context.operatorResolver
-                .connect(context.masterDeployer);
+            const operatorResolver = await context.operatorResolver.connect(context.masterDeployer);
             // Add the operator named "test"
-            await importOperatorsWithSigner(operatorResolver,
-                [{
-                    name: 'test',
-                    contract: testAddress,
-                    signature: 'function test()',
-                }],
+            await importOperatorsWithSigner(
+                operatorResolver,
+                [
+                    {
+                        name: "test",
+                        contract: testAddress,
+                        signature: "function test()",
+                    },
+                ],
                 context.nestedFactory,
-                context.masterDeployer
+                context.masterDeployer,
             );
 
             // Then remove the operator
-            await importOperatorsWithSigner(operatorResolver,
-                [{
-                    name: "test",
-                    contract: ethers.constants.AddressZero,
-                    signature: "function test()",
-                }],
+            await importOperatorsWithSigner(
+                operatorResolver,
+                [
+                    {
+                        name: "test",
+                        contract: ethers.constants.AddressZero,
+                        signature: "function test()",
+                    },
+                ],
                 null,
-                context.masterDeployer
+                context.masterDeployer,
             );
             await context.nestedFactory.connect(context.masterDeployer).rebuildCache();
             await context.nestedFactory.connect(context.masterDeployer).removeOperator(toBytes32("test"));
@@ -497,16 +501,14 @@ describe("NestedFactory", () => {
 
             // User1 creates the portfolio/NFT and emit event NftCreated (not more than needed)
             await expect(
-                context.nestedFactory
-                    .connect(context.user1)
-                    .create(0, [
-                        {
-                            inputToken: context.mockDAI.address,
-                            amount: appendDecimals(10).add(getExpectedFees(totalToBought)),
-                            orders,
-                            fromReserve: false,
-                        },
-                    ]),
+                context.nestedFactory.connect(context.user1).create(0, [
+                    {
+                        inputToken: context.mockDAI.address,
+                        amount: appendDecimals(10).add(getExpectedFees(totalToBought)),
+                        orders,
+                        fromReserve: false,
+                    },
+                ]),
             )
                 .to.emit(context.nestedFactory, "NftCreated")
                 .withArgs(1, 0);
@@ -1139,10 +1141,17 @@ describe("NestedFactory", () => {
             expect(holdingsKNCAmount).to.be.equal(BIG_NUMBER_ZERO);
 
             const holdingsUSDCAmount = await context.nestedRecords.getAssetHolding(1, context.mockUSDC.address);
-            expect(holdingsUSDCAmount).to.be.equal(ethToAddForUSDC.add(kncToSwapForUSDC).add(uniToSwapForUSDC).sub(usdcToRemove).sub(kncToSwapForUSDCFees).sub(uniToSwapForUSDCFees));
+            expect(holdingsUSDCAmount).to.be.equal(
+                ethToAddForUSDC
+                    .add(kncToSwapForUSDC)
+                    .add(uniToSwapForUSDC)
+                    .sub(usdcToRemove)
+                    .sub(kncToSwapForUSDCFees)
+                    .sub(uniToSwapForUSDCFees),
+            );
 
             const holdingsWETHAmount = await context.nestedRecords.getAssetHolding(1, context.WETH.address);
-            expect(holdingsWETHAmount).to.be.equal(ethToAdd);   
+            expect(holdingsWETHAmount).to.be.equal(ethToAdd);
         });
     });
 
@@ -1775,16 +1784,14 @@ describe("NestedFactory", () => {
 
             // NFT with id = 2 shouldn't exist
             await expect(
-                context.nestedFactory
-                    .connect(context.user1)
-                    .processOutputOrders(2, [
-                        {
-                            outputToken: context.mockUSDC.address,
-                            amounts: [uniSold, kncSold],
-                            orders,
-                            toReserve: false,
-                        },
-                    ]),
+                context.nestedFactory.connect(context.user1).processOutputOrders(2, [
+                    {
+                        outputToken: context.mockUSDC.address,
+                        amounts: [uniSold, kncSold],
+                        orders,
+                        toReserve: false,
+                    },
+                ]),
             ).to.be.revertedWith("ERC721: owner query for nonexistent token");
         });
 
@@ -1797,16 +1804,14 @@ describe("NestedFactory", () => {
 
             // Master Deployer is not the owner of NFT 1
             await expect(
-                context.nestedFactory
-                    .connect(context.masterDeployer)
-                    .processOutputOrders(1, [
-                        {
-                            outputToken: context.mockUSDC.address,
-                            amounts: [uniSold, kncSold],
-                            orders,
-                            toReserve: false,
-                        },
-                    ]),
+                context.nestedFactory.connect(context.masterDeployer).processOutputOrders(1, [
+                    {
+                        outputToken: context.mockUSDC.address,
+                        amounts: [uniSold, kncSold],
+                        orders,
+                        toReserve: false,
+                    },
+                ]),
             ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
@@ -1834,16 +1839,14 @@ describe("NestedFactory", () => {
             let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
             await expect(
-                context.nestedFactory
-                    .connect(context.user1)
-                    .processOutputOrders(1, [
-                        {
-                            outputToken: context.mockUSDC.address,
-                            amounts: [uniSold, kncSold],
-                            orders,
-                            toReserve: false,
-                        },
-                    ]),
+                context.nestedFactory.connect(context.user1).processOutputOrders(1, [
+                    {
+                        outputToken: context.mockUSDC.address,
+                        amounts: [uniSold, kncSold],
+                        orders,
+                        toReserve: false,
+                    },
+                ]),
             ).to.be.revertedWith("NF: INSUFFICIENT_AMOUNT_IN");
         });
 
@@ -1857,16 +1860,14 @@ describe("NestedFactory", () => {
 
             // Error in operator cant transfer more than in factory balance
             await expect(
-                context.nestedFactory
-                    .connect(context.user1)
-                    .processOutputOrders(1, [
-                        {
-                            outputToken: context.mockUSDC.address,
-                            amounts: [uniSold, kncSold],
-                            orders,
-                            toReserve: false,
-                        },
-                    ]),
+                context.nestedFactory.connect(context.user1).processOutputOrders(1, [
+                    {
+                        outputToken: context.mockUSDC.address,
+                        amounts: [uniSold, kncSold],
+                        orders,
+                        toReserve: false,
+                    },
+                ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
@@ -1898,16 +1899,14 @@ describe("NestedFactory", () => {
             let orders: OrderStruct[] = getUsdcWithUniAndKncOrders(uniSold, kncSold);
 
             await expect(
-                context.nestedFactory
-                    .connect(context.user1)
-                    .processOutputOrders(1, [
-                        {
-                            outputToken: context.mockUSDC.address,
-                            amounts: [uniSold, kncSold],
-                            orders,
-                            toReserve: false,
-                        },
-                    ]),
+                context.nestedFactory.connect(context.user1).processOutputOrders(1, [
+                    {
+                        outputToken: context.mockUSDC.address,
+                        amounts: [uniSold, kncSold],
+                        orders,
+                        toReserve: false,
+                    },
+                ]),
             )
                 .to.emit(context.nestedFactory, "NftUpdated")
                 .withArgs(1);
@@ -1952,16 +1951,14 @@ describe("NestedFactory", () => {
             const orderExpectedFee = getExpectedFees(uniSoldOrder.add(kncSoldOrder));
 
             await expect(
-                context.nestedFactory
-                    .connect(context.user1)
-                    .processOutputOrders(1, [
-                        {
-                            outputToken: context.mockUSDC.address,
-                            amounts: [uniSold, kncSold],
-                            orders,
-                            toReserve: false,
-                        },
-                    ]),
+                context.nestedFactory.connect(context.user1).processOutputOrders(1, [
+                    {
+                        outputToken: context.mockUSDC.address,
+                        amounts: [uniSold, kncSold],
+                        orders,
+                        toReserve: false,
+                    },
+                ]),
             )
                 .to.emit(context.nestedFactory, "NftUpdated")
                 .withArgs(1);
@@ -2298,7 +2295,7 @@ describe("NestedFactory", () => {
         });
     });
 
-    describe("increaseLockTimestamp()", () => {
+    describe("updateLockTimestamp()", () => {
         // Amount already in the portfolio
         let baseUniBought = appendDecimals(6);
         let baseKncBought = appendDecimals(4);
@@ -2318,20 +2315,20 @@ describe("NestedFactory", () => {
 
         it("cant increase if another user portfolio", async () => {
             await expect(
-                context.nestedFactory.connect(context.masterDeployer).increaseLockTimestamp(1, Date.now()),
+                context.nestedFactory.connect(context.masterDeployer).updateLockTimestamp(1, Date.now()),
             ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
         it("cant increase nonexistent portfolio", async () => {
             await expect(
-                context.nestedFactory.connect(context.user1).increaseLockTimestamp(2, Date.now()),
+                context.nestedFactory.connect(context.user1).updateLockTimestamp(2, Date.now()),
             ).to.be.revertedWith("ERC721: owner query for nonexistent token");
         });
 
         it("cant decrease timestamp", async () => {
-            await context.nestedFactory.connect(context.user1).increaseLockTimestamp(1, Date.now());
+            await context.nestedFactory.connect(context.user1).updateLockTimestamp(1, Date.now());
             await expect(
-                context.nestedFactory.connect(context.user1).increaseLockTimestamp(1, Date.now() - 1000),
+                context.nestedFactory.connect(context.user1).updateLockTimestamp(1, Date.now() - 1000),
             ).to.be.revertedWith("NRC: LOCK_PERIOD_CANT_DECREASE");
         });
 
@@ -2340,7 +2337,7 @@ describe("NestedFactory", () => {
          * all the functions implementing the "isUnlocked" modifier.
          */
         it("cant withdraw if locked", async () => {
-            await expect(context.nestedFactory.connect(context.user1).increaseLockTimestamp(1, Date.now() + 1000))
+            await expect(context.nestedFactory.connect(context.user1).updateLockTimestamp(1, Date.now() + 1000))
                 .to.emit(context.nestedRecords, "LockTimestampIncreased")
                 .withArgs(1, Date.now() + 1000);
 
@@ -2351,7 +2348,7 @@ describe("NestedFactory", () => {
 
         it("can withdraw after the waiting period", async () => {
             const timestampNow = Date.now();
-            await expect(context.nestedFactory.connect(context.user1).increaseLockTimestamp(1, timestampNow + 1000))
+            await expect(context.nestedFactory.connect(context.user1).updateLockTimestamp(1, timestampNow + 1000))
                 .to.emit(context.nestedRecords, "LockTimestampIncreased")
                 .withArgs(1, timestampNow + 1000);
 

@@ -3,6 +3,7 @@ pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+/// @title Asbtract "Ownable" contract managing a whitelist of factories
 abstract contract OwnableFactoryHandler is Ownable {
     /// @dev Emitted when a new factory is added
     /// @param newFactory Address of the new factory

@@ -10,6 +10,8 @@ import "./abstracts/OwnableFactoryHandler.sol";
 contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
     using Counters for Counters.Counter;
 
+    /* ----------------------------- VARIABLES ----------------------------- */
+
     Counters.Counter private _tokenIds;
 
     /// @dev Stores the URI of each asset
@@ -21,13 +23,19 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
     /// @dev Stores owners of burnt assets
     mapping(uint256 => address) public lastOwnerBeforeBurn;
 
+    /* ---------------------------- CONSTRUCTORS --------------------------- */
+
     constructor() ERC721("NestedNFT", "NESTED") {}
+
+    /* ----------------------------- MODIFIERS ----------------------------- */
 
     /// @dev Reverts the transaction if the address is not the token owner
     modifier onlyTokenOwner(address _address, uint256 _tokenId) {
         require(_address == ownerOf(_tokenId), "NA: FORBIDDEN_NOT_OWNER");
         _;
     }
+
+    /* ------------------------------- VIEWS ------------------------------- */
 
     /// @notice Get the Uniform Resource Identifier (URI) for `tokenId` token.
     /// @param _tokenId The id of the NestedAsset
@@ -49,6 +57,8 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
         }
         return address(0);
     }
+
+    /* ---------------------------- ONLY FACTORY --------------------------- */
 
     /// @notice Mints an ERC721 token for the user and stores the original asset used to create the new asset if any
     /// @param _owner The account address that signed the transaction
@@ -113,6 +123,8 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
             delete _tokenURIs[_tokenId];
         }
     }
+
+    /* ------------------------- INTERNAL FUNCTIONS ------------------------ */
 
     /// @dev Sets the Uniform Resource Identifier (URI) for `tokenId` token.
     /// @param _tokenId The id of the NestedAsset

@@ -40,6 +40,18 @@ Furthermore, we allow users to copy other users NestedNFTs. The creator of the i
 | **FeeSplitter**      | Receives payments in ERC20 tokens from the factory when fees are sent. Allows each party to claim the amount they are due. |
 | **NestedBuyBacker**  | Pulls tokens from the FeeSplitter, buys back NST tokens on the market, and burns a part of it. |
 
+## Upgradability
+
+The contracts `NestedAsset`, `NestedReserve`, and `NestedRecords` are whitelisting multiple factories (to create NFTs, update records, withdraw from reserve,...).
+
+However, we are also using the [TransparentUpgradeableProxy](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/transparent/TransparentUpgradeableProxy.sol) for `NestedFactory`. Then, the users doesn't have to approve multiple times.
+
+We have kept both mechanisms to get the best flexibility.
+
+## Lock
+
+The users can lock their NFTs until a certain date (timestamp) by calling `updateLockTimestamp`. This feature allows the "hold by design".
+
 ## Operators (modularization)
 
 ### What is an operator?

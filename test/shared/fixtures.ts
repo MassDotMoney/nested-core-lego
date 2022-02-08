@@ -19,13 +19,16 @@ import {
 import { BigNumber, Wallet } from "ethers";
 import { Interface } from "ethers/lib/utils";
 import { appendDecimals, toBytes32 } from "../helpers";
-import { importOperatorsWithSigner, registerFlat, registerZeroEx } from '../../scripts/utils';
+import { importOperatorsWithSigner, registerFlat, registerZeroEx } from "../../scripts/utils";
 
 export type OperatorResolverFixture = { operatorResolver: OperatorResolver };
 
 export const operatorResolverFixture: Fixture<OperatorResolverFixture> = async (wallets, provider) => {
     const signer = new ActorFixture(wallets as Wallet[], provider).addressResolverOwner();
-    await network.provider.send("hardhat_setBalance", [signer.address, appendDecimals(100000000000000000).toHexString()]);
+    await network.provider.send("hardhat_setBalance", [
+        signer.address,
+        appendDecimals(100000000000000000).toHexString(),
+    ]);
 
     const operatorResolverFactory = await ethers.getContractFactory("OperatorResolver");
     const operatorResolver = await operatorResolverFactory.connect(signer).deploy();
@@ -190,12 +193,22 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
     const user1 = new ActorFixture(wallets as Wallet[], provider).user1();
 
     // add ether to wallets
-    await network.provider.send("hardhat_setBalance", [masterDeployer.address, appendDecimals(100000000000000000).toHexString()]);
-    await network.provider.send("hardhat_setBalance", [user1.address, appendDecimals(100000000000000000).toHexString()]);
+    await network.provider.send("hardhat_setBalance", [
+        masterDeployer.address,
+        appendDecimals(100000000000000000).toHexString(),
+    ]);
+    await network.provider.send("hardhat_setBalance", [
+        user1.address,
+        appendDecimals(100000000000000000).toHexString(),
+    ]);
 
     // Deploy FactoryProxy
     const transparentUpgradeableProxyFactory = await ethers.getContractFactory("TransparentUpgradeableProxy");
-    const factoryProxy = await transparentUpgradeableProxyFactory.deploy(nestedFactoryImpl.address, masterDeployer.address, []);
+    const factoryProxy = await transparentUpgradeableProxyFactory.deploy(
+        nestedFactoryImpl.address,
+        masterDeployer.address,
+        [],
+    );
 
     // Set factory to asset, records and reserve
     let tx = await nestedAsset.addFactory(factoryProxy.address);
@@ -218,15 +231,17 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
 
     // Attach factory impl to proxy address
     const nestedFactory = await nestedFactoryFactory.attach(factoryProxy.address);
-   
+
     // Reset feeSplitter in proxy storage
     tx = await nestedFactory.connect(masterDeployer).setFeeSplitter(feeSplitter.address);
     await tx.wait();
 
-    await importOperatorsWithSigner(operatorResolver, [
-        registerZeroEx(zeroExOperator),
-        registerFlat(flatOperator),
-    ], nestedFactory, masterDeployer);
+    await importOperatorsWithSigner(
+        operatorResolver,
+        [registerZeroEx(zeroExOperator), registerFlat(flatOperator)],
+        nestedFactory,
+        masterDeployer,
+    );
 
     // Set factory to asset, records and reserve
     await nestedAsset.connect(masterDeployer).addFactory(nestedFactory.address);

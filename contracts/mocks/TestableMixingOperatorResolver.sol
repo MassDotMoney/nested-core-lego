@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.11;
 
-import "../MixinOperatorResolver.sol";
+import "../abstracts/MixinOperatorResolver.sol";
 
 contract TestableMixinResolver is MixinOperatorResolver {
     bytes32 private constant CONTRACT_EXAMPLE_1 = "Example_1";
@@ -12,7 +12,7 @@ contract TestableMixinResolver is MixinOperatorResolver {
 
     constructor(address _resolver) MixinOperatorResolver(_resolver) {}
 
-    function resolverOperatorsRequired() public view override returns (bytes32[] memory addresses) {
+    function resolverOperatorsRequired() public pure override returns (bytes32[] memory addresses) {
         addresses = new bytes32[](3);
         addresses[0] = CONTRACT_EXAMPLE_1;
         addresses[1] = CONTRACT_EXAMPLE_2;

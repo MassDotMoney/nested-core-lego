@@ -3,18 +3,14 @@ pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-/**
- * Helpers for swapping tokens
- */
+/// @notice Helpers for swapping tokens
 library ExchangeHelpers {
     using SafeERC20 for IERC20;
 
-    /*
-    Perform a swap between two tokens
-    @param _sellToken [IERC20] token to exchange
-    @param _swapTarget [address] the address of the contract that swaps tokens
-    @param _swapCallData [bytes] call data provided by 0x to fill the quote
-    */
+    /// @dev Perform a swap between two tokens
+    /// @param _sellToken Token to exchange
+    /// @param _swapTarget The address of the contract that swaps tokens
+    /// @param _swapCallData Call data provided by 0x to fill the quote
     function fillQuote(
         IERC20 _sellToken,
         address _swapTarget,
@@ -26,11 +22,9 @@ library ExchangeHelpers {
         return success;
     }
 
-    /**
-     * @dev sets the allowance for a token to the maximum if it is not already at max
-     * @param _token [IERC20] the token to use for the allowance setting
-     * @param _spender [address] spender to allow
-     */
+    /// @dev sets the allowance for a token to the maximum if it is not already at max
+    /// @param _token The token to use for the allowance setting
+    /// @param _spender Spender to allow
     function setMaxAllowance(IERC20 _token, address _spender) internal {
         uint256 _currentAllowance = _token.allowance(address(this), _spender);
         if (_currentAllowance != type(uint256).max) {

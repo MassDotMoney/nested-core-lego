@@ -6,7 +6,7 @@ import "./abstracts/OwnableFactoryHandler.sol";
 
 /// @title Stores underlying assets of NestedNFTs.
 /// @notice The factory itself can only trigger a transfer after verification that the user
-///         holds funds present in this contract. Only the factory can withdraw assets.
+///         holds funds present in this contract. Only the factory can withdraw/transfer assets.
 contract NestedReserve is OwnableFactoryHandler {
     using SafeERC20 for IERC20;
 

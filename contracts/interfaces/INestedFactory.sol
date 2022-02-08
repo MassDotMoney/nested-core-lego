@@ -7,6 +7,8 @@ import "../FeeSplitter.sol";
 
 /// @title NestedFactory interface
 interface INestedFactory {
+    /* ------------------------------ EVENTS ------------------------------ */
+
     /// @dev Emitted when the feeSplitter is updated
     /// @param feeSplitter The new feeSplitter address
     event FeeSplitterUpdated(address feeSplitter);
@@ -37,6 +39,8 @@ interface INestedFactory {
     /// @param amount The unlocked amount
     event TokensUnlocked(address token, uint256 amount);
 
+    /* ------------------------------ STRUCTS ------------------------------ */
+
     /// @dev Represent an order made to the factory when creating/editing an NFT
     /// @param operator The bytes32 name of the Operator
     /// @param token The expected token address in output/input
@@ -64,7 +68,7 @@ interface INestedFactory {
     /// @param outputToken The output token
     /// @param amounts The amount of sell tokens to use
     /// @param orders Orders calldata
-    /// @param toReserve Specify the output token destination (true if reserve, false if wallet)    
+    /// @param toReserve Specify the output token destination (true if reserve, false if wallet)
     ///        Note: toReserve can be read as "to portfolio"
     struct BatchedOutputOrders {
         IERC20 outputToken;
@@ -72,6 +76,8 @@ interface INestedFactory {
         Order[] orders;
         bool toReserve;
     }
+
+    /* ------------------------------ OWNER FUNCTIONS ------------------------------ */
 
     /// @notice Add an operator (name) for building cache
     /// @param operator The operator name to add
@@ -84,6 +90,15 @@ interface INestedFactory {
     /// @notice Sets the address receiving the fees
     /// @param _feeSplitter The address of the receiver
     function setFeeSplitter(FeeSplitter _feeSplitter) external;
+
+    /// @notice The Factory is not storing funds, but some users can make
+    /// bad manipulations and send tokens to the contract.
+    /// In response to that, the owner can retrieve the factory balance of a given token
+    /// to later return users funds.
+    /// @param _token The token to retrieve.
+    function unlockTokens(IERC20 _token) external;
+
+    /* ------------------------------ USERS FUNCTIONS ------------------------------ */
 
     /// @notice Create a portfolio and store the underlying assets from the positions
     /// @param _originalTokenId The id of the NFT replicated, 0 if not replicating
@@ -110,7 +125,7 @@ interface INestedFactory {
         BatchedOutputOrders[] calldata _batchedOutputOrders
     ) external payable;
 
-    /// @notice Burn NFT and Sell all tokens for a specific ERC20 then send it back to the user
+    /// @notice Burn NFT and exchange all tokens for a specific ERC20 then send it back to the user
     /// @dev Will unwrap WETH output to ETH
     /// @param _nftId The id of the NFT to destroy
     /// @param _buyToken The output token
@@ -126,15 +141,9 @@ interface INestedFactory {
     /// @param _tokenIndex Index in array of tokens for this NFT and holding.
     function withdraw(uint256 _nftId, uint256 _tokenIndex) external;
 
-    /// @notice Increase the lock timestamp of an NFT record.
+    /// @notice Update the lock timestamp of an NFT record.
+    /// Note: Can only increase the lock timestamp.
     /// @param _nftId The NFT id to get the record
     /// @param _timestamp The new timestamp.
-    function increaseLockTimestamp(uint256 _nftId, uint256 _timestamp) external;
-
-    /// @notice The Factory is not storing funds, but some users can make
-    /// bad manipulations and send tokens to the contract.
-    /// In response to that, the owner can retrieve the factory balance of a given token
-    /// to later return users funds.
-    /// @param _token The token to retrieve.
-    function unlockTokens(IERC20 _token) external;
+    function updateLockTimestamp(uint256 _nftId, uint256 _timestamp) external;
 }

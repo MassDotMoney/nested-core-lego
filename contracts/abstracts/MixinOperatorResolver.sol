@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.11;
 
-import "./OperatorResolver.sol";
-import "./interfaces/IOperatorResolver.sol";
-import "./interfaces/INestedFactory.sol";
+import "../OperatorResolver.sol";
+import "../interfaces/IOperatorResolver.sol";
+import "../interfaces/INestedFactory.sol";
 
 /// @title Mixin operator resolver
 /// @notice Store in cache operators name and address/selector
@@ -16,18 +16,18 @@ abstract contract MixinOperatorResolver {
     /// @dev The OperatorResolver used to build the cache
     OperatorResolver public immutable resolver;
 
-    /// @dev Cache operators map of the name and address
-    mapping(bytes32 => IOperatorResolver.Operator) private addressCache;
+    /// @dev Cache operators map of the name and Operator struct (address/selector)
+    mapping(bytes32 => IOperatorResolver.Operator) private operatorCache;
 
     constructor(address _resolver) {
         resolver = OperatorResolver(_resolver);
     }
 
     /// @dev This function is public not external in order for it to be overridden and
-    /// invoked via super in subclasses
-    function resolverOperatorsRequired() public view virtual returns (bytes32[] memory addresses) {}
+    ///      invoked via super in subclasses
+    function resolverOperatorsRequired() public view virtual returns (bytes32[] memory) {}
 
-    /// @notice Rebuild the addressCache
+    /// @notice Rebuild the operatorCache
     function rebuildCache() external {
         bytes32[] memory requiredOperators = resolverOperatorsRequired();
         bytes32 name;
@@ -38,15 +38,15 @@ abstract contract MixinOperatorResolver {
             // Note: can only be invoked once the resolver has all the targets needed added
             destination = resolver.getOperator(name);
             if (destination.implementation != address(0)) {
-                addressCache[name] = destination;
+                operatorCache[name] = destination;
             } else {
-                delete addressCache[name];
+                delete operatorCache[name];
             }
             emit CacheUpdated(name, destination);
         }
     }
 
-    /// @notice Check the state of addressCache
+    /// @notice Check the state of operatorCache
     function isResolverCached() external view returns (bool) {
         bytes32[] memory requiredOperators = resolverOperatorsRequired();
         bytes32 name;
@@ -54,12 +54,14 @@ abstract contract MixinOperatorResolver {
         IOperatorResolver.Operator memory actualValue;
         for (uint256 i = 0; i < requiredOperators.length; i++) {
             name = requiredOperators[i];
-            cacheTmp = addressCache[name];
+            cacheTmp = operatorCache[name];
             actualValue = resolver.getOperator(name);
             // false if our cache is invalid or if the resolver doesn't have the required address
-            if (actualValue.implementation != cacheTmp.implementation
-                || actualValue.selector != cacheTmp.selector
-                || cacheTmp.implementation == address(0)) {
+            if (
+                actualValue.implementation != cacheTmp.implementation ||
+                actualValue.selector != cacheTmp.selector ||
+                cacheTmp.implementation == address(0)
+            ) {
                 return false;
             }
         }
@@ -70,7 +72,7 @@ abstract contract MixinOperatorResolver {
     /// @param name The operator name
     /// @return The operator address
     function requireAndGetAddress(bytes32 name) internal view returns (IOperatorResolver.Operator memory) {
-        IOperatorResolver.Operator memory  _foundAddress = addressCache[name];
+        IOperatorResolver.Operator memory _foundAddress = operatorCache[name];
         require(_foundAddress.implementation != address(0), string(abi.encodePacked("MOR: MISSING_OPERATOR: ", name)));
         return _foundAddress;
     }
@@ -82,7 +84,7 @@ abstract contract MixinOperatorResolver {
     ///         - amounts[0] : The amount of output token
     ///         - amounts[1] : The amount of input token USED by the operator (can be different than expected)
     function callOperator(
-        INestedFactory.Order calldata  _order,
+        INestedFactory.Order calldata _order,
         address _inputToken,
         address _outputToken
     ) internal returns (bool success, uint256[] memory amounts) {
@@ -90,12 +92,7 @@ abstract contract MixinOperatorResolver {
         // Parameters are concatenated and padded to 32 bytes.
         // We are concatenating the selector + given params
         bytes memory data;
-        (success, data) = _operator.implementation.delegatecall(
-            bytes.concat(
-                _operator.selector,
-                _order.callData
-            )
-        );
+        (success, data) = _operator.implementation.delegatecall(bytes.concat(_operator.selector, _order.callData));
 
         if (success) {
             address[] memory tokens;

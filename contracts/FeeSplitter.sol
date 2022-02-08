@@ -14,7 +14,7 @@ import "./interfaces/external/IWETH.sol";
 contract FeeSplitter is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+    /* ------------------------------ EVENTS ------------------------------ */
 
     /// @dev Emitted when a payment is released
     /// @param to The address receiving the payment
@@ -27,7 +27,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// @param token The token received
     /// @param amount The amount received
     event PaymentReceived(address from, address token, uint256 amount);
-    
+
     /// @dev Emitted when the royalties weight is updated
     /// @param weigth The new weigth
     event RoyaltiesWeightUpdated(uint256 weigth);
@@ -48,6 +48,8 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// @param value The amount received
     event RoyaltiesReceived(address to, address token, uint256 value);
 
+    /* ------------------------------ STRUCTS ------------------------------ */
+
     /// @dev Represent a shareholder
     /// @param account Shareholders address that can receive income
     /// @param weight Determines share allocation
@@ -64,6 +66,10 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         mapping(address => uint256) released;
     }
 
+    /* ----------------------------- VARIABLES ----------------------------- */
+
+    address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+
     /// @dev Map of tokens with the tokenRecords
     mapping(address => TokenRecords) private tokenRecords;
 
@@ -76,6 +82,8 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     uint256 public totalWeights;
 
     address public immutable weth;
+
+    /* ---------------------------- CONSTRUCTOR ---------------------------- */
 
     constructor(
         address[] memory _accounts,
@@ -95,20 +103,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         require(msg.sender == weth, "FS: ETH_SENDER_NOT_WETH");
     }
 
-    /// @notice Returns the amount due to an account. Call releaseToken to withdraw the amount.
-    /// @param _account Account address to check the amount due for
-    /// @param _token ERC20 payment token address (or ETH_ADDR)
-    /// @return The total amount due for the requested currency
-    function getAmountDue(address _account, IERC20 _token) public view returns (uint256) {
-        TokenRecords storage _tokenRecords = tokenRecords[address(_token)];
-        if (_tokenRecords.totalShares == 0) return 0;
-
-        uint256 totalReceived = _tokenRecords.totalReleased + _token.balanceOf(address(this));
-        return
-            (totalReceived * _tokenRecords.shares[_account]) /
-            _tokenRecords.totalShares -
-            _tokenRecords.released[_account];
-    }
+    /* -------------------------- OWNER FUNCTIONS -------------------------- */
 
     /// @notice Sets the weight assigned to the royalties part for the fee
     /// @param _weight The new royalties weight
@@ -133,6 +128,19 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         }
     }
 
+    /// @notice Updates weight for a shareholder
+    /// @param _accountIndex Account to change the weight of
+    /// @param _weight The new weight
+    function updateShareholder(uint256 _accountIndex, uint96 _weight) external onlyOwner {
+        require(_accountIndex < shareholders.length, "FS: INVALID_ACCOUNT_INDEX");
+        totalWeights = totalWeights + _weight - shareholders[_accountIndex].weight;
+        require(totalWeights != 0, "FS: TOTAL_WEIGHTS_ZERO");
+        shareholders[_accountIndex].weight = _weight;
+        emit ShareholderUpdated(shareholders[_accountIndex].account, _weight);
+    }
+
+    /* -------------------------- USERS FUNCTIONS -------------------------- */
+
     /// @notice Release multiple tokens and handle ETH unwrapping
     /// @param _tokens ERC20 tokens to release
     function releaseTokens(IERC20[] calldata _tokens) external nonReentrant {
@@ -155,7 +163,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     function releaseTokensNoETH(IERC20[] calldata _tokens) external nonReentrant {
         uint256 amount;
         for (uint256 i = 0; i < _tokens.length; i++) {
-            amount = _releaseToken(_msgSender(), _tokens[i]); 
+            amount = _releaseToken(_msgSender(), _tokens[i]);
             _tokens[i].safeTransfer(_msgSender(), amount);
             emit PaymentReleased(_msgSender(), address(_tokens[i]), amount);
         }
@@ -190,24 +198,30 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         uint256 balanceBeforeTransfer = _token.balanceOf(address(this));
         _token.safeTransferFrom(_msgSender(), address(this), _amount);
         uint256 amountReceived = _token.balanceOf(address(this)) - balanceBeforeTransfer;
-        
+
         uint256 royaltiesAmount = _computeShareCount(amountReceived, royaltiesWeight, totalWeights);
 
         _sendFees(_token, amountReceived, totalWeights);
         _addShares(_royaltiesTarget, royaltiesAmount, address(_token));
-        
+
         emit RoyaltiesReceived(_royaltiesTarget, address(_token), royaltiesAmount);
     }
 
-    /// @notice Updates weight for a shareholder
-    /// @param _accountIndex Account to change the weight of
-    /// @param _weight The new weight
-    function updateShareholder(uint256 _accountIndex, uint96 _weight) external onlyOwner {
-        require(_accountIndex < shareholders.length, "FS: INVALID_ACCOUNT_INDEX");
-        totalWeights = totalWeights + _weight - shareholders[_accountIndex].weight;
-        require(totalWeights != 0, "FS: TOTAL_WEIGHTS_ZERO");
-        shareholders[_accountIndex].weight = _weight;
-        emit ShareholderUpdated(shareholders[_accountIndex].account, _weight);
+    /* ------------------------------- VIEWS ------------------------------- */
+
+    /// @notice Returns the amount due to an account. Call releaseToken to withdraw the amount.
+    /// @param _account Account address to check the amount due for
+    /// @param _token ERC20 payment token address (or ETH_ADDR)
+    /// @return The total amount due for the requested currency
+    function getAmountDue(address _account, IERC20 _token) public view returns (uint256) {
+        TokenRecords storage _tokenRecords = tokenRecords[address(_token)];
+        if (_tokenRecords.totalShares == 0) return 0;
+
+        uint256 totalReceived = _tokenRecords.totalReleased + _token.balanceOf(address(this));
+        return
+            (totalReceived * _tokenRecords.shares[_account]) /
+            _tokenRecords.totalShares -
+            _tokenRecords.released[_account];
     }
 
     /// @notice Getter for the total shares held by shareholders.
@@ -249,6 +263,8 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         }
         revert("FS: SHAREHOLDER_NOT_FOUND");
     }
+
+    /* ------------------------- PRIVATE FUNCTIONS ------------------------- */
 
     /// @notice Transfers a fee to this contract
     /// @dev This method calculates the amount received, to support deflationary tokens
