@@ -156,7 +156,7 @@ struct BatchedOutputOrders {
 }
 ```
 
-### Ownership & Governance
+# Ownership & Governance
 
 Some functions of the protocol require admin rights (`onlyOwner`).
 
