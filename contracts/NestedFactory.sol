@@ -13,7 +13,7 @@ import "./NestedReserve.sol";
 import "./NestedAsset.sol";
 import "./NestedRecords.sol";
 
-/// @title Creates, updates and destroys NestedAssets.
+/// @title Creates, updates and destroys NestedAssets (portfolios).
 /// @notice Responsible for the business logic of the protocol and interaction with operators
 contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperatorResolver {
     using SafeERC20 for IERC20;
@@ -281,8 +281,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     /// to submit buy orders (where the input is one asset).
     /// @param _nftId The id of the NFT impacted by the orders
     /// @param _batchedOrders The order to process
-    /// @param _toReserve True if the output is store in the reserve/records, false if not.
-    /// @param _fromReserve True if the input tokens are from the reserve
+    /// @param _toReserve True if the output is store in the reserve/records (portfolio), false if not.
+    /// @param _fromReserve True if the input tokens are from the reserve (portfolio)
     /// @return feesAmount The total amount of fees
     /// @return tokenSold The ERC20 token sold (in case of ETH to WETH)
     function _submitInOrders(
@@ -329,8 +329,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, Ownable, MixinOperato
     /// to submit sell orders (where the output is one asset).
     /// @param _nftId The id of the NFT impacted by the orders
     /// @param _batchedOrders The order to process
-    /// @param _toReserve True if the output is store in the reserve/records, false if not.
-    /// @param _fromReserve True if the input tokens are from the reserve
+    /// @param _toReserve True if the output is store in the reserve/records (portfolio), false if not.
+    /// @param _fromReserve True if the input tokens are from the reserve (portfolio)
     /// @return feesAmount The total amount of fees
     /// @return amountBought The total amount bought
     function _submitOutOrders(

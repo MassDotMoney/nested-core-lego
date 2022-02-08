@@ -52,6 +52,7 @@ interface INestedFactory {
     /// @param amount The amount to transfer (input amount)
     /// @param orders The orders to perform using the input token.
     /// @param _fromReserve Specify the input token source (true if reserve, false if wallet)
+    ///        Note: fromReserve can be read as "from portfolio"
     struct BatchedInputOrders {
         IERC20 inputToken;
         uint256 amount;
@@ -63,7 +64,8 @@ interface INestedFactory {
     /// @param outputToken The output token
     /// @param amounts The amount of sell tokens to use
     /// @param orders Orders calldata
-    /// @param toReserve Specify the output token destination (true if reserve, false if wallet)
+    /// @param toReserve Specify the output token destination (true if reserve, false if wallet)    
+    ///        Note: toReserve can be read as "to portfolio"
     struct BatchedOutputOrders {
         IERC20 outputToken;
         uint256[] amounts;

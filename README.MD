@@ -126,8 +126,8 @@ It help us to make **one** interaction, but we want to make multiple interaction
 
 - One same input for every orders but multiple outputs.
 - 1% Fee on the input.
-- The input (*source*) is from a wallet **or** a portfolio.
-- The ouput (*destination*) is the portfolio (**only**). 
+- The input (*source*) is from a wallet **or** a porfolio owned by the transactions signer.
+- The ouput (*destination*) is the portfolio owned by the transactions signer (**only**). 
 
 ```javascript
 struct BatchedInputOrders {
@@ -144,8 +144,8 @@ struct BatchedInputOrders {
 
 - Multiple inputs for every orders but one output.
 - 1% Fee on the output.
-- The input (*source*) is the portfolio (**only**). 
-- The ouput (*destination*) is from a wallet **or** a portfolio.
+- The input (*source*) is the portfolio owned by the transactions signer (**only**). 
+- The ouput (*destination*) is from a wallet **or** a portfolio owned by the transactions signer.
 
 ```javascript
 struct BatchedOutputOrders {
