@@ -69,7 +69,7 @@ async function main(): Promise<void> {
     console.log("ZeroExOperator deployed : ", zeroExOperator.address);
 
     // Add ZeroExStorage address
-    deployments.push({name: "ZeroExStorage", address: await zeroExOperator.storageAddress(zeroExOperator.address)})
+    deployments.push({name: "ZeroExStorage", address: await zeroExOperator.operatorStorage()})
 
     // Deploy FlatOperator
     const flatOperator = await flatOperatorFactory.deploy();
