@@ -18,18 +18,15 @@ const context = JSON.parse(JSON.stringify(addresses));
 const etherscan = false;
 
 // Configuration variables
-const maxHoldingsCount = context[chainId].config.maxHoldingsCount;
 const zeroExSwapTarget = context[chainId].config.zeroExSwapTarget;
 const WETH = context[chainId].config.WETH;
-const nestedTreasury = context[chainId].config.nestedTreasury;
 const multisig = context[chainId].config.multisig;
 
 let deployments: Deployment[] = [];
 
 async function main(): Promise<void> {
-    console.log("Deploy All : ");
+    // Add new proxy/factory with new operators
 
-    // Get Factories
     const feeSplitterFactory = await ethers.getContractFactory("FeeSplitter");
     const nestedAssetFactory = await ethers.getContractFactory("NestedAsset");
     const nestedRecordsFactory = await ethers.getContractFactory("NestedRecords");
@@ -40,30 +37,10 @@ async function main(): Promise<void> {
     const nestedReserveFactory = await ethers.getContractFactory("NestedReserve");
     const transparentUpgradeableProxyFactory = await ethers.getContractFactory("TransparentUpgradeableProxy");
 
-    // Deploy FeeSplitter
-    const feeSplitter = await feeSplitterFactory.deploy([nestedTreasury], [80], 20, WETH);
-    await verify("FeeSplitter", feeSplitter, [[nestedTreasury], [80], 20, WETH]);
-    console.log("FeeSplitter deployed : ", feeSplitter.address);
-
-    // Deploy NestedAsset
-    const nestedAsset = await nestedAssetFactory.deploy();
-    await verify("NestedAsset", nestedAsset, []);
-    console.log("NestedAsset deployed : ", nestedAsset.address);
-
-    // Deploy NestedRecords
-    const nestedRecords = await nestedRecordsFactory.deploy(maxHoldingsCount);
-    await verify("NestedRecords", nestedRecords, [maxHoldingsCount]);
-    console.log("NestedRecords deployed : ", nestedRecords.address);
-
-    // Deploy NestedReserve
-    const nestedReserve = await nestedReserveFactory.deploy();
-    await verify("NestedReserve", nestedReserve, []);
-    console.log("NestedReserve deployed : ", nestedReserve.address);
-
-    // Deploy OperatorResolver
-    const operatorResolver = await operatorResolverFactory.deploy();
-    await verify("OperatorResolver", operatorResolver, []);
-    console.log("OperatorResolver deployed : ", operatorResolver.address);
+    const feeSplitter = await feeSplitterFactory.attach("");
+    const nestedAsset = await nestedAssetFactory.attach("");
+    const nestedRecords = await nestedRecordsFactory.attach("");
+    const nestedReserve = await nestedReserveFactory.attach("");
 
     // Deploy ZeroExOperator
     const zeroExOperator = await zeroExOperatorFactory.deploy(zeroExSwapTarget);
@@ -78,6 +55,10 @@ async function main(): Promise<void> {
     await verify("FlatOperator", flatOperator, []);
     console.log("FlatOperator deployed : ", flatOperator.address);
 
+    const operatorResolver = await operatorResolverFactory.deploy();
+    await verify("OperatorResolver", operatorResolver, []);
+    console.log("OperatorResolver deployed : ", operatorResolver.address);
+
     // Deploy NestedFactory
     const nestedFactory = await nestedFactoryFactory
         .deploy(
@@ -88,13 +69,15 @@ async function main(): Promise<void> {
             WETH,
             operatorResolver.address,
         );
-    await verify("NestedFactory", nestedFactory, [nestedAsset.address,
-    nestedRecords.address,
-    nestedReserve.address,
-    feeSplitter.address,
+    await verify("NestedFactory", nestedFactory, [
+        nestedAsset.address,
+        nestedRecords.address,
+        nestedReserve.address,
+        feeSplitter.address,
         WETH,
-    operatorResolver.address]);
-    console.log("NestedFactory deployed : ", nestedFactory.address);
+        operatorResolver.address
+    ]);
+    console.log("New NestedFactory deployed : ", nestedFactory.address);
 
     const owner = await nestedRecords.owner();
 
