@@ -298,6 +298,39 @@ describe("NestedFactory", () => {
             ).to.be.revertedWith("OR: INVALID_OUTPUT_TOKEN");
         });
 
+        it("reverts if same input and output", async () => {
+            // All the amounts for this test
+            const uniBought = appendDecimals(10);
+            const expectedFee = getExpectedFees(uniBought);
+            const totalToSpend = uniBought.add(expectedFee);
+
+            // Orders to buy UNI but with the wrong output token
+            const orders: OrderStruct[] = [
+                buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockDAI.address, [
+                    ["address", context.mockDAI.address],
+                    ["address", context.mockDAI.address],
+                    [
+                        "bytes",
+                        ethers.utils.hexConcat([
+                            dummyRouterSelector,
+                            abiCoder.encode(
+                                ["address", "address", "uint"],
+                                [context.mockDAI.address, context.mockDAI.address, uniBought],
+                            ),
+                        ]),
+                    ],
+                ]),
+            ];
+
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .create(0, [
+                        { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: false },
+                    ]),
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
+        });
+
         it("reverts if the DAI amount is less than total sum of DAI sales", async () => {
             /*
              * All the amounts for this test :

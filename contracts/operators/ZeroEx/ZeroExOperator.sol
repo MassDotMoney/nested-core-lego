@@ -23,6 +23,7 @@ contract ZeroExOperator is IZeroExOperator {
         IERC20 buyToken,
         bytes calldata swapCallData
     ) external payable override returns (uint256[] memory amounts, address[] memory tokens) {
+        require(sellToken != buyToken, "ZEO: SAME_INPUT_OUTPUT");
         amounts = new uint256[](2);
         tokens = new address[](2);
         uint256 buyBalanceBeforePurchase = buyToken.balanceOf(address(this));
