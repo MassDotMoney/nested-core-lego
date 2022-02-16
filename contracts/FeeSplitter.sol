@@ -68,8 +68,6 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
 
     /* ----------------------------- VARIABLES ----------------------------- */
 
-    address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
     /// @dev Map of tokens with the tokenRecords
     mapping(address => TokenRecords) private tokenRecords;
 
@@ -211,7 +209,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
 
     /// @notice Returns the amount due to an account. Call releaseToken to withdraw the amount.
     /// @param _account Account address to check the amount due for
-    /// @param _token ERC20 payment token address (or ETH_ADDR)
+    /// @param _token ERC20 payment token address
     /// @return The total amount due for the requested currency
     function getAmountDue(address _account, IERC20 _token) public view returns (uint256) {
         TokenRecords storage _tokenRecords = tokenRecords[address(_token)];
