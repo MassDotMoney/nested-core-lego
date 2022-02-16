@@ -68,7 +68,9 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     }
 
     /// @dev Receive function
-    receive() external payable {}
+    receive() external payable {
+        require(msg.sender == address(weth), "NF: ETH_SENDER_NOT_WETH");
+    }
 
     /* ------------------------------ MODIFIERS ---------------------------- */
 
@@ -486,6 +488,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         bool _fromReserve
     ) private returns (IERC20, uint256) {
         if (address(_inputToken) == ETH) {
+            require(!_fromReserve, "NF: NO_ETH_FROM_RESERVE");
             require(address(this).balance >= _inputTokenAmount, "NF: INVALID_AMOUNT_IN");
             weth.deposit{ value: _inputTokenAmount }();
             return (IERC20(address(weth)), _inputTokenAmount);
