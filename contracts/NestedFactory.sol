@@ -116,6 +116,9 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
             if (operators[i] == operator) {
                 operators[i] = operators[operatorsLength - 1];
                 operators.pop();
+                if (operatorCache[operator].implementation != address(0)) {
+                    delete operatorCache[operator]; // remove from cache
+                }   
                 emit OperatorRemoved(operator);
                 return;
             }

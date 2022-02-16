@@ -17,7 +17,7 @@ abstract contract MixinOperatorResolver {
     OperatorResolver public immutable resolver;
 
     /// @dev Cache operators map of the name and Operator struct (address/selector)
-    mapping(bytes32 => IOperatorResolver.Operator) private operatorCache;
+    mapping(bytes32 => IOperatorResolver.Operator) internal operatorCache;
 
     constructor(address _resolver) {
         resolver = OperatorResolver(_resolver);
