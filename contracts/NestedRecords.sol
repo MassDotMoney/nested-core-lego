@@ -175,7 +175,7 @@ contract NestedRecords is OwnableFactoryHandler {
     /// @notice Get how many tokens are in a portfolio/NFT
     /// @param _nftId NFT ID to examine
     /// @return The array length
-    function getAssetTokensLength(uint256 _nftId) public view returns (uint256) {
+    function getAssetTokensLength(uint256 _nftId) external view returns (uint256) {
         return records[_nftId].tokens.length;
     }
 
@@ -192,7 +192,7 @@ contract NestedRecords is OwnableFactoryHandler {
     /// @return Two arrays with the same length :
     ///         - The token addresses in the portfolio
     ///         - The respective amounts
-    function tokenHoldings(uint256 _nftId) public view returns (address[] memory, uint256[] memory) {
+    function tokenHoldings(uint256 _nftId) external view returns (address[] memory, uint256[] memory) {
         address[] memory tokens = getAssetTokens(_nftId);
         uint256 tokensCount = tokens.length;
         uint256[] memory amounts = new uint256[](tokensCount);

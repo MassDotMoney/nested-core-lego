@@ -49,7 +49,7 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
     /// If the original asset was burnt, the last owner before burn is returned
     /// @param _tokenId The asset for which we want to know the original owner
     /// @return The owner of the original asset
-    function originalOwner(uint256 _tokenId) public view returns (address) {
+    function originalOwner(uint256 _tokenId) external view returns (address) {
         uint256 originalAssetId = originalAsset[_tokenId];
 
         if (originalAssetId != 0) {
