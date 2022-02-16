@@ -442,7 +442,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     ) private {
         (bool success, uint256[] memory amounts) = callOperator(_order, _inputToken, _outputToken);
         if (success) {
-            require(amounts[1] <= _amountToSpend, "NestedFactory::_safeSubmitOrder: Overspent");
+            require(amounts[1] <= _amountToSpend, "NF: OVERSPENT");
             if (_amountToSpend > amounts[1]) {
                 IERC20(_inputToken).safeTransfer(_msgSender(), _amountToSpend - amounts[1]);
             }
