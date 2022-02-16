@@ -71,7 +71,7 @@ contract OperatorResolver is IOperatorResolver, Ownable {
 
     /// @notice rebuild the caches of mixin smart contracts
     /// @param destinations The list of mixinOperatorResolver to rebuild
-    function rebuildCaches(MixinOperatorResolver[] calldata destinations) public {
+    function rebuildCaches(MixinOperatorResolver[] calldata destinations) public onlyOwner {
         for (uint256 i = 0; i < destinations.length; i++) {
             destinations[i].rebuildCache();
         }
