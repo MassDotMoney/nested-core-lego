@@ -29,12 +29,12 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     event PaymentReceived(address from, address token, uint256 amount);
 
     /// @dev Emitted when the royalties weight is updated
-    /// @param weigth The new weigth
-    event RoyaltiesWeightUpdated(uint256 weigth);
+    /// @param weight The new weight
+    event RoyaltiesWeightUpdated(uint256 weight);
 
     /// @dev Emitted when a new shareholder is added
     /// @param account The new shareholder account
-    /// @param weight The shareholder weigth
+    /// @param weight The shareholder weight
     event ShareholdersAdded(address account, uint256 weight);
 
     /// @dev Emitted when a shareholder weight is updated
