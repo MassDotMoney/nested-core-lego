@@ -130,6 +130,7 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
     /// @param _tokenId The id of the NestedAsset
     /// @param _metadataURI The metadata URI string
     function _setTokenURI(uint256 _tokenId, string memory _metadataURI) internal {
+        require(bytes(_metadataURI).length != 0, "NA: INVALID_URI");
         _tokenURIs[_tokenId] = _metadataURI;
     }
 }
