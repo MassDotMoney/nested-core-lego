@@ -22,6 +22,7 @@ abstract contract OwnableProxyDelegation is Context {
     /// @notice Initialize the owner (by the proxy admin)
     /// @param ownerAddr The owner address
     function initialize(address ownerAddr) external {
+        require(ownerAddr != address(0), "OPD: INVALID_ADDRESS");
         require(!initialized, "OPD: INITIALIZED");
         require(StorageSlot.getAddressSlot(_ADMIN_SLOT).value == msg.sender, "OPD: FORBIDDEN");
 
