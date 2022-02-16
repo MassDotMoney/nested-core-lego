@@ -295,7 +295,7 @@ describe("NestedFactory", () => {
                     .create(0, [
                         { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: false },
                     ]),
-            ).to.be.revertedWith("OR: INVALID_OUTPUT_TOKEN");
+            ).to.be.revertedWith("MOR: INVALID_OUTPUT_TOKEN");
         });
 
         it("reverts if same input and output", async () => {
@@ -766,7 +766,7 @@ describe("NestedFactory", () => {
                     .processInputOrders(1, [
                         { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: false },
                     ]),
-            ).to.be.revertedWith("OR: INVALID_OUTPUT_TOKEN");
+            ).to.be.revertedWith("MOR: INVALID_OUTPUT_TOKEN");
         });
 
         it("reverts if the DAI amount is less than total sum of DAI sales", async () => {
@@ -1632,7 +1632,7 @@ describe("NestedFactory", () => {
                     .processOutputOrders(1, [
                         { outputToken: context.mockDAI.address, amounts: [uniSold, kncSold], orders, toReserve: true },
                     ]),
-            ).to.be.revertedWith("OR: INVALID_OUTPUT_TOKEN");
+            ).to.be.revertedWith("MOR: INVALID_OUTPUT_TOKEN");
         });
 
         it("swap KNC and UNI for USDC (ZeroExOperator) with right amounts", async () => {
@@ -1919,7 +1919,7 @@ describe("NestedFactory", () => {
                     .processOutputOrders(1, [
                         { outputToken: context.mockDAI.address, amounts: [uniSold, kncSold], orders, toReserve: false },
                     ]),
-            ).to.be.revertedWith("OR: INVALID_OUTPUT_TOKEN");
+            ).to.be.revertedWith("MOR: INVALID_OUTPUT_TOKEN");
         });
 
         it("swap KNC and UNI for USDC (ZeroExOperator) with right amounts", async () => {
