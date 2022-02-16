@@ -28,7 +28,7 @@ abstract contract MixinOperatorResolver {
     function resolverOperatorsRequired() public view virtual returns (bytes32[] memory) {}
 
     /// @notice Rebuild the operatorCache
-    function rebuildCache() external {
+    function rebuildCache() public {
         bytes32[] memory requiredOperators = resolverOperatorsRequired();
         bytes32 name;
         IOperatorResolver.Operator memory destination;

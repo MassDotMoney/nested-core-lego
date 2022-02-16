@@ -106,6 +106,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
             require(operatorsCache[i] != operator, "NF: EXISTENT_OPERATOR");
         }
         operators.push(operator);
+        rebuildCache();
         emit OperatorAdded(operator);
     }
 
@@ -118,7 +119,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
                 operators.pop();
                 if (operatorCache[operator].implementation != address(0)) {
                     delete operatorCache[operator]; // remove from cache
-                }   
+                }
+                rebuildCache();   
                 emit OperatorRemoved(operator);
                 return;
             }
