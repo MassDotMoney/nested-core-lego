@@ -159,7 +159,8 @@ contract NestedRecords is OwnableFactoryHandler {
     /* ------------------------------- VIEWS ------------------------------- */
 
     /// @notice Get content of assetTokens mapping
-    /// @param _nftId The id of the NFT>
+    /// @param _nftId The id of the NFT
+    /// @return Array of token addresses
     function getAssetTokens(uint256 _nftId) public view returns (address[] memory) {
         return records[_nftId].tokens;
     }
@@ -178,16 +179,19 @@ contract NestedRecords is OwnableFactoryHandler {
         return records[_nftId].tokens.length;
     }
 
-    /// @notice Get holding object for this NFT ID
+    /// @notice Get holding amount for a given nft id
     /// @param _nftId The id of the NFT
     /// @param _token The address of the token
+    /// @return The holding amount
     function getAssetHolding(uint256 _nftId, address _token) public view returns (uint256) {
         return records[_nftId].holdings[_token];
     }
 
     /// @notice Returns the holdings associated to a NestedAsset
     /// @param _nftId the id of the NestedAsset
-    /// @return The holdings
+    /// @return Two arrays with the same length :
+    ///         - The token addresses in the portfolio
+    ///         - The respective amounts
     function tokenHoldings(uint256 _nftId) public view returns (address[] memory, uint256[] memory) {
         address[] memory tokens = getAssetTokens(_nftId);
         uint256 tokensCount = tokens.length;

@@ -33,8 +33,8 @@ contract ZeroExOperator is IZeroExOperator {
 
         uint256 amountBought = buyToken.balanceOf(address(this)) - buyBalanceBeforePurchase;
         uint256 amountSold = sellBalanceBeforePurchase - sellToken.balanceOf(address(this));
-        require(amountBought != 0, "ZeroExOperator::performSwap: amountBought cant be zero");
-        require(amountSold != 0, "ZeroExOperator::performSwap: amountSold cant be zero");
+        require(amountBought != 0, "ZEO: INVALID_AMOUNT_BOUGHT");
+        require(amountSold != 0, "ZEO: INVALID_AMOUNT_SOLD");
 
         // Output amounts
         amounts[0] = amountBought;

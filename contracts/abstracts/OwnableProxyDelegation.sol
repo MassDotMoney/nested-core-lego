@@ -22,8 +22,8 @@ abstract contract OwnableProxyDelegation is Context {
     /// @notice Initialize the owner (by the proxy admin)
     /// @param ownerAddr The owner address
     function initialize(address ownerAddr) external {
-        require(!initialized, "OFP: INITIALIZED");
-        require(StorageSlot.getAddressSlot(_ADMIN_SLOT).value == msg.sender, "OFP: FORBIDDEN");
+        require(!initialized, "OPD: INITIALIZED");
+        require(StorageSlot.getAddressSlot(_ADMIN_SLOT).value == msg.sender, "OPD: FORBIDDEN");
 
         _setOwner(ownerAddr);
 
@@ -37,7 +37,7 @@ abstract contract OwnableProxyDelegation is Context {
 
     /// @dev Throws if called by any account other than the owner.
     modifier onlyOwner() {
-        require(owner() == _msgSender(), "Ownable: caller is not the owner");
+        require(owner() == _msgSender(), "OPD: NOT_OWNER");
         _;
     }
 
@@ -53,7 +53,7 @@ abstract contract OwnableProxyDelegation is Context {
     /// @dev Transfers ownership of the contract to a new account (`newOwner`).
     /// Can only be called by the current owner.
     function transferOwnership(address newOwner) public virtual onlyOwner {
-        require(newOwner != address(0), "Ownable: new owner is the zero address");
+        require(newOwner != address(0), "OPD: INVALID_ADDRESS");
         _setOwner(newOwner);
     }
 

@@ -82,7 +82,7 @@ describe("NestedFactory", () => {
         it("cant be invoked by an user", async () => {
             await expect(
                 context.nestedFactory.connect(context.user1).addOperator(toBytes32("test")),
-            ).to.be.revertedWith("Ownable: caller is not the owner");
+            ).to.be.revertedWith("OPD: NOT_OWNER");
         });
 
         it("cant add already existent operator", async () => {
@@ -121,7 +121,7 @@ describe("NestedFactory", () => {
         it("cant be invoked by an user", async () => {
             await expect(
                 context.nestedFactory.connect(context.user1).removeOperator(toBytes32("test")),
-            ).to.be.revertedWith("Ownable: caller is not the owner");
+            ).to.be.revertedWith("OPD: NOT_OWNER");
         });
         it("remove an operator", async () => {
             const testAddress = Wallet.createRandom().address;
@@ -202,7 +202,7 @@ describe("NestedFactory", () => {
         it("cant be invoked by an user", async () => {
             await expect(
                 context.nestedFactory.connect(context.user1).setFeeSplitter(newFeeSplitter),
-            ).to.be.revertedWith("Ownable: caller is not the owner");
+            ).to.be.revertedWith("OPD: NOT_OWNER");
         });
 
         it("cant set zero address", async () => {
@@ -295,7 +295,7 @@ describe("NestedFactory", () => {
                     .create(0, [
                         { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: false },
                     ]),
-            ).to.be.revertedWith("OH: INVALID_OUTPUT_TOKEN");
+            ).to.be.revertedWith("OR: INVALID_OUTPUT_TOKEN");
         });
 
         it("reverts if the DAI amount is less than total sum of DAI sales", async () => {
@@ -733,7 +733,7 @@ describe("NestedFactory", () => {
                     .processInputOrders(1, [
                         { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: false },
                     ]),
-            ).to.be.revertedWith("OH: INVALID_OUTPUT_TOKEN");
+            ).to.be.revertedWith("OR: INVALID_OUTPUT_TOKEN");
         });
 
         it("reverts if the DAI amount is less than total sum of DAI sales", async () => {
@@ -1599,7 +1599,7 @@ describe("NestedFactory", () => {
                     .processOutputOrders(1, [
                         { outputToken: context.mockDAI.address, amounts: [uniSold, kncSold], orders, toReserve: true },
                     ]),
-            ).to.be.revertedWith("OH: INVALID_OUTPUT_TOKEN");
+            ).to.be.revertedWith("OR: INVALID_OUTPUT_TOKEN");
         });
 
         it("swap KNC and UNI for USDC (ZeroExOperator) with right amounts", async () => {
@@ -1886,7 +1886,7 @@ describe("NestedFactory", () => {
                     .processOutputOrders(1, [
                         { outputToken: context.mockDAI.address, amounts: [uniSold, kncSold], orders, toReserve: false },
                     ]),
-            ).to.be.revertedWith("OH: INVALID_OUTPUT_TOKEN");
+            ).to.be.revertedWith("OR: INVALID_OUTPUT_TOKEN");
         });
 
         it("swap KNC and UNI for USDC (ZeroExOperator) with right amounts", async () => {
@@ -2382,7 +2382,7 @@ describe("NestedFactory", () => {
                 .transfer(context.nestedFactory.address, ethers.utils.parseEther("1"));
             await expect(
                 context.nestedFactory.connect(context.user1).unlockTokens(context.mockDAI.address),
-            ).to.be.revertedWith("Ownable: caller is not the owner");
+            ).to.be.revertedWith("OPD: NOT_OWNER");
         });
     });
 
