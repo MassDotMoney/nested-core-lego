@@ -16,8 +16,6 @@ import "./NestedRecords.sol";
 /// @title Creates, updates and destroys NestedAssets (portfolios).
 /// @notice Responsible for the business logic of the protocol and interaction with operators
 contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegation, MixinOperatorResolver {
-    using SafeERC20 for IERC20;
-
     /* ----------------------------- VARIABLES ----------------------------- */
 
     address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -131,7 +129,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     /// @inheritdoc INestedFactory
     function unlockTokens(IERC20 _token) external override onlyOwner {
         uint256 amount = _token.balanceOf(address(this));
-        _token.safeTransfer(owner(), amount);
+        SafeERC20.safeTransfer(IERC20(_token), owner(), amount);
         emit TokensUnlocked(address(_token), amount);
     }
 
@@ -338,7 +336,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
 
         uint256 underSpentAmount = _inputTokenAmount - feesAmount - amountSpent;
         if (underSpentAmount != 0) {
-            tokenSold.safeTransfer(_fromReserve ? address(reserve) : _msgSender(), underSpentAmount);
+            SafeERC20.safeTransfer(IERC20(tokenSold), _fromReserve ? address(reserve) : _msgSender(), underSpentAmount);
         }
 
         // If input is from the reserve, update the records
@@ -386,7 +384,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
 
             uint256 underSpentAmount = _inputTokenAmount - amountSpent;
             if (underSpentAmount != 0) {
-                _inputToken.safeTransfer(address(reserve), underSpentAmount);
+                SafeERC20.safeTransfer(IERC20(_inputToken), address(reserve), underSpentAmount);
             }
 
             _decreaseHoldingAmount(_nftId, address(_inputToken), _inputTokenAmount - underSpentAmount);
@@ -443,7 +441,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         if (success) {
             require(amounts[1] <= _amountToSpend, "NestedFactory::_safeSubmitOrder: Overspent");
             if (_amountToSpend > amounts[1]) {
-                IERC20(_inputToken).safeTransfer(_msgSender(), _amountToSpend - amounts[1]);
+                SafeERC20.safeTransfer(IERC20(_inputToken), _msgSender(), _amountToSpend - amounts[1]);
             }
         } else {
             _safeTransferWithFees(IERC20(_inputToken), _amountToSpend, _msgSender(), _nftId);
@@ -464,7 +462,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         uint256 balanceReserveBefore = _token.balanceOf(reserveAddr);
 
         // Send output to reserve
-        _token.safeTransfer(reserveAddr, _amount);
+        SafeERC20.safeTransfer(IERC20(_token), reserveAddr, _amount);
 
         uint256 balanceReserveAfter = _token.balanceOf(reserveAddr);
 
@@ -500,7 +498,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
             // Get input from reserve
             reserve.withdraw(IERC20(_inputToken), _inputTokenAmount);
         } else {
-            _inputToken.safeTransferFrom(_msgSender(), address(this), _inputTokenAmount);
+            SafeERC20.safeTransferFrom(IERC20(_inputToken), _msgSender(),  address(this), _inputTokenAmount);
         }
         return (_inputToken, _inputToken.balanceOf(address(this)) - balanceBefore);
     }
@@ -555,7 +553,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
             (bool success, ) = _dest.call{ value: _amount }("");
             require(success, "NF: ETH_TRANSFER_ERROR");
         } else {
-            _token.safeTransfer(_dest, _amount);
+            SafeERC20.safeTransfer(IERC20(_token), _dest, _amount);
         }
     }
 
@@ -571,7 +569,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     ) private {
         uint256 feeAmount = _amount / 100; // 1% Fee
         _transferFeeWithRoyalty(feeAmount, _token, _nftId);
-        _token.safeTransfer(_dest, _amount - feeAmount);
+        SafeERC20.safeTransfer(IERC20(_token),_dest,  _amount - feeAmount);
     }
 
     /// @dev Verify that msg.value is equal to the amount needed (in the orders)
