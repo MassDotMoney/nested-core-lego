@@ -109,11 +109,12 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
 
     /// @inheritdoc INestedFactory
     function removeOperator(bytes32 operator) external override onlyOwner {
-        uint256 operatorsLength = operators.length;
+        bytes32[] storage operatorsCache = operators;
+        uint256 operatorsLength = operatorsCache.length;
         for (uint256 i = 0; i < operatorsLength; i++) {
-            if (operators[i] == operator) {
-                operators[i] = operators[operatorsLength - 1];
-                operators.pop();
+            if (operatorsCache[i] == operator) {
+                operatorsCache[i] = operatorsCache[operatorsLength - 1];
+                operatorsCache.pop();
                 emit OperatorRemoved(operator);
                 return;
             }
