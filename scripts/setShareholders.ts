@@ -7,15 +7,15 @@ const context = JSON.parse(JSON.stringify(addresses));
 
 async function main(): Promise<void> {
     let accounts: string[] = [];
-    let weigths: BigNumberish[] = [];
+    let weights: BigNumberish[] = [];
 
-    // Add the accounts with the weigths
+    // Add the accounts with the weights
     accounts.push(Wallet.createRandom().address);
-    weigths.push(100);
+    weights.push(100);
 
     const feeSplitterFactory = await hre.ethers.getContractFactory("FeeSplitter");
     const feeSplitter = await feeSplitterFactory.attach(context[chainId].FeeSplitter);
-    await feeSplitter.setShareholders(accounts, weigths);
+    await feeSplitter.setShareholders(accounts, weights);
 }
 
 main()

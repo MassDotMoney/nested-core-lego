@@ -414,6 +414,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     /// @param _nftId The nftId
     /// @param _order The order calldata
     /// @param _toReserve True if the output is store in the reserve/records, false if not.
+    /// @return amountSpent The _inputToken amount spent (with the order)
     function _submitOrder(
         address _inputToken,
         address _outputToken,
@@ -448,7 +449,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     ) private {
         (bool success, uint256[] memory amounts) = callOperator(_order, _inputToken, _outputToken);
         if (success) {
-            require(amounts[1] <= _amountToSpend, "NestedFactory::_safeSubmitOrder: Overspent");
+            require(amounts[1] <= _amountToSpend, "NF: OVERSPENT");
             if (_amountToSpend > amounts[1]) {
                 _safeTransferWithFees(IERC20(_inputToken), _amountToSpend - amounts[1], _msgSender(), _nftId);
             }
@@ -485,7 +486,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     /// @param _inputTokenAmount Amount to transfer
     /// @param _fromReserve True to transfer from the reserve
     /// @return Token transfered (in case of ETH)
-    ///         The real amount received after the transfer to the factory
+    /// @return The real amount received after the transfer to the factory
     function _transferInputTokens(
         uint256 _nftId,
         IERC20 _inputToken,
@@ -571,6 +572,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     /// @param _token The token to transfer
     /// @param _amount The amount (with fees) to transfer
     /// @param _dest The address receiving the funds
+    /// @param _nftId The nft Id (for royalty fees)
     function _safeTransferWithFees(
         IERC20 _token,
         uint256 _amount,
