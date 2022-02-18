@@ -443,10 +443,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         (bool success, uint256[] memory amounts) = callOperator(_order, _inputToken, _outputToken);
         if (success) {
             require(amounts[1] <= _amountToSpend, "NF: OVERSPENT");
-            if (_amountToSpend > amounts[1]) {
-                unchecked {
-                    SafeERC20.safeTransfer(IERC20(_inputToken), _msgSender(), _amountToSpend - amounts[1]);
-                }
+            unchecked {
+                SafeERC20.safeTransfer(IERC20(_inputToken), _msgSender(), _amountToSpend - amounts[1]);
             }
         } else {
             _safeTransferWithFees(IERC20(_inputToken), _amountToSpend, _msgSender(), _nftId);
