@@ -366,7 +366,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
 
         IERC20 _inputToken;
         uint256 _inputTokenAmount;
-        for (uint256 i = 0; i < _batchedOrders.orders.length; i++) {
+        for (uint256 i = 0; i < batchLength; i++) {
             (_inputToken, _inputTokenAmount) = _transferInputTokens(
                 _nftId,
                 IERC20(_batchedOrders.orders[i].token),
