@@ -199,9 +199,10 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         SafeERC20.safeTransferFrom(_token, _msgSender(), address(this), _amount);
         uint256 amountReceived = _token.balanceOf(address(this)) - balanceBeforeTransfer;
 
-        uint256 royaltiesAmount = (amountReceived * royaltiesWeight) / totalWeights;
+        uint256 _totalWeights = totalWeights;
+        uint256 royaltiesAmount = (amountReceived * royaltiesWeight) / _totalWeights;
 
-        _sendFees(_token, amountReceived, totalWeights);
+        _sendFees(_token, amountReceived, _totalWeights);
         _addShares(_royaltiesTarget, royaltiesAmount, address(_token));
 
         emit RoyaltiesReceived(_royaltiesTarget, address(_token), royaltiesAmount);
@@ -215,12 +216,13 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// @return The total amount due for the requested currency
     function getAmountDue(address _account, IERC20 _token) public view returns (uint256) {
         TokenRecords storage _tokenRecords = tokenRecords[address(_token)];
-        if (_tokenRecords.totalShares == 0) return 0;
+        uint256 _totalShares = _tokenRecords.totalShares;
+        if (_totalShares == 0) return 0;
 
         uint256 totalReceived = _tokenRecords.totalReleased + _token.balanceOf(address(this));
         return
             (totalReceived * _tokenRecords.shares[_account]) /
-            _tokenRecords.totalShares -
+            _totalShares -
             _tokenRecords.released[_account];
     }
 
