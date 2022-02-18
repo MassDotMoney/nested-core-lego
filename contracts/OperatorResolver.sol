@@ -39,7 +39,7 @@ contract OperatorResolver is IOperatorResolver, Ownable {
         require(namesLength == destinations.length, "OR: INPUTS_LENGTH_MUST_MATCH");
         for (uint256 i = 0; i < namesLength; i++) {
             if (
-                operators[names[i]].implementation != destinations[i].implementation &&
+                operators[names[i]].implementation != destinations[i].implementation ||
                 operators[names[i]].selector != destinations[i].selector
             ) {
                 return false;
@@ -71,7 +71,7 @@ contract OperatorResolver is IOperatorResolver, Ownable {
 
     /// @notice rebuild the caches of mixin smart contracts
     /// @param destinations The list of mixinOperatorResolver to rebuild
-    function rebuildCaches(MixinOperatorResolver[] calldata destinations) public {
+    function rebuildCaches(MixinOperatorResolver[] calldata destinations) public onlyOwner {
         for (uint256 i = 0; i < destinations.length; i++) {
             destinations[i].rebuildCache();
         }

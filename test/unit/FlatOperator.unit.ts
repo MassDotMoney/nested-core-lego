@@ -70,6 +70,8 @@ describe("FlatOperator", () => {
             },
         ];
 
+        // The error is "OUTPUT" because the token in Order is considered as the "right token" (UNI)
+        // Therefore, the DAI token (output) is considered as invalid.
         await expect(
             context.nestedFactory.connect(context.user1).create(0, [
                 {
@@ -79,7 +81,7 @@ describe("FlatOperator", () => {
                     fromReserve: false,
                 },
             ]),
-        ).to.revertedWith("OH: INVALID_OUTPUT_TOKEN");
+        ).to.revertedWith("MOR: INVALID_OUTPUT_TOKEN");
     });
 
     it("Adds token to portfolio when create()", async () => {

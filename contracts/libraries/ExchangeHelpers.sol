@@ -11,6 +11,7 @@ library ExchangeHelpers {
     /// @param _sellToken Token to exchange
     /// @param _swapTarget The address of the contract that swaps tokens
     /// @param _swapCallData Call data provided by 0x to fill the quote
+    /// @return True if the call succeeded, false if not
     function fillQuote(
         IERC20 _sellToken,
         address _swapTarget,

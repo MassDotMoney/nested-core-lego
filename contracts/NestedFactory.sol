@@ -66,7 +66,9 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     }
 
     /// @dev Receive function
-    receive() external payable {}
+    receive() external payable {
+        require(msg.sender == address(weth), "NF: ETH_SENDER_NOT_WETH");
+    }
 
     /* ------------------------------ MODIFIERS ---------------------------- */
 
@@ -102,6 +104,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
             require(operatorsCache[i] != operator, "NF: EXISTENT_OPERATOR");
         }
         operators.push(operator);
+        rebuildCache();
         emit OperatorAdded(operator);
     }
 
@@ -111,8 +114,12 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         uint256 operatorsLength = operatorsCache.length;
         for (uint256 i = 0; i < operatorsLength; i++) {
             if (operatorsCache[i] == operator) {
-                operatorsCache[i] = operatorsCache[operatorsLength - 1];
+                operatorsCache[i] = operators[operatorsLength - 1];
                 operatorsCache.pop();
+                if (operatorCache[operator].implementation != address(0)) {
+                    delete operatorCache[operator]; // remove from cache
+                }
+                rebuildCache();   
                 emit OperatorRemoved(operator);
                 return;
             }
@@ -414,6 +421,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     /// @param _nftId The nftId
     /// @param _order The order calldata
     /// @param _toReserve True if the output is store in the reserve/records, false if not.
+    /// @return amountSpent The _inputToken amount spent (with the order)
     function _submitOrder(
         address _inputToken,
         address _outputToken,
@@ -450,7 +458,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         if (success) {
             require(amounts[1] <= _amountToSpend, "NF: OVERSPENT");
             unchecked {
-                SafeERC20.safeTransfer(IERC20(_inputToken), _msgSender(), _amountToSpend - amounts[1]);
+                _safeTransferWithFees(IERC20(_inputToken), _amountToSpend - amounts[1], _msgSender(), _nftId)
             }
         } else {
             _safeTransferWithFees(IERC20(_inputToken), _amountToSpend, _msgSender(), _nftId);
@@ -485,7 +493,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     /// @param _inputTokenAmount Amount to transfer
     /// @param _fromReserve True to transfer from the reserve
     /// @return Token transfered (in case of ETH)
-    ///         The real amount received after the transfer to the factory
+    /// @return The real amount received after the transfer to the factory
     function _transferInputTokens(
         uint256 _nftId,
         IERC20 _inputToken,
@@ -493,6 +501,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         bool _fromReserve
     ) private returns (IERC20, uint256) {
         if (address(_inputToken) == ETH) {
+            require(!_fromReserve, "NF: NO_ETH_FROM_RESERVE");
             require(address(this).balance >= _inputTokenAmount, "NF: INVALID_AMOUNT_IN");
             weth.deposit{ value: _inputTokenAmount }();
             return (IERC20(address(weth)), _inputTokenAmount);
@@ -570,6 +579,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     /// @param _token The token to transfer
     /// @param _amount The amount (with fees) to transfer
     /// @param _dest The address receiving the funds
+    /// @param _nftId The nft Id (for royalty fees)
     function _safeTransferWithFees(
         IERC20 _token,
         uint256 _amount,

@@ -17,9 +17,10 @@ abstract contract MixinOperatorResolver {
     OperatorResolver public immutable resolver;
 
     /// @dev Cache operators map of the name and Operator struct (address/selector)
-    mapping(bytes32 => IOperatorResolver.Operator) private operatorCache;
+    mapping(bytes32 => IOperatorResolver.Operator) internal operatorCache;
 
     constructor(address _resolver) {
+        require(_resolver != address(0), "MOR: INVALID_ADDRESS");
         resolver = OperatorResolver(_resolver);
     }
 
@@ -28,7 +29,7 @@ abstract contract MixinOperatorResolver {
     function resolverOperatorsRequired() public view virtual returns (bytes32[] memory) {}
 
     /// @notice Rebuild the operatorCache
-    function rebuildCache() external {
+    function rebuildCache() public {
         bytes32[] memory requiredOperators = resolverOperatorsRequired();
         bytes32 name;
         IOperatorResolver.Operator memory destination;
@@ -79,6 +80,8 @@ abstract contract MixinOperatorResolver {
 
     /// @dev Build the calldata (with safe datas) and call the Operator
     /// @param _order The order to execute
+    /// @param _inputToken The input token address
+    /// @param _outputToken The output token address
     /// @return success If the operator call is successful
     /// @return amounts The amounts from the execution (used and received)
     ///         - amounts[0] : The amount of output token
@@ -97,8 +100,8 @@ abstract contract MixinOperatorResolver {
         if (success) {
             address[] memory tokens;
             (amounts, tokens) = abi.decode(data, (uint256[], address[]));
-            require(tokens[0] == _outputToken, "OH: INVALID_OUTPUT_TOKEN");
-            require(tokens[1] == _inputToken, "OH: INVALID_OUTPUT_TOKEN");
+            require(tokens[0] == _outputToken, "MOR: INVALID_OUTPUT_TOKEN");
+            require(tokens[1] == _inputToken, "MOR: INVALID_INPUT_TOKEN");
         }
     }
 }

@@ -27,12 +27,12 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     event PaymentReceived(address from, address token, uint256 amount);
 
     /// @dev Emitted when the royalties weight is updated
-    /// @param weigth The new weigth
-    event RoyaltiesWeightUpdated(uint256 weigth);
+    /// @param weight The new weight
+    event RoyaltiesWeightUpdated(uint256 weight);
 
     /// @dev Emitted when a new shareholder is added
     /// @param account The new shareholder account
-    /// @param weight The shareholder weigth
+    /// @param weight The shareholder weight
     event ShareholdersAdded(address account, uint256 weight);
 
     /// @dev Emitted when a shareholder weight is updated
@@ -65,8 +65,6 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     }
 
     /* ----------------------------- VARIABLES ----------------------------- */
-
-    address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
     /// @dev Map of tokens with the tokenRecords
     mapping(address => TokenRecords) private tokenRecords;
@@ -131,6 +129,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// @param _accountIndex Account to change the weight of
     /// @param _weight The new weight
     function updateShareholder(uint256 _accountIndex, uint96 _weight) external onlyOwner {
+        require(_weight != 0, "FS: INVALID_WEIGHT");
         require(_accountIndex < shareholders.length, "FS: INVALID_ACCOUNT_INDEX");
         Shareholder storage _shareholder = shareholders[_accountIndex];
         totalWeights = totalWeights + _weight - _shareholder.weight;
@@ -212,7 +211,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
 
     /// @notice Returns the amount due to an account. Call releaseToken to withdraw the amount.
     /// @param _account Account address to check the amount due for
-    /// @param _token ERC20 payment token address (or ETH_ADDR)
+    /// @param _token ERC20 payment token address
     /// @return The total amount due for the requested currency
     function getAmountDue(address _account, IERC20 _token) public view returns (uint256) {
         TokenRecords storage _tokenRecords = tokenRecords[address(_token)];
