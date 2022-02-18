@@ -133,10 +133,11 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// @param _weight The new weight
     function updateShareholder(uint256 _accountIndex, uint96 _weight) external onlyOwner {
         require(_accountIndex < shareholders.length, "FS: INVALID_ACCOUNT_INDEX");
-        totalWeights = totalWeights + _weight - shareholders[_accountIndex].weight;
+        Shareholder storage _shareholder = shareholders[_accountIndex];
+        totalWeights = totalWeights + _weight - _shareholder.weight;
         require(totalWeights != 0, "FS: TOTAL_WEIGHTS_ZERO");
-        shareholders[_accountIndex].weight = _weight;
-        emit ShareholderUpdated(shareholders[_accountIndex].account, _weight);
+        _shareholder.weight = _weight;
+        emit ShareholderUpdated(_shareholder.account, _weight);
     }
 
     /* -------------------------- USERS FUNCTIONS -------------------------- */
