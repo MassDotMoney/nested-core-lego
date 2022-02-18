@@ -336,15 +336,16 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         }
         feesAmount = amountSpent / 100; // 1% Fee
         require(amountSpent <= _inputTokenAmount - feesAmount, "NF: OVERSPENT");
-
-        uint256 underSpentAmount = _inputTokenAmount - feesAmount - amountSpent;
-        if (underSpentAmount != 0) {
-            tokenSold.safeTransfer(_fromReserve ? address(reserve) : _msgSender(), underSpentAmount);
-        }
-
-        // If input is from the reserve, update the records
-        if (_fromReserve) {
-            _decreaseHoldingAmount(_nftId, address(tokenSold), _inputTokenAmount - underSpentAmount);
+        unchecked {
+            uint256 underSpentAmount = _inputTokenAmount - feesAmount - amountSpent;
+            if (underSpentAmount != 0) {
+                tokenSold.safeTransfer(_fromReserve ? address(reserve) : _msgSender(), underSpentAmount);
+            }
+            
+            // If input is from the reserve, update the records
+            if (_fromReserve) {
+                _decreaseHoldingAmount(_nftId, address(tokenSold), _inputTokenAmount - underSpentAmount);
+            }
         }
     }
 
