@@ -12,8 +12,6 @@ import "./libraries/ExchangeHelpers.sol";
 /// @dev Some of it is burned, the rest is sent to a pool that will redistribute
 ///      to the NST ecosystem and community.
 contract NestedBuybacker is Ownable {
-    using SafeERC20 for INestedToken;
-
     /// @dev Emitted when the reserve address is updated
     /// @param newReserve The new reserve address
     event ReserveUpdated(address newReserve);
@@ -108,6 +106,6 @@ contract NestedBuybacker is Ownable {
         uint256 toBurn = (balance * burnPercentage) / 1000;
         uint256 toSendToReserve = balance - toBurn;
         NST.burn(toBurn);
-        NST.safeTransfer(nstReserve, toSendToReserve);
+        SafeERC20.safeTransfer(NST, nstReserve, toSendToReserve);
     }
 }

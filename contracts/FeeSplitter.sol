@@ -12,8 +12,6 @@ import "./interfaces/external/IWETH.sol";
 /// @notice Receives fees collected by the NestedFactory, and splits the income among
 /// shareholders (the NFT owners, Nested treasury and a NST buybacker contract).
 contract FeeSplitter is Ownable, ReentrancyGuard {
-    using SafeERC20 for IERC20;
-
     /* ------------------------------ EVENTS ------------------------------ */
 
     /// @dev Emitted when a payment is released
@@ -120,7 +118,8 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     function setShareholders(address[] memory _accounts, uint96[] memory _weights) public onlyOwner {
         delete shareholders;
         uint256 accountsLength = _accounts.length;
-        require(accountsLength != 0 && accountsLength == _weights.length, "FS: INPUTS_LENGTH_MUST_MATCH");
+        require(accountsLength != 0, "FS: EMPTY_ARRAY");
+        require(accountsLength == _weights.length, "FS: INPUTS_LENGTH_MUST_MATCH");
         totalWeights = royaltiesWeight;
 
         for (uint256 i = 0; i < accountsLength; i++) {
@@ -153,7 +152,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
                 (bool success, ) = _msgSender().call{ value: amount }("");
                 require(success, "FS: ETH_TRANFER_ERROR");
             } else {
-                _tokens[i].safeTransfer(_msgSender(), amount);
+                SafeERC20.safeTransfer(_tokens[i], _msgSender(), amount);
             }
             emit PaymentReleased(_msgSender(), address(_tokens[i]), amount);
         }
@@ -165,7 +164,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         uint256 amount;
         for (uint256 i = 0; i < _tokens.length; i++) {
             amount = _releaseToken(_msgSender(), _tokens[i]);
-            _tokens[i].safeTransfer(_msgSender(), amount);
+            SafeERC20.safeTransfer(_tokens[i], _msgSender(), amount);
             emit PaymentReleased(_msgSender(), address(_tokens[i]), amount);
         }
     }
@@ -180,7 +179,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         }
 
         uint256 balanceBeforeTransfer = _token.balanceOf(address(this));
-        _token.safeTransferFrom(_msgSender(), address(this), _amount);
+        SafeERC20.safeTransferFrom(_token, _msgSender(), address(this), _amount);
 
         _sendFees(_token, _token.balanceOf(address(this)) - balanceBeforeTransfer, weights);
     }
@@ -197,7 +196,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         require(_royaltiesTarget != address(0), "FS: INVALID_ROYALTIES_TARGET");
 
         uint256 balanceBeforeTransfer = _token.balanceOf(address(this));
-        _token.safeTransferFrom(_msgSender(), address(this), _amount);
+        SafeERC20.safeTransferFrom(_token, _msgSender(), address(this), _amount);
         uint256 amountReceived = _token.balanceOf(address(this)) - balanceBeforeTransfer;
 
         uint256 royaltiesAmount = _computeShareCount(amountReceived, royaltiesWeight, totalWeights);
