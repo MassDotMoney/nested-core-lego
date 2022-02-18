@@ -210,11 +210,12 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         uint256 buyTokenInitialBalance = _buyToken.balanceOf(address(this));
 
         for (uint256 i = 0; i < tokensLength; i++) {
-            uint256 amount = nestedRecords.getAssetHolding(_nftId, tokens[i]);
-            reserve.withdraw(IERC20(tokens[i]), amount);
+            address token = tokens[i];
+            uint256 amount = nestedRecords.getAssetHolding(_nftId, token);
+            reserve.withdraw(IERC20(token), amount);
 
-            _safeSubmitOrder(tokens[i], address(_buyToken), amount, _nftId, _orders[i]);
-            nestedRecords.freeHolding(_nftId, tokens[i]);
+            _safeSubmitOrder(token, address(_buyToken), amount, _nftId, _orders[i]);
+            nestedRecords.freeHolding(_nftId, token);
         }
 
         // Amount calculation to send fees and tokens
@@ -553,7 +554,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     ) private {
         // if buy token is WETH, unwrap it instead of transferring it to the sender
         if (address(_token) == address(weth)) {
-            IWETH(weth).withdraw(_amount);
+            weth.withdraw(_amount);
             (bool success, ) = _dest.call{ value: _amount }("");
             require(success, "NF: ETH_TRANSFER_ERROR");
         } else {
