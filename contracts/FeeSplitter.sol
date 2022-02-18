@@ -68,8 +68,6 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
 
     /* ----------------------------- VARIABLES ----------------------------- */
 
-    address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
     /// @dev Map of tokens with the tokenRecords
     mapping(address => TokenRecords) private tokenRecords;
 
@@ -132,6 +130,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
     /// @param _accountIndex Account to change the weight of
     /// @param _weight The new weight
     function updateShareholder(uint256 _accountIndex, uint96 _weight) external onlyOwner {
+        require(_weight != 0, "FS: INVALID_WEIGHT");
         require(_accountIndex < shareholders.length, "FS: INVALID_ACCOUNT_INDEX");
         totalWeights = totalWeights + _weight - shareholders[_accountIndex].weight;
         require(totalWeights != 0, "FS: TOTAL_WEIGHTS_ZERO");
@@ -211,7 +210,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
 
     /// @notice Returns the amount due to an account. Call releaseToken to withdraw the amount.
     /// @param _account Account address to check the amount due for
-    /// @param _token ERC20 payment token address (or ETH_ADDR)
+    /// @param _token ERC20 payment token address
     /// @return The total amount due for the requested currency
     function getAmountDue(address _account, IERC20 _token) public view returns (uint256) {
         TokenRecords storage _tokenRecords = tokenRecords[address(_token)];

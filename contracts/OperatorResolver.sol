@@ -39,7 +39,7 @@ contract OperatorResolver is IOperatorResolver, Ownable {
         require(namesLength == destinations.length, "OR: INPUTS_LENGTH_MUST_MATCH");
         for (uint256 i = 0; i < namesLength; i++) {
             if (
-                operators[names[i]].implementation != destinations[i].implementation &&
+                operators[names[i]].implementation != destinations[i].implementation ||
                 operators[names[i]].selector != destinations[i].selector
             ) {
                 return false;

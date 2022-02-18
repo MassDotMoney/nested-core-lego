@@ -114,6 +114,7 @@ contract NestedRecords is OwnableFactoryHandler {
         uint256 _amount,
         address _reserve
     ) external onlyFactory {
+        require(_amount != 0, "NRC: INVALID_AMOUNT");
         uint256 amount = records[_nftId].holdings[_token];
         if (amount != 0) {
             require(records[_nftId].reserve == _reserve, "NRC: RESERVE_MISMATCH");

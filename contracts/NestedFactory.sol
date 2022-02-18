@@ -68,7 +68,9 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     }
 
     /// @dev Receive function
-    receive() external payable {}
+    receive() external payable {
+        require(msg.sender == address(weth), "NF: ETH_SENDER_NOT_WETH");
+    }
 
     /* ------------------------------ MODIFIERS ---------------------------- */
 
@@ -104,6 +106,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
             require(operatorsCache[i] != operator, "NF: EXISTENT_OPERATOR");
         }
         operators.push(operator);
+        rebuildCache();
         emit OperatorAdded(operator);
     }
 
@@ -114,6 +117,10 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
             if (operators[i] == operator) {
                 operators[i] = operators[operatorsLength - 1];
                 operators.pop();
+                if (operatorCache[operator].implementation != address(0)) {
+                    delete operatorCache[operator]; // remove from cache
+                }
+                rebuildCache();   
                 emit OperatorRemoved(operator);
                 return;
             }
@@ -443,7 +450,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         if (success) {
             require(amounts[1] <= _amountToSpend, "NestedFactory::_safeSubmitOrder: Overspent");
             if (_amountToSpend > amounts[1]) {
-                IERC20(_inputToken).safeTransfer(_msgSender(), _amountToSpend - amounts[1]);
+                _safeTransferWithFees(IERC20(_inputToken), _amountToSpend - amounts[1], _msgSender(), _nftId);
             }
         } else {
             _safeTransferWithFees(IERC20(_inputToken), _amountToSpend, _msgSender(), _nftId);
@@ -486,6 +493,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         bool _fromReserve
     ) private returns (IERC20, uint256) {
         if (address(_inputToken) == ETH) {
+            require(!_fromReserve, "NF: NO_ETH_FROM_RESERVE");
             require(address(this).balance >= _inputTokenAmount, "NF: INVALID_AMOUNT_IN");
             weth.deposit{ value: _inputTokenAmount }();
             return (IERC20(address(weth)), _inputTokenAmount);
