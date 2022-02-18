@@ -199,7 +199,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         SafeERC20.safeTransferFrom(_token, _msgSender(), address(this), _amount);
         uint256 amountReceived = _token.balanceOf(address(this)) - balanceBeforeTransfer;
 
-        uint256 royaltiesAmount = _computeShareCount(amountReceived, royaltiesWeight, totalWeights);
+        uint256 royaltiesAmount = (amountReceived * royaltiesWeight) / totalWeights;
 
         _sendFees(_token, amountReceived, totalWeights);
         _addShares(_royaltiesTarget, royaltiesAmount, address(_token));
@@ -280,7 +280,7 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         for (uint256 i = 0; i < shareholdersCache.length; i++) {
             _addShares(
                 shareholdersCache[i].account,
-                _computeShareCount(_amount, shareholdersCache[i].weight, _totalWeights),
+                (_amount * shareholdersCache[i].weight) / _totalWeights,
                 address(_token)
             );
         }
@@ -322,13 +322,5 @@ contract FeeSplitter is Ownable, ReentrancyGuard {
         shareholders.push(Shareholder(_account, _weight));
         totalWeights += _weight;
         emit ShareholdersAdded(_account, _weight);
-    }
-
-    function _computeShareCount(
-        uint256 _amount,
-        uint256 _weight,
-        uint256 _totalWeights
-    ) private pure returns (uint256) {
-        return (_amount * _weight) / _totalWeights;
     }
 }

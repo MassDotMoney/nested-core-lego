@@ -499,7 +499,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
                 "NF: INSUFFICIENT_AMOUNT_IN"
             );
             // Get input from reserve
-            reserve.withdraw(IERC20(_inputToken), _inputTokenAmount);
+            reserve.withdraw(_inputToken, _inputTokenAmount);
         } else {
             SafeERC20.safeTransferFrom(_inputToken, _msgSender(), address(this), _inputTokenAmount);
         }
