@@ -131,7 +131,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     /// @inheritdoc INestedFactory
     function unlockTokens(IERC20 _token) external override onlyOwner {
         uint256 amount = _token.balanceOf(address(this));
-        _token.safeTransfer(owner(), amount);
+        _token.safeTransfer(msg.sender, amount);
         emit TokensUnlocked(address(_token), amount);
     }
 
@@ -443,7 +443,9 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         if (success) {
             require(amounts[1] <= _amountToSpend, "NestedFactory::_safeSubmitOrder: Overspent");
             if (_amountToSpend > amounts[1]) {
-                IERC20(_inputToken).safeTransfer(_msgSender(), _amountToSpend - amounts[1]);
+                unchecked {
+                    IERC20(_inputToken).safeTransfer(_msgSender(), _amountToSpend - amounts[1]);
+                }
             }
         } else {
             _safeTransferWithFees(IERC20(_inputToken), _amountToSpend, _msgSender(), _nftId);
