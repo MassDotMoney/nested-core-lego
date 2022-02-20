@@ -69,9 +69,15 @@ describe("NestedAsset", () => {
 
     describe("#tokenURI", () => {
         it("should display NFT metadata", async () => {
-            await asset.mintWithMetadata(alice.address, metadataUri, 0);
+            await asset.mint(alice.address, 0);
+            const metadataUriUnrevealed = "unrevealed";
+            await asset.setUnrevealedTokenURI(metadataUriUnrevealed);
             const tokenId = await asset.tokenOfOwnerByIndex(alice.address, 0);
-            expect(await asset.tokenURI(tokenId)).to.equal(metadataUri);
+            expect(await asset.tokenURI(tokenId)).to.equal(metadataUriUnrevealed);
+
+            await asset.setBaseURI("revealed/");
+            await asset.reveal();
+            expect(await asset.tokenURI(tokenId)).to.equal("revealed/" + tokenId);
         });
 
         it("reverts if the token does not exist", async () => {
@@ -110,36 +116,6 @@ describe("NestedAsset", () => {
 
             // Alice asked to burn Bob's token
             await expect(asset.burn(alice.address, 1)).to.be.revertedWith("NA: FORBIDDEN_NOT_OWNER");
-        });
-    });
-
-    describe("#backfillTokenURI", () => {
-        beforeEach(async () => {
-            await asset.mint(bob.address, 0);
-        });
-
-        it("should revert the URI is already set", async () => {
-            await asset.backfillTokenURI(1, bob.address, "ipfs://tokenURI");
-            await expect(asset.backfillTokenURI(1, bob.address, "ipfs://newTokenURI")).to.be.revertedWith(
-                "NA: TOKEN_URI_IMMUTABLE",
-            );
-        });
-
-        it("should revert if the caller is not the factory", async () => {
-            await expect(asset.connect(bob).backfillTokenURI(1, bob.address, "ipfs://newTokenURI")).to.be.revertedWith(
-                "OFH: FORBIDDEN",
-            );
-        });
-
-        it("should revert if the token does not belong to the owner", async () => {
-            await expect(asset.backfillTokenURI(1, alice.address, "ipfs://newTokenURI")).to.be.revertedWith(
-                "NA: FORBIDDEN_NOT_OWNER",
-            );
-        });
-
-        it("sets the token uri", async () => {
-            await asset.backfillTokenURI(1, bob.address, "ipfs://newTokenURI");
-            expect(await asset.tokenURI(1)).to.eq("ipfs://newTokenURI");
         });
     });
 

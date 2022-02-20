@@ -14,14 +14,23 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
 
     Counters.Counter private _tokenIds;
 
-    /// @dev Stores the URI of each asset
-    mapping(uint256 => string) private _tokenURIs;
+    /// @dev Base URI (API)
+    string public baseUri;
+
+    /// @dev Token URI when not revealed (not using API)
+    string public unrevealedTokenUri;
+
+    /// @dev NFT contract URI
+    string public contractUri;
 
     /// @dev Stores the original asset of each asset
     mapping(uint256 => uint256) public originalAsset;
 
     /// @dev Stores owners of burnt assets
     mapping(uint256 => address) public lastOwnerBeforeBurn;
+
+    /// @dev True if using the API
+    bool public isRevealed;
 
     /* ---------------------------- CONSTRUCTORS --------------------------- */
 
@@ -42,7 +51,16 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
     /// @return The token Uniform Resource Identifier (URI)
     function tokenURI(uint256 _tokenId) public view virtual override returns (string memory) {
         require(_exists(_tokenId), "URI query for nonexistent token");
-        return _tokenURIs[_tokenId];
+        if (isRevealed) {
+            return super.tokenURI(_tokenId);
+        } else {
+            return unrevealedTokenUri;
+        }
+    }
+
+    /// @inheritdoc ERC721
+    function _baseURI() internal view override returns (string memory) {
+        return baseUri;
     }
 
     /// @notice Returns the owner of the original token if the token was replicated
@@ -84,54 +102,38 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
         return tokenId;
     }
 
-    /// @notice Mints an ERC721 token and sets the tokenUri.
-    /// Only the NestedFactory contract can call this function.
-    /// @param _owner The account address that signed the transaction
-    /// @param _metadataURI he metadata URI string
-    /// @param _replicatedTokenId The token id of the replicated asset, 0 if no replication
-    /// @return The minted token's id
-    function mintWithMetadata(
-        address _owner,
-        string memory _metadataURI,
-        uint256 _replicatedTokenId
-    ) external returns (uint256) {
-        uint256 tokenId = mint(_owner, _replicatedTokenId);
-        _setTokenURI(tokenId, _metadataURI);
-        return tokenId;
-    }
-
-    /// @notice Backfills the token URI if it had never set
-    /// @param _tokenId The id of the NestedAsset
-    /// @param _owner The id of the NestedAsset
-    /// @param _metadataURI The metadata URI string
-    function backfillTokenURI(
-        uint256 _tokenId,
-        address _owner,
-        string memory _metadataURI
-    ) external onlyFactory onlyTokenOwner(_owner, _tokenId) {
-        require(bytes(tokenURI(_tokenId)).length == 0, "NA: TOKEN_URI_IMMUTABLE");
-        _setTokenURI(_tokenId, _metadataURI);
-    }
-
     /// @notice Burns an ERC721 token
     /// @param _owner The account address that signed the transaction
     /// @param _tokenId The id of the NestedAsset
     function burn(address _owner, uint256 _tokenId) external onlyFactory onlyTokenOwner(_owner, _tokenId) {
         lastOwnerBeforeBurn[_tokenId] = _owner;
         _burn(_tokenId);
-
-        if (bytes(_tokenURIs[_tokenId]).length != 0) {
-            delete _tokenURIs[_tokenId];
-        }
     }
 
-    /* ------------------------- INTERNAL FUNCTIONS ------------------------ */
+    /* ----------------------------- ONLY OWNER ---------------------------- */
 
-    /// @dev Sets the Uniform Resource Identifier (URI) for `tokenId` token.
-    /// @param _tokenId The id of the NestedAsset
-    /// @param _metadataURI The metadata URI string
-    function _setTokenURI(uint256 _tokenId, string memory _metadataURI) internal {
-        require(bytes(_metadataURI).length != 0, "NA: INVALID_URI");
-        _tokenURIs[_tokenId] = _metadataURI;
+    /// @notice Reveal the token URI (with API)
+    function reveal() external onlyOwner {
+        isRevealed = true;
+    }
+
+    /// @notice Set the base URI (once revealed)
+    /// @param _baseUri The new baseURI
+    function setBaseURI(string memory _baseUri) external onlyOwner {
+        require(bytes(_baseUri).length != 0, "NA: EMPTY_URI");
+        baseUri = _baseUri;
+    }
+
+    /// @notice Set the unrevealed token URI (fixed)
+    /// @param _newUri The new unrevealed URI
+    function setUnrevealedTokenURI(string memory _newUri) external onlyOwner {
+        require(bytes(_newUri).length != 0, "NA: EMPTY_URI");
+        unrevealedTokenUri = _newUri;
+    }
+
+    /// @notice Set the contract URI
+    /// @param _newUri The new contract URI
+    function setContractURI(string memory _newUri) external onlyOwner {
+        contractUri = _newUri;
     }
 }
