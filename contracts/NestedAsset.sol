@@ -49,7 +49,7 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
     /// If the original asset was burnt, the last owner before burn is returned
     /// @param _tokenId The asset for which we want to know the original owner
     /// @return The owner of the original asset
-    function originalOwner(uint256 _tokenId) public view returns (address) {
+    function originalOwner(uint256 _tokenId) external view returns (address) {
         uint256 originalAssetId = originalAsset[_tokenId];
 
         if (originalAssetId != 0) {
@@ -75,7 +75,8 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
             return tokenId;
         }
 
-        require(_exists(_replicatedTokenId) && tokenId != _replicatedTokenId, "NA: INVALID_REPLICATED_TOKEN_ID");
+        require(_exists(_replicatedTokenId), "NA: NON_EXISTENT_TOKEN_ID");
+        require(tokenId != _replicatedTokenId, "NA: SELF_DUPLICATION");
 
         uint256 originalTokenId = originalAsset[_replicatedTokenId];
         originalAsset[tokenId] = originalTokenId != 0 ? originalTokenId : _replicatedTokenId;
@@ -130,6 +131,7 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
     /// @param _tokenId The id of the NestedAsset
     /// @param _metadataURI The metadata URI string
     function _setTokenURI(uint256 _tokenId, string memory _metadataURI) internal {
+        require(bytes(_metadataURI).length != 0, "NA: INVALID_URI");
         _tokenURIs[_tokenId] = _metadataURI;
     }
 }

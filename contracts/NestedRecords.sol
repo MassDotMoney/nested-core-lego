@@ -19,7 +19,7 @@ contract NestedRecords is OwnableFactoryHandler {
     /// @dev Emitted when the reserve is updated for a specific portfolio
     /// @param nftId The NFT ID
     /// @param newReserve The new reserve address
-    event reserveUpdated(uint256 nftId, address newReserve);
+    event ReserveUpdated(uint256 nftId, address newReserve);
 
     /* ------------------------------ STRUCTS ------------------------------ */
 
@@ -114,21 +114,24 @@ contract NestedRecords is OwnableFactoryHandler {
         uint256 _amount,
         address _reserve
     ) external onlyFactory {
+        NftRecord storage _nftRecord = records[_nftId];
+        
         uint256 amount = records[_nftId].holdings[_token];
+        require(_amount != 0, "NRC: INVALID_AMOUNT");
         if (amount != 0) {
-            require(records[_nftId].reserve == _reserve, "NRC: RESERVE_MISMATCH");
+            require(_nftRecord.reserve == _reserve, "NRC: RESERVE_MISMATCH");
             updateHoldingAmount(_nftId, _token, amount + _amount);
             return;
         }
-        require(records[_nftId].tokens.length < maxHoldingsCount, "NRC: TOO_MANY_TOKENS");
+        require(_nftRecord.tokens.length < maxHoldingsCount, "NRC: TOO_MANY_TOKENS");
         require(
-            _reserve != address(0) && (_reserve == records[_nftId].reserve || records[_nftId].reserve == address(0)),
+            _reserve != address(0) && (_reserve == _nftRecord.reserve || _nftRecord.reserve == address(0)),
             "NRC: INVALID_RESERVE"
         );
 
-        records[_nftId].holdings[_token] = _amount;
-        records[_nftId].tokens.push(_token);
-        records[_nftId].reserve = _reserve;
+        _nftRecord.holdings[_token] = _amount;
+        _nftRecord.tokens.push(_token);
+        _nftRecord.reserve = _reserve;
     }
 
     /// @notice The factory can update the lock timestamp of a NFT record
@@ -153,13 +156,14 @@ contract NestedRecords is OwnableFactoryHandler {
     /// @param _nextReserve Address for the new reserve
     function setReserve(uint256 _nftId, address _nextReserve) external onlyFactory {
         records[_nftId].reserve = _nextReserve;
-        emit reserveUpdated(_nftId, _nextReserve);
+        emit ReserveUpdated(_nftId, _nextReserve);
     }
 
     /* ------------------------------- VIEWS ------------------------------- */
 
     /// @notice Get content of assetTokens mapping
-    /// @param _nftId The id of the NFT>
+    /// @param _nftId The id of the NFT
+    /// @return Array of token addresses
     function getAssetTokens(uint256 _nftId) public view returns (address[] memory) {
         return records[_nftId].tokens;
     }
@@ -174,21 +178,24 @@ contract NestedRecords is OwnableFactoryHandler {
     /// @notice Get how many tokens are in a portfolio/NFT
     /// @param _nftId NFT ID to examine
     /// @return The array length
-    function getAssetTokensLength(uint256 _nftId) public view returns (uint256) {
+    function getAssetTokensLength(uint256 _nftId) external view returns (uint256) {
         return records[_nftId].tokens.length;
     }
 
-    /// @notice Get holding object for this NFT ID
+    /// @notice Get holding amount for a given nft id
     /// @param _nftId The id of the NFT
     /// @param _token The address of the token
+    /// @return The holding amount
     function getAssetHolding(uint256 _nftId, address _token) public view returns (uint256) {
         return records[_nftId].holdings[_token];
     }
 
     /// @notice Returns the holdings associated to a NestedAsset
     /// @param _nftId the id of the NestedAsset
-    /// @return The holdings
-    function tokenHoldings(uint256 _nftId) public view returns (address[] memory, uint256[] memory) {
+    /// @return Two arrays with the same length :
+    ///         - The token addresses in the portfolio
+    ///         - The respective amounts
+    function tokenHoldings(uint256 _nftId) external view returns (address[] memory, uint256[] memory) {
         address[] memory tokens = getAssetTokens(_nftId);
         uint256 tokensCount = tokens.length;
         uint256[] memory amounts = new uint256[](tokensCount);

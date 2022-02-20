@@ -56,8 +56,8 @@ describe("NestedAsset", () => {
             });
 
             it("should revert if replicate id doesnt exist", async () => {
-                await expect(asset.mint(alice.address, 1)).to.be.revertedWith("NA: INVALID_REPLICATED_TOKEN_ID");
-                await expect(asset.mint(alice.address, 10)).to.be.revertedWith("NA: INVALID_REPLICATED_TOKEN_ID");
+                await expect(asset.mint(alice.address, 1)).to.be.revertedWith("NA: SELF_DUPLICATION");
+                await expect(asset.mint(alice.address, 10)).to.be.revertedWith("NA: NON_EXISTENT_TOKEN_ID");
             });
         });
 
