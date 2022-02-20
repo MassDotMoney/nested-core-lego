@@ -14,6 +14,7 @@ import {
     OperatorResolver,
     TestableOperatorCaller,
     WETH9,
+    Withdrawer,
     ZeroExOperator,
 } from "../../typechain";
 import { BigNumber, Wallet } from "ethers";
@@ -94,6 +95,7 @@ export type FactoryAndOperatorsFixture = {
     zeroExOperatorNameBytes32: string;
     flatOperator: FlatOperator;
     flatOperatorNameBytes32: string;
+    withdrawer: Withdrawer;
     nestedFactory: NestedFactory;
     nestedReserve: NestedReserve;
     masterDeployer: Wallet;
@@ -175,6 +177,11 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
     const flatOperator = await flatOperatorFactory.connect(masterDeployer).deploy();
     await flatOperator.deployed();
 
+    // Deploy Withdrawer
+    const withdrawerFactory = await ethers.getContractFactory("Withdrawer");
+    const withdrawer = await withdrawerFactory.connect(masterDeployer).deploy(WETH.address);
+    await withdrawer.deployed();
+
     // Deploy NestedFactory
     const nestedFactoryFactory = await ethers.getContractFactory("NestedFactory");
     const nestedFactoryImpl = await nestedFactoryFactory
@@ -186,6 +193,7 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
             feeSplitter.address,
             WETH.address,
             operatorResolver.address,
+            withdrawer.address,
         );
     await nestedFactoryImpl.deployed();
 
@@ -288,6 +296,7 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
         zeroExOperatorNameBytes32: toBytes32("ZeroEx"),
         flatOperator,
         flatOperatorNameBytes32: toBytes32("Flat"),
+        withdrawer,
         dummyRouter,
         zeroExOperator,
         nestedFactory,
