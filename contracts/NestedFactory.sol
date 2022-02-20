@@ -3,6 +3,7 @@ pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./abstracts/OwnableProxyDelegation.sol";
 import "./abstracts/MixinOperatorResolver.sol";
 import "./libraries/ExchangeHelpers.sol";
@@ -12,6 +13,7 @@ import "./FeeSplitter.sol";
 import "./NestedReserve.sol";
 import "./NestedAsset.sol";
 import "./NestedRecords.sol";
+import "./Withdrawer.sol";
 
 /// @title Creates, updates and destroys NestedAssets (portfolios).
 /// @notice Responsible for the business logic of the protocol and interaction with operators
@@ -41,6 +43,9 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     /// @dev Current records contract/address
     NestedRecords public immutable nestedRecords;
 
+    /// @dev Helper to withdraw native tokens from wrapper
+    Withdrawer private immutable withdrawer;
+
     /* ---------------------------- CONSTRUCTOR ---------------------------- */
 
     constructor(
@@ -65,6 +70,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         reserve = _reserve;
         feeSplitter = _feeSplitter;
         weth = _weth;
+        withdrawer = new Withdrawer(_weth);
     }
 
     /// @dev Receive function
@@ -551,7 +557,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     ) private {
         // if buy token is WETH, unwrap it instead of transferring it to the sender
         if (address(_token) == address(weth)) {
-            IWETH(weth).withdraw(_amount);
+            ExchangeHelpers.setMaxAllowance(IERC20(address(weth)), address(withdrawer));
+            withdrawer.withdraw(_amount);
             (bool success, ) = _dest.call{ value: _amount }("");
             require(success, "NF: ETH_TRANSFER_ERROR");
         } else {
