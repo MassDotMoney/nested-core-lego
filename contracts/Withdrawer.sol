@@ -8,11 +8,11 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 /// @title Native token withdrawer
 /// @dev Withdraw native token from the wrapper contract on behalf
 ///      of the sender. Upgradeable proxy contracts are not able to receive
-///      native tokens from contracts via `transfer` (EIP1884), they need a 
+///      native tokens from contracts via `transfer` (EIP1884), they need a
 ///      middleman forwarding all available gas and reverting on errors.
-contract Withdrawer is ReentrancyGuard{
+contract Withdrawer is ReentrancyGuard {
     IWETH public immutable weth;
-    
+
     constructor(IWETH _weth) {
         weth = _weth;
     }

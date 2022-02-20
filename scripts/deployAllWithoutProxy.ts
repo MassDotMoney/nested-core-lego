@@ -37,6 +37,7 @@ async function main(): Promise<void> {
     const zeroExOperatorFactory = await ethers.getContractFactory("ZeroExOperator");
     const nestedFactoryFactory = await ethers.getContractFactory("NestedFactory");
     const nestedReserveFactory = await ethers.getContractFactory("NestedReserve");
+    const withdrawerFactory = await ethers.getContractFactory("Withdrawer");
 
     // Deploy FeeSplitter
     const feeSplitter = await feeSplitterFactory.deploy([nestedTreasury], [80], 20, WETH);
@@ -76,6 +77,11 @@ async function main(): Promise<void> {
     await verify("FlatOperator", flatOperator, []);
     console.log("FlatOperator deployed : ", flatOperator.address);
 
+    // Deploy Withdrawer
+    const withdrawer = await withdrawerFactory.deploy(WETH);
+    await verify("Withdrawer", withdrawer, []);
+    console.log("Withdrawer deployed : ", withdrawer.address);
+
     // Deploy NestedFactory
     const nestedFactory = await nestedFactoryFactory
         .deploy(
@@ -85,6 +91,7 @@ async function main(): Promise<void> {
             feeSplitter.address,
             WETH,
             operatorResolver.address,
+            withdrawer.address,
         );
     await verify("NestedFactory", nestedFactory, [nestedAsset.address,
         nestedRecords.address,

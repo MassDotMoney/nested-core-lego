@@ -54,7 +54,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         NestedReserve _reserve,
         FeeSplitter _feeSplitter,
         IWETH _weth,
-        address _operatorResolver
+        address _operatorResolver,
+        Withdrawer _withdrawer
     ) MixinOperatorResolver(_operatorResolver) {
         require(
             address(_nestedAsset) != address(0) &&
@@ -62,7 +63,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
                 address(_reserve) != address(0) &&
                 address(_feeSplitter) != address(0) &&
                 address(_weth) != address(0) &&
-                _operatorResolver != address(0),
+                _operatorResolver != address(0) &&
+                address(_withdrawer) != address(0),
             "NF: INVALID_ADDRESS"
         );
         nestedAsset = _nestedAsset;
@@ -70,7 +72,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         reserve = _reserve;
         feeSplitter = _feeSplitter;
         weth = _weth;
-        withdrawer = new Withdrawer(_weth);
+        withdrawer = _withdrawer;
     }
 
     /// @dev Receive function
