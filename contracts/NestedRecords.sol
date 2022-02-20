@@ -114,22 +114,24 @@ contract NestedRecords is OwnableFactoryHandler {
         uint256 _amount,
         address _reserve
     ) external onlyFactory {
-        require(_amount != 0, "NRC: INVALID_AMOUNT");
+        NftRecord storage _nftRecord = records[_nftId];
+        
         uint256 amount = records[_nftId].holdings[_token];
+        require(_amount != 0, "NRC: INVALID_AMOUNT");
         if (amount != 0) {
-            require(records[_nftId].reserve == _reserve, "NRC: RESERVE_MISMATCH");
+            require(_nftRecord.reserve == _reserve, "NRC: RESERVE_MISMATCH");
             updateHoldingAmount(_nftId, _token, amount + _amount);
             return;
         }
-        require(records[_nftId].tokens.length < maxHoldingsCount, "NRC: TOO_MANY_TOKENS");
+        require(_nftRecord.tokens.length < maxHoldingsCount, "NRC: TOO_MANY_TOKENS");
         require(
-            _reserve != address(0) && (_reserve == records[_nftId].reserve || records[_nftId].reserve == address(0)),
+            _reserve != address(0) && (_reserve == _nftRecord.reserve || _nftRecord.reserve == address(0)),
             "NRC: INVALID_RESERVE"
         );
 
-        records[_nftId].holdings[_token] = _amount;
-        records[_nftId].tokens.push(_token);
-        records[_nftId].reserve = _reserve;
+        _nftRecord.holdings[_token] = _amount;
+        _nftRecord.tokens.push(_token);
+        _nftRecord.reserve = _reserve;
     }
 
     /// @notice The factory can update the lock timestamp of a NFT record

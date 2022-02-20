@@ -75,7 +75,8 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
             return tokenId;
         }
 
-        require(_exists(_replicatedTokenId) && tokenId != _replicatedTokenId, "NA: INVALID_REPLICATED_TOKEN_ID");
+        require(_exists(_replicatedTokenId), "NA: NON_EXISTENT_TOKEN_ID");
+        require(tokenId != _replicatedTokenId, "NA: SELF_DUPLICATION");
 
         uint256 originalTokenId = originalAsset[_replicatedTokenId];
         originalAsset[tokenId] = originalTokenId != 0 ? originalTokenId : _replicatedTokenId;

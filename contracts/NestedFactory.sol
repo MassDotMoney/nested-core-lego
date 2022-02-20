@@ -16,8 +16,6 @@ import "./NestedRecords.sol";
 /// @title Creates, updates and destroys NestedAssets (portfolios).
 /// @notice Responsible for the business logic of the protocol and interaction with operators
 contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegation, MixinOperatorResolver {
-    using SafeERC20 for IERC20;
-
     /* ----------------------------- VARIABLES ----------------------------- */
 
     address private constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
@@ -112,11 +110,12 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
 
     /// @inheritdoc INestedFactory
     function removeOperator(bytes32 operator) external override onlyOwner {
-        uint256 operatorsLength = operators.length;
+        bytes32[] storage operatorsCache = operators;
+        uint256 operatorsLength = operatorsCache.length;
         for (uint256 i = 0; i < operatorsLength; i++) {
-            if (operators[i] == operator) {
-                operators[i] = operators[operatorsLength - 1];
-                operators.pop();
+            if (operatorsCache[i] == operator) {
+                operatorsCache[i] = operators[operatorsLength - 1];
+                operatorsCache.pop();
                 if (operatorCache[operator].implementation != address(0)) {
                     delete operatorCache[operator]; // remove from cache
                 }
@@ -138,7 +137,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     /// @inheritdoc INestedFactory
     function unlockTokens(IERC20 _token) external override onlyOwner {
         uint256 amount = _token.balanceOf(address(this));
-        _token.safeTransfer(owner(), amount);
+        SafeERC20.safeTransfer(_token, msg.sender, amount);
         emit TokensUnlocked(address(_token), amount);
     }
 
@@ -218,21 +217,24 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         uint256 buyTokenInitialBalance = _buyToken.balanceOf(address(this));
 
         for (uint256 i = 0; i < tokensLength; i++) {
-            uint256 amount = nestedRecords.getAssetHolding(_nftId, tokens[i]);
-            reserve.withdraw(IERC20(tokens[i]), amount);
+            address token = tokens[i];
+            uint256 amount = nestedRecords.getAssetHolding(_nftId, token);
+            reserve.withdraw(IERC20(token), amount);
 
-            _safeSubmitOrder(tokens[i], address(_buyToken), amount, _nftId, _orders[i]);
-            nestedRecords.freeHolding(_nftId, tokens[i]);
+            _safeSubmitOrder(token, address(_buyToken), amount, _nftId, _orders[i]);
         }
 
         // Amount calculation to send fees and tokens
         uint256 amountBought = _buyToken.balanceOf(address(this)) - buyTokenInitialBalance;
-        uint256 amountFees = amountBought / 100; // 1% Fee
-        amountBought -= amountFees;
 
-        _transferFeeWithRoyalty(amountFees, _buyToken, _nftId);
-        _safeTransferAndUnwrap(_buyToken, amountBought, _msgSender());
+        unchecked {
+            uint256 amountFees = amountBought / 100; // 1% Fee
+            amountBought -= amountFees;
 
+            _transferFeeWithRoyalty(amountFees, _buyToken, _nftId);
+            _safeTransferAndUnwrap(_buyToken, amountBought, _msgSender());
+        }
+        
         // Burn NFT
         nestedRecords.removeNFT(_nftId);
         nestedAsset.burn(_msgSender(), _nftId);
@@ -342,15 +344,16 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         }
         feesAmount = amountSpent / 100; // 1% Fee
         require(amountSpent <= _inputTokenAmount - feesAmount, "NF: OVERSPENT");
+        unchecked {
+            uint256 underSpentAmount = _inputTokenAmount - feesAmount - amountSpent;
+            if (underSpentAmount != 0) {
+                SafeERC20.safeTransfer(tokenSold, _fromReserve ? address(reserve) : _msgSender(), underSpentAmount);
+            }
 
-        uint256 underSpentAmount = _inputTokenAmount - feesAmount - amountSpent;
-        if (underSpentAmount != 0) {
-            tokenSold.safeTransfer(_fromReserve ? address(reserve) : _msgSender(), underSpentAmount);
-        }
-
-        // If input is from the reserve, update the records
-        if (_fromReserve) {
-            _decreaseHoldingAmount(_nftId, address(tokenSold), _inputTokenAmount - underSpentAmount);
+            // If input is from the reserve, update the records
+            if (_fromReserve) {
+                _decreaseHoldingAmount(_nftId, address(tokenSold), _inputTokenAmount - underSpentAmount);
+            }
         }
     }
 
@@ -373,7 +376,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
 
         IERC20 _inputToken;
         uint256 _inputTokenAmount;
-        for (uint256 i = 0; i < _batchedOrders.orders.length; i++) {
+        for (uint256 i = 0; i < batchLength; i++) {
             (_inputToken, _inputTokenAmount) = _transferInputTokens(
                 _nftId,
                 IERC20(_batchedOrders.orders[i].token),
@@ -391,19 +394,23 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
             );
             require(amountSpent <= _inputTokenAmount, "NF: OVERSPENT");
 
-            uint256 underSpentAmount = _inputTokenAmount - amountSpent;
-            if (underSpentAmount != 0) {
-                _inputToken.safeTransfer(address(reserve), underSpentAmount);
-            }
-
-            _decreaseHoldingAmount(_nftId, address(_inputToken), _inputTokenAmount - underSpentAmount);
+            unchecked {
+                uint256 underSpentAmount = _inputTokenAmount - amountSpent;
+                if (underSpentAmount != 0) {
+                    SafeERC20.safeTransfer(_inputToken, address(reserve), underSpentAmount);
+                }
+                _decreaseHoldingAmount(_nftId, address(_inputToken), _inputTokenAmount - underSpentAmount);
+            }          
         }
 
         amountBought = _batchedOrders.outputToken.balanceOf(address(this)) - amountBought;
-        feesAmount = amountBought / 100; // 1% Fee
 
-        if (_toReserve) {
-            _transferToReserveAndStore(_batchedOrders.outputToken, amountBought - feesAmount, _nftId);
+        unchecked {
+            feesAmount = amountBought / 100; // 1% Fee
+
+            if (_toReserve) {
+                _transferToReserveAndStore(_batchedOrders.outputToken, amountBought - feesAmount, _nftId);
+            }
         }
     }
 
@@ -450,7 +457,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         (bool success, uint256[] memory amounts) = callOperator(_order, _inputToken, _outputToken);
         if (success) {
             require(amounts[1] <= _amountToSpend, "NF: OVERSPENT");
-            if (_amountToSpend > amounts[1]) {
+            unchecked {
                 _safeTransferWithFees(IERC20(_inputToken), _amountToSpend - amounts[1], _msgSender(), _nftId);
             }
         } else {
@@ -472,7 +479,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         uint256 balanceReserveBefore = _token.balanceOf(reserveAddr);
 
         // Send output to reserve
-        _token.safeTransfer(reserveAddr, _amount);
+        SafeERC20.safeTransfer(_token, reserveAddr, _amount);
 
         uint256 balanceReserveAfter = _token.balanceOf(reserveAddr);
 
@@ -507,9 +514,9 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
                 "NF: INSUFFICIENT_AMOUNT_IN"
             );
             // Get input from reserve
-            reserve.withdraw(IERC20(_inputToken), _inputTokenAmount);
+            reserve.withdraw(_inputToken, _inputTokenAmount);
         } else {
-            _inputToken.safeTransferFrom(_msgSender(), address(this), _inputTokenAmount);
+            SafeERC20.safeTransferFrom(_inputToken, _msgSender(), address(this), _inputTokenAmount);
         }
         return (_inputToken, _inputToken.balanceOf(address(this)) - balanceBefore);
     }
@@ -560,11 +567,11 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     ) private {
         // if buy token is WETH, unwrap it instead of transferring it to the sender
         if (address(_token) == address(weth)) {
-            IWETH(weth).withdraw(_amount);
+            weth.withdraw(_amount);
             (bool success, ) = _dest.call{ value: _amount }("");
             require(success, "NF: ETH_TRANSFER_ERROR");
         } else {
-            _token.safeTransfer(_dest, _amount);
+            SafeERC20.safeTransfer(_token, _dest, _amount);
         }
     }
 
@@ -579,9 +586,11 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         address _dest,
         uint256 _nftId
     ) private {
-        uint256 feeAmount = _amount / 100; // 1% Fee
-        _transferFeeWithRoyalty(feeAmount, _token, _nftId);
-        _token.safeTransfer(_dest, _amount - feeAmount);
+        unchecked {
+            uint256 feeAmount = _amount / 100; // 1% Fee
+            _transferFeeWithRoyalty(feeAmount, _token, _nftId);
+            SafeERC20.safeTransfer(_token, _dest, _amount - feeAmount);
+        } 
     }
 
     /// @dev Verify that msg.value is equal to the amount needed (in the orders)
