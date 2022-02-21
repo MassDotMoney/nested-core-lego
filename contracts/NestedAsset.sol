@@ -17,7 +17,7 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
     /// @dev Base URI (API)
     string public baseUri;
 
-    /// @dev Token URI when not revealed (not using API)
+    /// @dev Token URI when not revealed
     string public unrevealedTokenUri;
 
     /// @dev NFT contract URI
@@ -29,7 +29,7 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
     /// @dev Stores owners of burnt assets
     mapping(uint256 => address) public lastOwnerBeforeBurn;
 
-    /// @dev True if using the API
+    /// @dev True if revealed, false if not.
     bool public isRevealed;
 
     /* ---------------------------- CONSTRUCTORS --------------------------- */
@@ -112,9 +112,9 @@ contract NestedAsset is ERC721Enumerable, OwnableFactoryHandler {
 
     /* ----------------------------- ONLY OWNER ---------------------------- */
 
-    /// @notice Reveal the token URI (with API)
-    function reveal() external onlyOwner {
-        isRevealed = true;
+    /// @notice Update isRevealed to reveal or hide the token URI
+    function setIsRevealed(bool _isRevealed) external onlyOwner {
+        isRevealed = _isRevealed;
     }
 
     /// @notice Set the base URI (once revealed)

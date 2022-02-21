@@ -76,7 +76,7 @@ describe("NestedAsset", () => {
             expect(await asset.tokenURI(tokenId)).to.equal(metadataUriUnrevealed);
 
             await asset.setBaseURI("revealed/");
-            await asset.reveal();
+            await asset.setIsRevealed(true);
             expect(await asset.tokenURI(tokenId)).to.equal("revealed/" + tokenId);
         });
 
