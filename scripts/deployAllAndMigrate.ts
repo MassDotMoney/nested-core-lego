@@ -161,6 +161,10 @@ async function main(): Promise<void> {
     ]);
     console.log("Migrator deployed : ", migrator.address);
 
+    await run(await nestedAsset.addFactory(migrator.address));
+    await run(await nestedRecords.addFactory(migrator.address));
+    await run(await nestedReserve.addFactory(migrator.address));
+
     const migrationNumber = 27;
     const steps = 4;
 
@@ -171,6 +175,10 @@ async function main(): Promise<void> {
         }
         await run(await migrator.migrate(i, end));
     }
+
+    await run(await nestedAsset.removeFactory(migrator.address));
+    await run(await nestedRecords.removeFactory(migrator.address));
+    await run(await nestedReserve.removeFactory(migrator.address));
 }
 
 async function verify(name: string, contract: Contract, params: any[]) {
