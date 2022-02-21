@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title Nested Migrator
 /// @notice Migrate current records, reserve and assets to new contracts
-contract MigratorV1 is Ownable {
+contract Migrator is Ownable {
     /// @dev New reserve contract/address
     NestedReserve public immutable newReserve;
 
