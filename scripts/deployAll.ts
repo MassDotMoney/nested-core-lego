@@ -95,12 +95,15 @@ async function main(): Promise<void> {
             operatorResolver.address,
             withdrawer.address,
         );
-    await verify("NestedFactory", nestedFactory, [nestedAsset.address,
-    nestedRecords.address,
-    nestedReserve.address,
-    feeSplitter.address,
+    await verify("NestedFactory", nestedFactory, [
+        nestedAsset.address,
+        nestedRecords.address,
+        nestedReserve.address,
+        feeSplitter.address,
         WETH,
-    operatorResolver.address]);
+        operatorResolver.address,
+        withdrawer.address
+    ]);
     console.log("NestedFactory deployed : ", nestedFactory.address);
 
     const owner = await nestedRecords.owner();

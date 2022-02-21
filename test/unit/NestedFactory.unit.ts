@@ -156,7 +156,6 @@ describe("NestedFactory", () => {
             await context.nestedFactory.connect(context.masterDeployer).rebuildCache();
             await context.nestedFactory.connect(context.masterDeployer).removeOperator(toBytes32("test"));
 
-            
             // Get the operators from the factory
             let operators = await context.nestedFactory.resolverOperatorsRequired();
 
@@ -215,7 +214,7 @@ describe("NestedFactory", () => {
             );
 
             await context.nestedFactory.connect(context.masterDeployer).removeOperator(toBytes32("test"));
-            
+
             // Get the operators from the factory
             let operators = await context.nestedFactory.resolverOperatorsRequired();
 

@@ -98,7 +98,9 @@ async function main(): Promise<void> {
         nestedReserve.address,
         feeSplitter.address,
         WETH,
-        operatorResolver.address]);
+        operatorResolver.address,
+        withdrawer.address,
+    ]);
     console.log("NestedFactory deployed : ", nestedFactory.address);
 
     // Set factory to asset, records and reserve

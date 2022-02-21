@@ -51,7 +51,7 @@ contract Migrator is Ownable {
         NestedRecords nestedRecords = nestedFactory.nestedRecords();
         NestedReserve nestedReserve = nestedFactory.reserve();
 
-        address[] memory tokens; 
+        address[] memory tokens;
         uint256[] memory amounts;
         uint256 originalId;
         uint256 amountBefore;

@@ -127,7 +127,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
                 if (operatorCache[operator].implementation != address(0)) {
                     delete operatorCache[operator]; // remove from cache
                 }
-                rebuildCache();   
+                rebuildCache();
                 emit OperatorRemoved(operator);
                 return;
             }
@@ -242,7 +242,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
             _transferFeeWithRoyalty(amountFees, _buyToken, _nftId);
             _safeTransferAndUnwrap(_buyToken, amountBought, _msgSender());
         }
-        
+
         // Burn NFT
         nestedRecords.removeNFT(_nftId);
         nestedAsset.burn(_msgSender(), _nftId);
@@ -408,7 +408,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
                     SafeERC20.safeTransfer(_inputToken, address(reserve), underSpentAmount);
                 }
                 _decreaseHoldingAmount(_nftId, address(_inputToken), _inputTokenAmount - underSpentAmount);
-            }          
+            }
         }
 
         amountBought = _batchedOrders.outputToken.balanceOf(address(this)) - amountBought;
@@ -599,7 +599,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
             uint256 feeAmount = _amount / 100; // 1% Fee
             _transferFeeWithRoyalty(feeAmount, _token, _nftId);
             SafeERC20.safeTransfer(_token, _dest, _amount - feeAmount);
-        } 
+        }
     }
 
     /// @dev Verify that msg.value is equal to the amount needed (in the orders)
