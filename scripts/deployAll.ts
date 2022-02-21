@@ -69,7 +69,8 @@ async function main(): Promise<void> {
     console.log("ZeroExOperator deployed : ", zeroExOperator.address);
 
     // Add ZeroExStorage address
-    deployments.push({ name: "ZeroExStorage", address: await zeroExOperator.operatorStorage() })
+    const zeroExStorage = await zeroExOperator.operatorStorage();
+    deployments.push({ name: "ZeroExStorage", address: zeroExStorage })
 
     // Deploy FlatOperator
     const flatOperator = await flatOperatorFactory.deploy();
@@ -216,6 +217,13 @@ async function main(): Promise<void> {
     await hre.run("verify:verify", {
         address: withdrawer.address,
         constructorArguments: [WETH],
+    });
+
+    await delay(10000);
+
+    await hre.run("verify:verify", {
+        address: zeroExStorage,
+        constructorArguments: [],
     });
 }
 
