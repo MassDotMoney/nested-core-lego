@@ -1,5 +1,5 @@
 import hre, { ethers, network } from "hardhat";
-import { Contract } from "ethers";
+import { Contract, ContractTransaction } from "ethers";
 import addresses from "../addresses.json";
 import { importOperators, registerFlat, registerZeroEx } from './utils';
 
@@ -13,9 +13,6 @@ const delay = async (ms: number) => new Promise(res => setTimeout(res, ms));
 
 const chainId: string = network.config.chainId.toString();
 const context = JSON.parse(JSON.stringify(addresses));
-
-// True if you want to enable the etherscan verification
-const etherscan = false;
 
 // Configuration variables
 const maxHoldingsCount = context[chainId].config.maxHoldingsCount;
@@ -42,8 +39,8 @@ async function main(): Promise<void> {
     const withdrawerFactory = await ethers.getContractFactory("Withdrawer");
 
     // Deploy FeeSplitter
-    const feeSplitter = await feeSplitterFactory.deploy([nestedTreasury], [80], 20, WETH);
-    await verify("FeeSplitter", feeSplitter, [[nestedTreasury], [80], 20, WETH]);
+    const feeSplitter = await feeSplitterFactory.deploy([nestedTreasury], [20], 20, WETH);
+    await verify("FeeSplitter", feeSplitter, [[nestedTreasury], [20], 20, WETH]);
     console.log("FeeSplitter deployed : ", feeSplitter.address);
 
     // Deploy NestedAsset
@@ -81,7 +78,7 @@ async function main(): Promise<void> {
 
     // Deploy Withdrawer
     const withdrawer = await withdrawerFactory.deploy(WETH);
-    await verify("Withdrawer", withdrawer, []);
+    await verify("Withdrawer", withdrawer, [WETH]);
     console.log("Withdrawer deployed : ", withdrawer.address);
 
     // Deploy NestedFactory
@@ -95,12 +92,15 @@ async function main(): Promise<void> {
             operatorResolver.address,
             withdrawer.address,
         );
-    await verify("NestedFactory", nestedFactory, [nestedAsset.address,
-    nestedRecords.address,
-    nestedReserve.address,
-    feeSplitter.address,
+    await verify("NestedFactory", nestedFactory, [
+        nestedAsset.address,
+        nestedRecords.address,
+        nestedReserve.address,
+        feeSplitter.address,
         WETH,
-    operatorResolver.address]);
+        operatorResolver.address,
+        withdrawer.address,
+    ]);
     console.log("NestedFactory deployed : ", nestedFactory.address);
 
     const owner = await nestedRecords.owner();
@@ -111,29 +111,23 @@ async function main(): Promise<void> {
     console.log("FactoryProxy deployed : ", factoryProxy.address);
 
     // Set factory to asset, records and reserve
-    let tx = await nestedAsset.addFactory(factoryProxy.address);
-    await tx.wait();
-    tx = await nestedRecords.addFactory(factoryProxy.address);
-    await tx.wait();
-    tx = await nestedReserve.addFactory(factoryProxy.address);
-    await tx.wait();
+    await run(await nestedAsset.addFactory(factoryProxy.address));
+    await run(await nestedRecords.addFactory(factoryProxy.address));
+    await run(await nestedReserve.addFactory(factoryProxy.address));
 
     // Initialize the owner in proxy storage by calling upgradeToAndCall
     // It will upgrade with the same address (no side effects)
     const initData = await nestedFactory.interface.encodeFunctionData("initialize", [owner]);
-    tx = await factoryProxy.upgradeToAndCall(nestedFactory.address, initData);
-    await tx.wait();
+    await run(await factoryProxy.upgradeToAndCall(nestedFactory.address, initData));
 
     // Set multisig as admin of proxy, so we can call the implementation as owner
-    tx = await factoryProxy.changeAdmin(multisig);
-    await tx.wait();
+    await run(await factoryProxy.changeAdmin(multisig));
 
     // Attach factory impl to proxy address
     const proxyImpl = await nestedFactoryFactory.attach(factoryProxy.address);
 
     // Reset feeSplitter in proxy storage
-    tx = await proxyImpl.setFeeSplitter(feeSplitter.address);
-    await tx.wait();
+    await run(await proxyImpl.setFeeSplitter(feeSplitter.address));
 
     await importOperators(operatorResolver, [
         registerFlat(flatOperator),
@@ -143,19 +137,96 @@ async function main(): Promise<void> {
     // Convert JSON object to string
     const data = JSON.stringify(deployments);
     console.log(data);
+
+    // Verify 
+
+    await delay(60000);
+
+    await hre.run("verify:verify", {
+        address: feeSplitter.address,
+        constructorArguments: [[nestedTreasury], [20], 20, WETH],
+    });
+
+    await delay(10000);
+
+    await hre.run("verify:verify", {
+        address: nestedAsset.address,
+        constructorArguments: [],
+    });
+
+    await delay(10000);
+
+    await hre.run("verify:verify", {
+        address: nestedRecords.address,
+        constructorArguments: [maxHoldingsCount],
+    });
+
+    await delay(10000);
+
+    await hre.run("verify:verify", {
+        address: operatorResolver.address,
+        constructorArguments: [],
+    });
+
+    await delay(10000);
+
+    await hre.run("verify:verify", {
+        address: flatOperator.address,
+        constructorArguments: [],
+    });
+
+    await delay(10000);
+    
+    await hre.run("verify:verify", {
+        address: zeroExOperator.address,
+        constructorArguments: [zeroExSwapTarget],
+    });
+
+    await delay(10000);
+
+    await hre.run("verify:verify", {
+        address: nestedFactory.address,
+        constructorArguments: [
+            nestedAsset.address,
+            nestedRecords.address,
+            nestedReserve.address,
+            feeSplitter.address,
+            WETH,
+            operatorResolver.address,
+            withdrawer.address,
+        ],
+    });
+
+    await delay(10000);
+
+    await hre.run("verify:verify", {
+        address: nestedReserve.address,
+        constructorArguments: [],
+    });
+
+    await delay(10000);
+
+    await hre.run("verify:verify", {
+        address: factoryProxy.address,
+        constructorArguments: [nestedFactory.address, owner, []],
+    });
+
+    await delay(10000);
+
+    await hre.run("verify:verify", {
+        address: withdrawer.address,
+        constructorArguments: [WETH],
+    });
 }
 
 async function verify(name: string, contract: Contract, params: any[]) {
     await contract.deployed();
-    if (etherscan) {
-        // wait 1 minute (recommended)
-        await delay(60000);
-        await hre.run("verify:verify", {
-            address: contract.address,
-            constructorArguments: params,
-        });
-    }
     deployments.push({ name: name, address: contract.address })
+}
+
+async function run(tx: ContractTransaction) {
+    await tx.wait();
+    await delay(6000);
 }
 
 main()

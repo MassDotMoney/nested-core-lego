@@ -15,7 +15,7 @@
         "FlatOperator": "",
         "Timelock": "",
         "config" : {
-            "maxHoldingsCount": 15,
+            "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
             "multisig": "",
@@ -38,7 +38,7 @@
         "FlatOperator": "0x04A7307E94Fd83B2Fe88537729640EA7a0AD376B",
         "Timelock": "0x78A7207f221B1f376A73F52dD27087B7708d829A",
         "config" : {
-            "maxHoldingsCount": 15,
+            "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
             "multisig": "0xD95c74A3041EEC4DC393F98A2180EE67903CcC4F",
@@ -61,7 +61,7 @@
         "FlatOperator": "0x8792f0EE8E1dcfcDf69421fe98B9EB4752191Fe5",
         "Timelock": "0x8b266F1D7313CF09cAe4d85ca72E3a3EbBCeaBC4",
         "config" : {
-            "maxHoldingsCount": 15,
+            "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
             "multisig": "0xf9B701cE5bc5E83C65301c733e1d91f18eF35d8E",
@@ -84,7 +84,7 @@
         "FlatOperator": "",
         "Timelock": "",
         "config" : {
-            "maxHoldingsCount": 15,
+            "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0x471ece3750da237f93b8e339c536989b8978a438",
             "multisig": "",
@@ -107,7 +107,7 @@
         "FlatOperator": "0x04A7307E94Fd83B2Fe88537729640EA7a0AD376B",
         "Timelock": "0x78A7207f221B1f376A73F52dD27087B7708d829A",
         "config" : {
-            "maxHoldingsCount": 15,
+            "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
             "multisig": "0x4a9101F6266E912e99477D1557997bBe7054652a",
