@@ -3,6 +3,7 @@ import { factoryAndOperatorsFixture, FactoryAndOperatorsFixture } from "../share
 import { createFixtureLoader, expect, provider } from "../shared/provider";
 import { appendDecimals, getExpectedFees } from "../helpers";
 import { ethers } from "hardhat";
+import * as utils from "../../scripts/utils";
 
 let loadFixture: LoadFixtureFunction;
 
@@ -14,7 +15,6 @@ interface Order {
 
 describe("FlatOperator", () => {
     let context: FactoryAndOperatorsFixture;
-    const abiCoder = new ethers.utils.AbiCoder();
 
     before("loader", async () => {
         loadFixture = createFixtureLoader(provider.getWallets(), provider);
@@ -39,7 +39,7 @@ describe("FlatOperator", () => {
             {
                 operator: context.flatOperatorNameBytes32,
                 token: context.mockUNI.address,
-                callData: abiCoder.encode(["address", "uint256"], [context.mockUNI.address, 0]),
+                callData: utils.abiCoder.encode(["address", "uint256"], [context.mockUNI.address, 0]),
             },
         ];
 
@@ -66,7 +66,7 @@ describe("FlatOperator", () => {
             {
                 operator: context.flatOperatorNameBytes32,
                 token: context.mockUNI.address,
-                callData: abiCoder.encode(["address", "uint256"], [context.mockDAI.address, 10]),
+                callData: utils.abiCoder.encode(["address", "uint256"], [context.mockDAI.address, 10]),
             },
         ];
 
@@ -96,7 +96,7 @@ describe("FlatOperator", () => {
             {
                 operator: context.flatOperatorNameBytes32,
                 token: context.mockUNI.address,
-                callData: abiCoder.encode(["address", "uint256"], [context.mockUNI.address, totalToBought]),
+                callData: utils.abiCoder.encode(["address", "uint256"], [context.mockUNI.address, totalToBought]),
             },
         ];
 
@@ -153,7 +153,7 @@ describe("FlatOperator", () => {
             {
                 operator: context.flatOperatorNameBytes32,
                 token: context.mockUNI.address,
-                callData: abiCoder.encode(["address", "uint256"], [context.mockUNI.address, totalToBought]),
+                callData: utils.abiCoder.encode(["address", "uint256"], [context.mockUNI.address, totalToBought]),
             },
         ];
 
