@@ -141,7 +141,6 @@ export function cleanResult<T>(r: T): T {
 
 // Create the Orders to buy KNC and UNI with DAI
 export function getUniAndKncWithDaiOrders(context: FactoryAndOperatorsFixture, uniBought: BigNumber, kncBought: BigNumber) {
-    const abiCoder = new ethers.utils.AbiCoder();
     return [
         buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
             ["address", context.mockDAI.address],
@@ -176,7 +175,6 @@ export function getUniAndKncWithDaiOrders(context: FactoryAndOperatorsFixture, u
 
 // Create the Orders to buy KNC and UNI with ETH
 export function getUniAndKncWithETHOrders(context: FactoryAndOperatorsFixture, uniBought: BigNumber, kncBought: BigNumber) {
-    const abiCoder = new ethers.utils.AbiCoder();
     return [
         buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
             ["address", context.WETH.address],
@@ -211,7 +209,6 @@ export function getUniAndKncWithETHOrders(context: FactoryAndOperatorsFixture, u
 
 // Generic function to create a 1:1 Order
 export function getTokenBWithTokenAOrders(context: FactoryAndOperatorsFixture, amount: BigNumber, tokenA: string, tokenB: string) {
-    const abiCoder = new ethers.utils.AbiCoder();
     return [
         buildOrderStruct(context.zeroExOperatorNameBytes32, tokenB, [
             ["address", tokenA],
@@ -229,7 +226,6 @@ export function getTokenBWithTokenAOrders(context: FactoryAndOperatorsFixture, a
 
 // Create the Orders to get USDC with UNI and KNC
 export function getUsdcWithUniAndKncOrders(context: FactoryAndOperatorsFixture, uniSold: BigNumber, kncSold: BigNumber) {
-    const abiCoder = new ethers.utils.AbiCoder();
     return [
         buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
             ["address", context.mockUNI.address],
@@ -264,7 +260,6 @@ export function getUsdcWithUniAndKncOrders(context: FactoryAndOperatorsFixture, 
 
 // Create the Orders to get Eth with UNI and KNC
 export function getWethWithUniAndKncOrders(context: FactoryAndOperatorsFixture, uniSold: BigNumber, kncSold: BigNumber) {
-    const abiCoder = new ethers.utils.AbiCoder();
     return [
         buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
             ["address", context.mockUNI.address],

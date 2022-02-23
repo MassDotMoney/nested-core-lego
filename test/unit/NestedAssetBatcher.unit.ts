@@ -9,7 +9,6 @@ let loadFixture: LoadFixtureFunction;
 
 describe("NestedAssetBatcher", () => {
     let context: FactoryAndOperatorsFixture;
-    const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
     before("loader", async () => {
         loadFixture = createFixtureLoader(provider.getWallets(), provider);

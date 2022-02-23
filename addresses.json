@@ -38,7 +38,7 @@
         "ZeroExStorage": "0xe8b1970566440A9518043A30953508fa9574E3BB",
         "FlatOperator": "0x6bDc58D3287176b40ad2243eC0CF35f33F2119DA",
         "Timelock": "0x78A7207f221B1f376A73F52dD27087B7708d829A",
-        "NestedAssetBatcher": "",
+        "NestedAssetBatcher": "0x49A1D717Ad529eACac285f739B06Ac44f037030b",
         "config" : {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
@@ -62,7 +62,7 @@
         "ZeroExStorage": "0xe8b1970566440A9518043A30953508fa9574E3BB",
         "FlatOperator": "0xD75aF988B2282C1B466C7640B01E4B89239a72D8",
         "Timelock": "0x8b266F1D7313CF09cAe4d85ca72E3a3EbBCeaBC4",
-        "NestedAssetBatcher": "",
+        "NestedAssetBatcher": "0x49a1d717ad529eacac285f739b06ac44f037030b",
         "config" : {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
@@ -110,7 +110,7 @@
         "ZeroExStorage": "0xe8b1970566440A9518043A30953508fa9574E3BB",
         "FlatOperator": "0x6bDc58D3287176b40ad2243eC0CF35f33F2119DA",
         "Timelock": "0x78A7207f221B1f376A73F52dD27087B7708d829A",
-        "NestedAssetBatcher": "",
+        "NestedAssetBatcher": "0x49A1D717Ad529eACac285f739B06Ac44f037030b",
         "config" : {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
