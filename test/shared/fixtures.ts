@@ -8,6 +8,7 @@ import {
     FlatOperator,
     MockERC20,
     NestedAsset,
+    NestedAssetBatcher,
     NestedFactory,
     NestedRecords,
     NestedReserve,
@@ -102,6 +103,7 @@ export type FactoryAndOperatorsFixture = {
     user1: Wallet;
     proxyAdmin: Wallet;
     baseAmount: BigNumber;
+    nestedAssetBatcher: NestedAssetBatcher;
 };
 
 export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = async (wallets, provider) => {
@@ -279,6 +281,13 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
     await WETH.connect(masterDeployer).deposit({ value: appendDecimals(100) });
     await WETH.connect(masterDeployer).transfer(dummyRouter.address, appendDecimals(100));
 
+    // Deploy NestedAssetBatcher
+    const nestedAssetBatcherFactory = await ethers.getContractFactory("NestedAssetBatcher");
+    const nestedAssetBatcher = await nestedAssetBatcherFactory
+        .connect(masterDeployer)
+        .deploy(nestedAsset.address, nestedRecords.address);
+    await nestedAssetBatcher.deployed();
+
     return {
         WETH,
         mockUNI,
@@ -305,5 +314,6 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
         user1,
         proxyAdmin,
         baseAmount,
+        nestedAssetBatcher,
     };
 };

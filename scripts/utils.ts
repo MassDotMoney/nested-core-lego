@@ -1,7 +1,10 @@
 import { FlatOperator, NestedFactory, OperatorResolver, ZeroExOperator } from '../typechain';
+import { FactoryAndOperatorsFixture } from "../test/shared/fixtures";
 import * as ethers from 'ethers';
+import { BigNumber, BigNumberish, BytesLike } from "ethers";
 import * as w3utils from "web3-utils";
 
+type RawDataType = "address" | "bytes4" | "bytes" | "uint256";
 interface Op {
     /** Operator name */
     name: string;
@@ -9,6 +12,43 @@ interface Op {
     signature: string;
     /** Target contract address */
     contract: string;
+}
+
+export interface OrderStruct {
+    operator: BytesLike;
+    token: string;
+    callData: BytesLike;
+}
+
+export interface BatchedInputOrderStruct {
+    inputToken: string;
+    amount: BigNumberish;
+    orders: OrderStruct[];
+    fromReserve: boolean;
+}
+export interface BatchedOutputOrderStruct {
+    outputToken: string;
+    amounts: BigNumberish[];
+    orders: OrderStruct[];
+    toReserve: boolean;
+}
+
+export const dummyRouterSelector = "0x76ab33a6";
+
+export const abiCoder = new ethers.utils.AbiCoder();
+
+export function buildOrderStruct(operator: string, outToken: string, data: [RawDataType, any][]): OrderStruct {
+    const abiCoder = new ethers.utils.AbiCoder();
+    const coded = abiCoder.encode([...data.map(x => x[0])], [...data.map(x => x[1])]);
+    return {
+        // specify which operator?
+        operator: operator,
+        // specify the token that this order will output
+        token: outToken,
+        // encode the given data
+        callData: coded, // remove the leading 32 bytes (one address) and the leading 0x
+        // callData,
+    };
 }
 
 export async function importOperators(inResolver: OperatorResolver, operators: Op[], nestedFactory: NestedFactory | null) {
@@ -86,4 +126,173 @@ export function registerFlat(operator: FlatOperator): Op {
 
 export function toBytes32(key: string) {
     return w3utils.rightPad(w3utils.asciiToHex(key), 64);
+}
+
+export function cleanResult<T>(r: T): T {
+    if (!Array.isArray(r)) {
+        return r;
+    }
+    const props = Object.keys(r).filter(x => !/^\d+$/.test(x));
+    if (!props.length) {
+        return [...r.map(x => cleanResult(x))] as any;
+    }
+    return props.reduce((acc, x) => ({ ...acc, [x]: cleanResult((r as any)[x]) }), {} as any);
+}
+
+// Create the Orders to buy KNC and UNI with DAI
+export function getUniAndKncWithDaiOrders(context: FactoryAndOperatorsFixture, uniBought: BigNumber, kncBought: BigNumber) {
+    const abiCoder = new ethers.utils.AbiCoder();
+    return [
+        buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
+            ["address", context.mockDAI.address],
+            ["address", context.mockUNI.address],
+            [
+                "bytes",
+                ethers.utils.hexConcat([
+                    dummyRouterSelector,
+                    abiCoder.encode(
+                        ["address", "address", "uint"],
+                        [context.mockDAI.address, context.mockUNI.address, uniBought],
+                    ),
+                ]),
+            ],
+        ]),
+        buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockKNC.address, [
+            ["address", context.mockDAI.address],
+            ["address", context.mockKNC.address],
+            [
+                "bytes",
+                ethers.utils.hexConcat([
+                    dummyRouterSelector,
+                    abiCoder.encode(
+                        ["address", "address", "uint"],
+                        [context.mockDAI.address, context.mockKNC.address, kncBought],
+                    ),
+                ]),
+            ],
+        ]),
+    ];
+}
+
+// Create the Orders to buy KNC and UNI with ETH
+export function getUniAndKncWithETHOrders(context: FactoryAndOperatorsFixture, uniBought: BigNumber, kncBought: BigNumber) {
+    const abiCoder = new ethers.utils.AbiCoder();
+    return [
+        buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
+            ["address", context.WETH.address],
+            ["address", context.mockUNI.address],
+            [
+                "bytes",
+                ethers.utils.hexConcat([
+                    dummyRouterSelector,
+                    abiCoder.encode(
+                        ["address", "address", "uint"],
+                        [context.WETH.address, context.mockUNI.address, uniBought],
+                    ),
+                ]),
+            ],
+        ]),
+        buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockKNC.address, [
+            ["address", context.WETH.address],
+            ["address", context.mockKNC.address],
+            [
+                "bytes",
+                ethers.utils.hexConcat([
+                    dummyRouterSelector,
+                    abiCoder.encode(
+                        ["address", "address", "uint"],
+                        [context.WETH.address, context.mockKNC.address, kncBought],
+                    ),
+                ]),
+            ],
+        ]),
+    ];
+}
+
+// Generic function to create a 1:1 Order
+export function getTokenBWithTokenAOrders(context: FactoryAndOperatorsFixture, amount: BigNumber, tokenA: string, tokenB: string) {
+    const abiCoder = new ethers.utils.AbiCoder();
+    return [
+        buildOrderStruct(context.zeroExOperatorNameBytes32, tokenB, [
+            ["address", tokenA],
+            ["address", tokenB],
+            [
+                "bytes",
+                ethers.utils.hexConcat([
+                    dummyRouterSelector,
+                    abiCoder.encode(["address", "address", "uint"], [tokenA, tokenB, amount]),
+                ]),
+            ],
+        ]),
+    ];
+}
+
+// Create the Orders to get USDC with UNI and KNC
+export function getUsdcWithUniAndKncOrders(context: FactoryAndOperatorsFixture, uniSold: BigNumber, kncSold: BigNumber) {
+    const abiCoder = new ethers.utils.AbiCoder();
+    return [
+        buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
+            ["address", context.mockUNI.address],
+            ["address", context.mockUSDC.address],
+            [
+                "bytes",
+                ethers.utils.hexConcat([
+                    dummyRouterSelector,
+                    abiCoder.encode(
+                        ["address", "address", "uint"],
+                        [context.mockUNI.address, context.mockUSDC.address, uniSold],
+                    ),
+                ]),
+            ],
+        ]),
+        buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockKNC.address, [
+            ["address", context.mockKNC.address],
+            ["address", context.mockUSDC.address],
+            [
+                "bytes",
+                ethers.utils.hexConcat([
+                    dummyRouterSelector,
+                    abiCoder.encode(
+                        ["address", "address", "uint"],
+                        [context.mockKNC.address, context.mockUSDC.address, kncSold],
+                    ),
+                ]),
+            ],
+        ]),
+    ];
+}
+
+// Create the Orders to get Eth with UNI and KNC
+export function getWethWithUniAndKncOrders(context: FactoryAndOperatorsFixture, uniSold: BigNumber, kncSold: BigNumber) {
+    const abiCoder = new ethers.utils.AbiCoder();
+    return [
+        buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
+            ["address", context.mockUNI.address],
+            ["address", context.WETH.address],
+            [
+                "bytes",
+                ethers.utils.hexConcat([
+                    dummyRouterSelector,
+                    abiCoder.encode(
+                        ["address", "address", "uint"],
+                        [context.mockUNI.address, context.WETH.address, uniSold],
+                    ),
+                ]),
+            ],
+        ]),
+        buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockKNC.address, [
+            ["address", context.mockKNC.address],
+            ["address", context.WETH.address],
+            [
+                "bytes",
+                ethers.utils.hexConcat([
+                    dummyRouterSelector,
+                    abiCoder.encode(
+                        ["address", "address", "uint"],
+                        [context.mockKNC.address, context.WETH.address, kncSold],
+                    ),
+                ]),
+            ],
+        ]),
+    ];
 }
