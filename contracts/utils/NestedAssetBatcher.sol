@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/interfaces/IERC721Enumerable.sol";
 
 interface INestedAsset is IERC721Enumerable {
     function tokenURI(uint256 _tokenId) external view returns (string memory);
+
+    function lastOwnerBeforeBurn(uint256 _tokenId) external view returns (address);
 }
 
 interface INestedRecords {
@@ -35,7 +37,7 @@ contract NestedAssetBatcher {
     /// @notice Get all NestedAsset tokenURIs owned by a user
     /// @param user The address of the user
     /// @return String array of all tokenURIs
-    function getURIs(address user) public view returns (string[] memory) {
+    function getURIs(address user) external view returns (string[] memory) {
         unchecked {
             uint256 numTokens = nestedAsset.balanceOf(user);
             string[] memory uriList = new string[](numTokens);
@@ -51,7 +53,7 @@ contract NestedAssetBatcher {
     /// @notice Get all NestedAsset IDs owned by a user
     /// @param user The address of the user
     /// @return Array of all IDs
-    function getIds(address user) public view returns (uint256[] memory) {
+    function getIds(address user) external view returns (uint256[] memory) {
         unchecked {
             uint256 numTokens = nestedAsset.balanceOf(user);
             uint256[] memory ids = new uint256[](numTokens);
@@ -65,7 +67,7 @@ contract NestedAssetBatcher {
     /// @notice Get all NFTs (with tokens and quantities) owned by a user
     /// @param user The address of the user
     /// @return Array of all NFTs (struct Nft)
-    function getNfts(address user) public view returns (Nft[] memory) {
+    function getNfts(address user) external view returns (Nft[] memory) {
         unchecked {
             uint256 numTokens = nestedAsset.balanceOf(user);
             Nft[] memory nfts = new Nft[](numTokens);
@@ -81,5 +83,16 @@ contract NestedAssetBatcher {
             }
             return (nfts);
         }
+    }
+
+    /// @notice Require the given tokenID to haven been created and call tokenHoldings.
+    /// @param _nftId The token id
+    /// @return tokenHoldings returns
+    function requireTokenHoldings(uint256 _nftId) external view returns (address[] memory, uint256[] memory) {
+        try nestedAsset.ownerOf(_nftId) {} catch {
+            // owner == address(0)
+            require(nestedAsset.lastOwnerBeforeBurn(_nftId) != address(0), "NAB: NEVER_CREATED");
+        }
+        return nestedRecords.tokenHoldings(_nftId);
     }
 }

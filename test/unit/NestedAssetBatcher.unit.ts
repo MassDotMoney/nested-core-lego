@@ -57,5 +57,16 @@ describe("NestedAssetBatcher", () => {
 
             expect(JSON.stringify(utils.cleanResult(nfts))).to.equal(JSON.stringify(utils.cleanResult(expectedNfts)));
         });
+
+        it("require and get TokenHoldings", async () => {
+            await expect(context.nestedAssetBatcher.requireTokenHoldings(2)).to.be.revertedWith("NAB: NEVER_CREATED");
+            await expect(context.nestedAssetBatcher.requireTokenHoldings(1)).to.not.be.reverted;
+
+            let orders: utils.OrderStruct[] = utils.getUsdcWithUniAndKncOrders(context, baseUniBought, baseKncBought);
+            await context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders);
+
+            // Not reverting after burn
+            await expect(context.nestedAssetBatcher.requireTokenHoldings(1)).to.not.be.reverted;
+        });
     });
 });
