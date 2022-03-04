@@ -10,5 +10,5 @@ chai.use(smock.matchers);
 export const expect = chai.expect;
 export const assert = chai.assert;
 
-export const describeOnFork = config.networks.hardhat.forking === undefined ? describe.skip : describe;
-export const describeWithoutFork = config.networks.hardhat.forking !== undefined ? describe.skip : describe;
+export const describeOnFork = !config.networks.hardhat.forking.enabled ? describe.skip : describe;
+export const describeWithoutFork = config.networks.hardhat.forking.enabled ? describe.skip : describe;
