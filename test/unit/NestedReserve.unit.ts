@@ -3,8 +3,9 @@ import { ethers } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { appendDecimals } from "../helpers";
 import { MockERC20, MockERC20__factory, NestedReserve, NestedReserve__factory } from "../../typechain";
+import { describeWithoutFork } from "../shared/provider";
 
-describe("NestedReserve", () => {
+describeWithoutFork("NestedReserve", () => {
     let nestedReserve: NestedReserve__factory, reserve: NestedReserve;
     let mockERC20: MockERC20__factory, mockUNI: MockERC20;
     let factory: SignerWithAddress, alice: SignerWithAddress, bob: SignerWithAddress;

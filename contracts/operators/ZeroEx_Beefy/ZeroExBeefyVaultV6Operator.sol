@@ -5,8 +5,8 @@ import "../../libraries/ExchangeHelpers.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title ZeroEx + Beefy Single Vault Operator
-/// @notice Deposit/Withdraw in a Beefy vault (native or non-native) and 
-///         allows swapping with 0x (before depositing and after withdrawing). 
+/// @notice Deposit/Withdraw in a Beefy vault (native or non-native) and
+///         allows swapping with 0x (before depositing and after withdrawing).
 contract ZeroExBeefyVaultV6Operator {
     IERC20 public immutable token;
     IERC20 public immutable vault;
@@ -22,15 +22,15 @@ contract ZeroExBeefyVaultV6Operator {
         swapTarget = _swapTarget;
     }
 
-    /// @notice Swap a token via 0x and deposit the exchanged asset in the Beefy 
+    /// @notice Swap a token via 0x and deposit the exchanged asset in the Beefy
     ///         vault, then receive the vault token (moo).
     /// @param sellToken The token sold
     /// @param swapCallData 0x calldata from the API
     /// @param minVaultAmount The minimum vault token amount expected
-    /// @return amounts Array of amounts : 
+    /// @return amounts Array of amounts :
     ///         - [0] : The vault token received amount
     ///         - [1] : The token deposited amount
-    /// @return tokens Array of token addresses 
+    /// @return tokens Array of token addresses
     ///         - [0] : The vault token received address
     ///         - [1] : The token deposited address
     function performSwapAndDeposit(
@@ -80,10 +80,10 @@ contract ZeroExBeefyVaultV6Operator {
     /// @param amount The vault token to withdraw
     /// @param buyToken The token bought with the underlying asset
     /// @param swapCallData 0x calldata from the API
-    /// @return amounts Array of amounts : 
+    /// @return amounts Array of amounts :
     ///         - [0] : The token bought amount
     ///         - [1] : The vault token withdrawed amount
-    /// @return tokens Array of token addresses 
+    /// @return tokens Array of token addresses
     ///         - [0] : The token bought address
     ///         - [1] : The vault token withdrawed address
     function withdrawAndPerformSwap(
@@ -97,7 +97,7 @@ contract ZeroExBeefyVaultV6Operator {
 
         // Withdraw from Beefy
         uint256 tokenBalanceBefore = token.balanceOf(address(this));
-        uint256 vaultBalanceBefore = vault.balanceOf(address(this));  
+        uint256 vaultBalanceBefore = vault.balanceOf(address(this));
 
         (bool success, ) = address(vault).call(abi.encodeWithSignature("withdraw(uint256)", amount));
         require(success, "BVO: WITHDRAW_CALL_FAILED");
@@ -114,7 +114,7 @@ contract ZeroExBeefyVaultV6Operator {
         bool successSwap = ExchangeHelpers.fillQuote(token, swapTarget, swapCallData);
         require(successSwap, "BVO: SWAP_FAILED");
 
-        uint256 amountBought =  buyToken.balanceOf(address(this)) - sellBalanceBefore;
+        uint256 amountBought = buyToken.balanceOf(address(this)) - sellBalanceBefore;
         uint256 amountSold = tokenBalanceBefore - token.balanceOf(address(this));
         require(amountBought != 0, "BVO: INVALID_AMOUNT_BOUGHT");
         require(amountSold != 0, "BVO: INVALID_AMOUNT_SOLD");

@@ -3,8 +3,9 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 import { FeeSplitter, MockERC20, DeflationaryMockERC20, WETH9 } from "../../typechain";
+import { describeWithoutFork } from "../shared/provider";
 
-describe("Fee Splitter", () => {
+describeWithoutFork("Fee Splitter", () => {
     let alice: SignerWithAddress, bob: SignerWithAddress, wallet3: SignerWithAddress;
     let ERC20Mocks!: [MockERC20, MockERC20, MockERC20];
     let deflationaryERC20Mock!: DeflationaryMockERC20;

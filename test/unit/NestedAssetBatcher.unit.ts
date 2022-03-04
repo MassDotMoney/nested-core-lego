@@ -1,13 +1,13 @@
 import { LoadFixtureFunction } from "../types";
 import { factoryAndOperatorsFixture, FactoryAndOperatorsFixture } from "../shared/fixtures";
-import { createFixtureLoader, expect, provider } from "../shared/provider";
+import { createFixtureLoader, describeWithoutFork, expect, provider } from "../shared/provider";
 import { BigNumber } from "ethers";
 import { appendDecimals, getExpectedFees } from "../helpers";
 import * as utils from "../../scripts/utils";
 
 let loadFixture: LoadFixtureFunction;
 
-describe("NestedAssetBatcher", () => {
+describeWithoutFork("NestedAssetBatcher", () => {
     let context: FactoryAndOperatorsFixture;
 
     before("loader", async () => {

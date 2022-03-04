@@ -1,15 +1,15 @@
 import { LoadFixtureFunction } from "../types";
 import { factoryAndOperatorsFixture, FactoryAndOperatorsFixture } from "../shared/fixtures";
-import { createFixtureLoader, expect, provider } from "../shared/provider";
+import { createFixtureLoader, describeWithoutFork, expect, provider } from "../shared/provider";
 import { BigNumber, Wallet } from "ethers";
 import { appendDecimals, BIG_NUMBER_ZERO, getExpectedFees, toBytes32 } from "../helpers";
 import { ethers, network } from "hardhat";
-import { importOperatorsWithSigner, cleanResult } from "../../scripts/utils";
+import { importOperatorsWithSigner } from "../../scripts/utils";
 import * as utils from "../../scripts/utils";
 
 let loadFixture: LoadFixtureFunction;
 
-describe("NestedFactory", () => {
+describeWithoutFork("NestedFactory", () => {
     let context: FactoryAndOperatorsFixture;
     const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
@@ -626,8 +626,7 @@ describe("NestedFactory", () => {
                 });
 
             // Get the transaction fees
-            const gasPrice = tx.gasPrice;
-            const txFees = await tx.wait().then(value => value.gasUsed.mul(gasPrice));
+            const txFees = await tx.wait().then(value => value.gasUsed.mul(value.effectiveGasPrice));
 
             // User1 must be the owner of NFT n°1
             expect(await context.nestedAsset.ownerOf(1)).to.be.equal(context.user1.address);

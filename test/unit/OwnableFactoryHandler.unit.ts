@@ -1,12 +1,12 @@
 import { LoadFixtureFunction } from "../types";
 import { factoryAndOperatorsFixture, FactoryAndOperatorsFixture } from "../shared/fixtures";
-import { createFixtureLoader, expect, provider } from "../shared/provider";
-import { ethers, network } from "hardhat";
+import { createFixtureLoader, describeWithoutFork, expect, provider } from "../shared/provider";
+import { ethers } from "hardhat";
 import { Wallet } from "ethers";
 
 let loadFixture: LoadFixtureFunction;
 
-describe("OwnableFactoryHandler", () => {
+describeWithoutFork("OwnableFactoryHandler", () => {
     let context: FactoryAndOperatorsFixture;
     const otherFactory = Wallet.createRandom();
 

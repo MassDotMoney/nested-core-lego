@@ -9,10 +9,7 @@ contract BeefyVaultV6Operator {
     IERC20 public immutable token;
     IERC20 public immutable vault;
 
-    constructor(
-        IERC20 _token,
-        IERC20 _vault
-    ) {
+    constructor(IERC20 _token, IERC20 _vault) {
         token = _token;
         vault = _vault;
     }
@@ -21,10 +18,10 @@ contract BeefyVaultV6Operator {
     ///         the vault token (moo).
     /// @param amount The token amount to deposit
     /// @param minVaultAmount The minimum vault token amount expected
-    /// @return amounts Array of amounts : 
+    /// @return amounts Array of amounts :
     ///         - [0] : The vault token received amount
     ///         - [1] : The token deposited amount
-    /// @return tokens Array of token addresses 
+    /// @return tokens Array of token addresses
     ///         - [0] : The vault token received address
     ///         - [1] : The token deposited address
     function deposit(uint256 amount, uint256 minVaultAmount)
@@ -58,10 +55,10 @@ contract BeefyVaultV6Operator {
     /// @notice Withdraw the vault token (moo) from Beefy and receive
     ///         the underlying token.
     /// @param amount The vault token amount to withdraw
-    /// @return amounts Array of amounts : 
+    /// @return amounts Array of amounts :
     ///         - [0] : The token received amount
     ///         - [1] : The vault token deposited amount
-    /// @return tokens Array of token addresses 
+    /// @return tokens Array of token addresses
     ///         - [0] : The token received address
     ///         - [1] : The vault token deposited address
     function withdraw(uint256 amount) external returns (uint256[] memory amounts, address[] memory tokens) {
@@ -70,7 +67,7 @@ contract BeefyVaultV6Operator {
         tokens = new address[](2);
 
         uint256 tokenBalanceBefore = token.balanceOf(address(this));
-        uint256 vaultBalanceBefore = vault.balanceOf(address(this));  
+        uint256 vaultBalanceBefore = vault.balanceOf(address(this));
 
         (bool success, ) = address(vault).call(abi.encodeWithSignature("withdraw(uint256)", amount));
         require(success, "BVO: WITHDRAW_CALL_FAILED");

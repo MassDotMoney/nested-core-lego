@@ -1,10 +1,10 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { appendDecimals } from "../helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 import { NestedRecords, NestedRecords__factory } from "../../typechain";
+import { describeWithoutFork } from "../shared/provider";
 
-describe("NestedRecords", () => {
+describeWithoutFork("NestedRecords", () => {
     let NestedRecords: NestedRecords__factory, nestedRecords: NestedRecords;
     let alice: SignerWithAddress, bob: SignerWithAddress;
 
