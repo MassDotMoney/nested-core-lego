@@ -133,11 +133,19 @@ export function registerFlat(operator: FlatOperator): Op {
     };
 }
 
-export function registerBeefy(operator: BeefyVaultOperator): Op {
+export function registerBeefyDeposit(operator: BeefyVaultOperator): Op {
     return {
-        name: 'Beefy',
+        name: 'BeefyDeposit',
         contract: operator.address,
         signature: 'function deposit(uint256 amount, uint256 minVaultAmount)',
+    }
+}
+
+export function registerBeefyWithdraw(operator: BeefyVaultOperator): Op {
+    return {
+        name: 'BeefyWithdraw',
+        contract: operator.address,
+        signature: 'function withdraw(uint256 amount)',
     }
 }
 
@@ -232,12 +240,21 @@ export function getUniAndKncWithETHOrders(
     ];
 }
 
-// Create the Orders to buy KNC and UNI with ETH
-export function getBeefyBnbVenusOrder(context: FactoryAndOperatorsForkingBSCFixture, bnbToDeposit: BigNumber) {
+// Create a Deposit order in Beefy (BNB Venus Vault on BSC)
+export function getBeefyBnbVenusDepositOrder(context: FactoryAndOperatorsForkingBSCFixture, bnbToDeposit: BigNumber) {
     return [
-        buildOrderStruct(context.beefyVaultOperatorNameBytes32, context.beefyVenusBNBVaultAddress, [
+        buildOrderStruct(context.beefyVaultDepositOperatorNameBytes32, context.beefyVenusBNBVaultAddress, [
             ["uint256", bnbToDeposit],
-            ["uint256", 0]  
+            ["uint256", 0] // 100% slippage
+        ]),
+    ];
+}
+
+// Create a Withdraw order in Beefy (BNB Venus Vault on BSC)
+export function getBeefyBnbVenusWithdrawOrder(context: FactoryAndOperatorsForkingBSCFixture, mooToWithdraw: BigNumber) {
+    return [
+        buildOrderStruct(context.beefyVaultWithdrawOperatorNameBytes32, context.beefyVenusBNBVaultAddress, [
+            ["uint256", mooToWithdraw]
         ]),
     ];
 }

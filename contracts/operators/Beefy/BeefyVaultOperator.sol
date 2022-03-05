@@ -77,12 +77,12 @@ contract BeefyVaultOperator {
 
         uint256 tokenAmount = token.balanceOf(address(this)) - tokenBalanceBefore;
         uint256 vaultAmount = vaultBalanceBefore - vault.balanceOf(address(this));
-        require(amount == tokenAmount, "BVO: INVALID_AMOUNT_DEPOSITED");
-        require(vaultAmount != 0, "BVO: INVALID_AMOUNT_RECEIVED");
+        require(vaultAmount == amount, "BVO: INVALID_AMOUNT_WITHDRAWED");
+        require(tokenAmount != 0, "BVO: INVALID_AMOUNT");
 
         // Output amounts
         amounts[0] = tokenAmount;
-        amounts[1] = vaultAmount;
+        amounts[1] = amount;
 
         // Output token
         tokens[0] = address(token);

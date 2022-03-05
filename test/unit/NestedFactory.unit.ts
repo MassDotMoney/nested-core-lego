@@ -1996,7 +1996,7 @@ describeWithoutFork("NestedFactory", () => {
                 baseKncBought.sub(kncSold),
             );
             // 0 USDC - fees must be in the reserve
-            expect(await context.mockUSDC.balanceOf(context.nestedReserve.address)).to.be.equal(BigNumber.from(0));
+            expect(await context.mockUSDC.balanceOf(context.nestedReserve.address)).to.be.equal(BIG_NUMBER_ZERO);
 
             // The FeeSplitter must receive the right fee amount (in USDC)
             expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(expectedUsdcFees);
@@ -2048,7 +2048,7 @@ describeWithoutFork("NestedFactory", () => {
                 baseKncBought.sub(kncSoldOrder),
             );
             // 0 USDC must be in the reserve
-            expect(await context.mockUSDC.balanceOf(context.nestedReserve.address)).to.be.equal(BigNumber.from(0));
+            expect(await context.mockUSDC.balanceOf(context.nestedReserve.address)).to.be.equal(BIG_NUMBER_ZERO);
 
             // The FeeSplitter must receive the right fee amount (in USDC)
             expect(await context.mockUSDC.balanceOf(context.feeSplitter.address)).to.be.equal(orderExpectedFee);

@@ -22,7 +22,13 @@ import {
 import { BigNumber, Wallet } from "ethers";
 import { Interface } from "ethers/lib/utils";
 import { appendDecimals, toBytes32 } from "../helpers";
-import { importOperatorsWithSigner, registerFlat, registerZeroEx, registerBeefy } from "../../scripts/utils";
+import {
+    importOperatorsWithSigner,
+    registerFlat,
+    registerZeroEx,
+    registerBeefyDeposit,
+    registerBeefyWithdraw,
+} from "../../scripts/utils";
 
 export type OperatorResolverFixture = { operatorResolver: OperatorResolver };
 
@@ -336,7 +342,8 @@ export type FactoryAndOperatorsForkingBSCFixture = {
     flatOperatorNameBytes32: string;
     beefyVenusBNBVaultAddress: string;
     beefyVaultOperator: BeefyVaultOperator;
-    beefyVaultOperatorNameBytes32: string;
+    beefyVaultDepositOperatorNameBytes32: string;
+    beefyVaultWithdrawOperatorNameBytes32: string;
     withdrawer: Withdrawer;
     nestedFactory: NestedFactory;
     nestedReserve: NestedReserve;
@@ -483,7 +490,12 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
 
     await importOperatorsWithSigner(
         operatorResolver,
-        [registerZeroEx(zeroExOperator), registerFlat(flatOperator), registerBeefy(beefyVaultOperator)],
+        [
+            registerZeroEx(zeroExOperator),
+            registerFlat(flatOperator),
+            registerBeefyDeposit(beefyVaultOperator),
+            registerBeefyWithdraw(beefyVaultOperator),
+        ],
         nestedFactory,
         masterDeployer,
     );
@@ -519,7 +531,8 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
         flatOperatorNameBytes32: toBytes32("Flat"),
         beefyVenusBNBVaultAddress,
         beefyVaultOperator,
-        beefyVaultOperatorNameBytes32: toBytes32("Beefy"),
+        beefyVaultDepositOperatorNameBytes32: toBytes32("BeefyDeposit"),
+        beefyVaultWithdrawOperatorNameBytes32: toBytes32("BeefyWithdraw"),
         withdrawer,
         zeroExOperator,
         nestedFactory,
