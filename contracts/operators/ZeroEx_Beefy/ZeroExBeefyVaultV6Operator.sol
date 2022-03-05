@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /// @title ZeroEx + Beefy Single Vault Operator
 /// @notice Deposit/Withdraw in a Beefy vault (native or non-native) and
 ///         allows swapping with 0x (before depositing and after withdrawing).
-contract ZeroExBeefyVaultV6Operator {
+contract ZeroExBeefyVaultOperator {
     IERC20 public immutable token;
     IERC20 public immutable vault;
     address public immutable swapTarget;

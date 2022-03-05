@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.11;
 
+import "./../../libraries/ExchangeHelpers.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title Beefy Single Vault Operator
 /// @notice Deposit/Withdraw in a Beefy vault (native or non-native).
-contract BeefyVaultV6Operator {
+contract BeefyVaultOperator {
     IERC20 public immutable token;
     IERC20 public immutable vault;
 
@@ -26,6 +27,7 @@ contract BeefyVaultV6Operator {
     ///         - [1] : The token deposited address
     function deposit(uint256 amount, uint256 minVaultAmount)
         external
+        payable
         returns (uint256[] memory amounts, address[] memory tokens)
     {
         require(amount != 0, "BVO: INVALID_AMOUNT");
@@ -35,6 +37,7 @@ contract BeefyVaultV6Operator {
         uint256 vaultBalanceBefore = vault.balanceOf(address(this));
         uint256 tokenBalanceBefore = token.balanceOf(address(this));
 
+        ExchangeHelpers.setMaxAllowance(token, address(vault));
         (bool success, ) = address(vault).call(abi.encodeWithSignature("deposit(uint256)", amount));
         require(success, "BVO: DEPOSIT_CALL_FAILED");
 
