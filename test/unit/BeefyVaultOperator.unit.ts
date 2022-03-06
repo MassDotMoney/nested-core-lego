@@ -121,15 +121,33 @@ describeOnBscFork("BeefyVaultOperator", () => {
             const bnbToDeposit = appendDecimals(1);
             const bnbToDepositAndFees = bnbToDeposit.add(getExpectedFees(bnbToDeposit));
 
-            // Orders to Deposit in beefy
+            // Orders to withdraw from beefy
             let orders: utils.OrderStruct[] = utils.getBeefyBnbVenusDepositOrder(context, bnbToDeposit);
 
             // User1 creates the portfolio/NFT
-            const tx = await context.nestedFactory
+            await context.nestedFactory
                 .connect(context.user1)
                 .create(0, [{ inputToken: ETH, amount: bnbToDepositAndFees, orders, fromReserve: false }], {
                     value: bnbToDepositAndFees,
                 });
+        });
+
+        it("Should revert if amount to withdraw is zero", async () => {
+            const mockERC20Factory = await ethers.getContractFactory("MockERC20");
+            const vault = mockERC20Factory.attach(context.beefyVenusBNBVaultAddress);
+
+            const mooBalance = await vault.balanceOf(context.nestedReserve.address);
+
+            // Orders to withdraw from beefy
+            let orders: utils.OrderStruct[] = utils.getBeefyBnbVenusWithdrawOrder(context, BIG_NUMBER_ZERO);
+
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .processOutputOrders(1, [
+                        { outputToken: context.WBNB.address, amounts: [mooBalance], orders, toReserve: true },
+                    ]),
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
         it("Destroy/Withdraw from Beefy", async () => {
@@ -138,13 +156,14 @@ describeOnBscFork("BeefyVaultOperator", () => {
 
             const mooBalance = await vault.balanceOf(context.nestedReserve.address);
 
-            // Orders to Deposit in beefy
+            // Orders to withdraw from beefy
             let orders: utils.OrderStruct[] = utils.getBeefyBnbVenusWithdrawOrder(context, mooBalance);
 
             await context.nestedFactory.connect(context.user1).destroy(1, context.WBNB.address, orders);
 
             // All moo removed from reserve
             expect(await vault.balanceOf(context.nestedReserve.address)).to.be.equal(BIG_NUMBER_ZERO);
+            expect(await vault.balanceOf(context.nestedFactory.address)).to.be.equal(BIG_NUMBER_ZERO);
 
             /*
              * I can't predict the WBNB received in the FeeSplitter.
