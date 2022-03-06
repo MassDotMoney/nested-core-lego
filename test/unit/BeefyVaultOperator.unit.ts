@@ -25,10 +25,6 @@ describeOnBscFork("BeefyVaultOperator", () => {
         expect(context.beefyVaultOperator.address).to.be.a.string;
     });
 
-    it("has swapTarget (storage)", async () => {
-        expect(context.zeroExOperator.operatorStorage()).to.be.a.string;
-    });
-
     describe("deposit()", () => {
         it("Should revert if amount to deposit is zero", async () => {
             // All the amounts for this test
