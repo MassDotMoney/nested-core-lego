@@ -137,7 +137,7 @@ export function registerBeefyDeposit(operator: BeefyVaultOperator): Op {
     return {
         name: 'BeefyDeposit',
         contract: operator.address,
-        signature: 'function deposit(uint256 amount, uint256 minVaultAmount)',
+        signature: 'function deposit(address vault, uint256 amount, uint256 minVaultAmount)',
     }
 }
 
@@ -145,7 +145,7 @@ export function registerBeefyWithdraw(operator: BeefyVaultOperator): Op {
     return {
         name: 'BeefyWithdraw',
         contract: operator.address,
-        signature: 'function withdraw(uint256 amount)',
+        signature: 'function withdraw(address vault, uint256 amount)',
     }
 }
 
@@ -244,6 +244,7 @@ export function getUniAndKncWithETHOrders(
 export function getBeefyBnbVenusDepositOrder(context: FactoryAndOperatorsForkingBSCFixture, bnbToDeposit: BigNumber) {
     return [
         buildOrderStruct(context.beefyVaultDepositOperatorNameBytes32, context.beefyVenusBNBVaultAddress, [
+            ["address", context.beefyVenusBNBVaultAddress],
             ["uint256", bnbToDeposit],
             ["uint256", 0] // 100% slippage
         ]),
@@ -254,6 +255,7 @@ export function getBeefyBnbVenusDepositOrder(context: FactoryAndOperatorsForking
 export function getBeefyBnbVenusWithdrawOrder(context: FactoryAndOperatorsForkingBSCFixture, mooToWithdraw: BigNumber) {
     return [
         buildOrderStruct(context.beefyVaultWithdrawOperatorNameBytes32, context.beefyVenusBNBVaultAddress, [
+            ["address", context.beefyVenusBNBVaultAddress],
             ["uint256", mooToWithdraw]
         ]),
     ];

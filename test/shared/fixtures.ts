@@ -418,7 +418,7 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
     const beefyVaultOperatorFactory = await ethers.getContractFactory("BeefyVaultOperator");
     const beefyVaultOperator = await beefyVaultOperatorFactory
         .connect(masterDeployer)
-        .deploy(WBNB.address, beefyVenusBNBVaultAddress);
+        .deploy([beefyVenusBNBVaultAddress], [WBNB.address]);
     await beefyVaultOperator.deployed();
 
     // Deploy Withdrawer

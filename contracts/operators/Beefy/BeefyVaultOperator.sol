@@ -1,22 +1,30 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.8.11;
 
+import "./BeefyVaultStorage.sol";
 import "./../../libraries/ExchangeHelpers.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title Beefy Single Vault Operator
 /// @notice Deposit/Withdraw in a Beefy vault (native or non-native).
 contract BeefyVaultOperator {
-    IERC20 public immutable token;
-    IERC20 public immutable vault;
+    BeefyVaultStorage public immutable operatorStorage;
 
-    constructor(IERC20 _token, IERC20 _vault) {
-        token = _token;
-        vault = _vault;
+    constructor(address[] memory vaults, address[] memory tokens) {
+        uint256 vaultsLength = vaults.length;
+        require(vaultsLength == tokens.length, "BVO: INVALID_VAULTS_LENGTH");
+        operatorStorage = new BeefyVaultStorage();
+
+        for (uint256 i; i < vaultsLength; i++) {
+            operatorStorage.addVault(vaults[i], tokens[i]);
+        }
+
+        operatorStorage.transferOwnership(msg.sender);
     }
 
     /// @notice Deposit the asset in the Beefy vault and receive
     ///         the vault token (moo).
+    /// @param vault The vault address to deposit into
     /// @param amount The token amount to deposit
     /// @param minVaultAmount The minimum vault token amount expected
     /// @return amounts Array of amounts :
@@ -25,12 +33,14 @@ contract BeefyVaultOperator {
     /// @return tokens Array of token addresses
     ///         - [0] : The vault token received address
     ///         - [1] : The token deposited address
-    function deposit(uint256 amount, uint256 minVaultAmount)
-        external
-        payable
-        returns (uint256[] memory amounts, address[] memory tokens)
-    {
+    function deposit(
+        IERC20 vault,
+        uint256 amount,
+        uint256 minVaultAmount
+    ) external payable returns (uint256[] memory amounts, address[] memory tokens) {
         require(amount != 0, "BVO: INVALID_AMOUNT");
+        IERC20 token = IERC20(operatorStorage.vaults(address(vault)));
+        require(address(token) != address(0), "BVO: INVALID_VAULT");
         amounts = new uint256[](2);
         tokens = new address[](2);
 
@@ -57,6 +67,7 @@ contract BeefyVaultOperator {
 
     /// @notice Withdraw the vault token (moo) from Beefy and receive
     ///         the underlying token.
+    /// @param vault The vault address to withdraw from
     /// @param amount The vault token amount to withdraw
     /// @return amounts Array of amounts :
     ///         - [0] : The token received amount
@@ -64,8 +75,13 @@ contract BeefyVaultOperator {
     /// @return tokens Array of token addresses
     ///         - [0] : The token received address
     ///         - [1] : The vault token deposited address
-    function withdraw(uint256 amount) external returns (uint256[] memory amounts, address[] memory tokens) {
+    function withdraw(IERC20 vault, uint256 amount)
+        external
+        returns (uint256[] memory amounts, address[] memory tokens)
+    {
         require(amount != 0, "BVO: INVALID_AMOUNT");
+        IERC20 token = IERC20(operatorStorage.vaults(address(vault)));
+        require(address(token) != address(0), "BVO: INVALID_VAULT");
         amounts = new uint256[](2);
         tokens = new address[](2);
 

@@ -6,6 +6,7 @@ import { BigNumber, Wallet } from "ethers";
 import { appendDecimals, BIG_NUMBER_ZERO, getExpectedFees } from "../helpers";
 import * as utils from "../../scripts/utils";
 import { ethers } from "hardhat";
+import { assert } from "console";
 
 let loadFixture: LoadFixtureFunction;
 
@@ -109,6 +110,76 @@ describeOnBscFork("BeefyVaultOperator", () => {
             const nfts = await context.nestedAssetBatcher.getNfts(context.user1.address);
 
             expect(JSON.stringify(utils.cleanResult(nfts))).to.equal(JSON.stringify(utils.cleanResult(expectedNfts)));
+        });
+
+        it("Create with FlatOperator and Deposit in Beefy with BNB", async () => {
+            // The user add 10 WBNB to the portfolio
+            const uniBought = appendDecimals(10);
+            const totalToBought = uniBought;
+            const expectedFee = getExpectedFees(totalToBought);
+            const totalToSpend = totalToBought.add(expectedFee);
+
+            // Add 10 UNI with FlatOperator
+            let orders: utils.OrderStruct[] = [
+                {
+                    operator: context.flatOperatorNameBytes32,
+                    token: context.WBNB.address,
+                    callData: utils.abiCoder.encode(["address", "uint256"], [context.WBNB.address, totalToBought]),
+                },
+            ];
+
+            // User1 creates the portfolio/NFT and emit event NftCreated
+            await expect(
+                context.nestedFactory.connect(context.user1).create(
+                    0,
+                    [
+                        {
+                            inputToken: ETH,
+                            amount: totalToSpend,
+                            orders,
+                            fromReserve: false,
+                        },
+                    ],
+                    { value: totalToSpend },
+                ),
+            )
+                .to.emit(context.nestedFactory, "NftCreated")
+                .withArgs(1, 0);
+
+            // Orders to Deposit in beefy
+            orders = [
+                utils.buildOrderStruct(context.beefyVaultDepositOperatorNameBytes32, context.WBNB.address, [
+                    ["address", context.beefyVenusBNBVaultAddress],
+                    ["uint256", totalToBought],
+                    ["uint256", 0], // 100% slippage
+                ]),
+            ];
+
+            // User1 deposit in beefy via OutputOrder
+            await expect(
+                context.nestedFactory.connect(context.user1).processOutputOrders(1, [
+                    {
+                        outputToken: context.beefyVenusBNBVaultAddress,
+                        amounts: [totalToBought],
+                        orders,
+                        toReserve: true,
+                    },
+                ]),
+            )
+                .to.emit(context.nestedFactory, "NftUpdated")
+                .withArgs(1);
+
+            const nfts = await context.nestedAssetBatcher.getNfts(context.user1.address);
+
+            expect(nfts[0].assets.length).to.equal(1);
+            expect(nfts[0].assets[0].token).to.equal(context.beefyVenusBNBVaultAddress);
+
+            // Moo and WBNB in Fee Splitter
+            const mockERC20Factory = await ethers.getContractFactory("MockERC20");
+            const vault = mockERC20Factory.attach(context.beefyVenusBNBVaultAddress);
+
+            expect(await vault.balanceOf(context.feeSplitter.address)).to.not.be.equal(BIG_NUMBER_ZERO);
+            expect(await context.WBNB.balanceOf(context.feeSplitter.address)).to.not.be.equal(BIG_NUMBER_ZERO);
         });
     });
 
