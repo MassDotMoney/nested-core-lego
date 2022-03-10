@@ -4,6 +4,7 @@ import { ActorFixture } from "./actors";
 
 import {
     BeefyVaultOperator,
+    BeefyVaultStorage,
     DummyRouter,
     FeeSplitter,
     FlatOperator,
@@ -342,6 +343,7 @@ export type FactoryAndOperatorsForkingBSCFixture = {
     flatOperatorNameBytes32: string;
     beefyVenusBNBVaultAddress: string;
     beefyVaultOperator: BeefyVaultOperator;
+    beefyVaultStorage: BeefyVaultStorage;
     beefyVaultDepositOperatorNameBytes32: string;
     beefyVaultWithdrawOperatorNameBytes32: string;
     withdrawer: Withdrawer;
@@ -420,6 +422,9 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
         .connect(masterDeployer)
         .deploy([beefyVenusBNBVaultAddress], [WBNB.address]);
     await beefyVaultOperator.deployed();
+
+    const beefyVaultStorageFactory = await ethers.getContractFactory("BeefyVaultStorage");
+    const beefyVaultStorage = beefyVaultStorageFactory.attach(await beefyVaultOperator.operatorStorage());
 
     // Deploy Withdrawer
     const withdrawerFactory = await ethers.getContractFactory("Withdrawer");
@@ -531,6 +536,7 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
         flatOperatorNameBytes32: toBytes32("Flat"),
         beefyVenusBNBVaultAddress,
         beefyVaultOperator,
+        beefyVaultStorage,
         beefyVaultDepositOperatorNameBytes32: toBytes32("BeefyDeposit"),
         beefyVaultWithdrawOperatorNameBytes32: toBytes32("BeefyWithdraw"),
         withdrawer,

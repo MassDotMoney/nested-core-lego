@@ -25,11 +25,14 @@ contract BeefyVaultStorage is Ownable {
         require(vault != address(0), "BVS: INVALID_VAULT_ADDRESS");
         require(token != address(0), "BVS: INVALID_TOKEN_ADDRESS");
         vaults[vault] = token;
+        emit VaultAdded(vault, token);
     }
 
     /// @notice Remove a beefy vault
     /// @param vault The vault address to remove
     function removeVault(address vault) external onlyOwner {
+        require(vaults[vault] != address(0), "BVS: NON_EXISTENT_VAULT");
         delete vaults[vault];
+        emit VaultRemoved(vault);
     }
 }

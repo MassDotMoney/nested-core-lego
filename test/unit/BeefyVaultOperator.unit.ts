@@ -1,12 +1,10 @@
 import { LoadFixtureFunction } from "../types";
 import { factoryAndOperatorsForkingBSCFixture, FactoryAndOperatorsForkingBSCFixture } from "../shared/fixtures";
-import { ActorFixture } from "../shared/actors";
 import { createFixtureLoader, describeOnBscFork, expect, provider } from "../shared/provider";
 import { BigNumber, Wallet } from "ethers";
 import { appendDecimals, BIG_NUMBER_ZERO, getExpectedFees } from "../helpers";
 import * as utils from "../../scripts/utils";
 import { ethers } from "hardhat";
-import { assert } from "console";
 
 let loadFixture: LoadFixtureFunction;
 
@@ -24,6 +22,52 @@ describeOnBscFork("BeefyVaultOperator", () => {
 
     it("deploys and has an address", async () => {
         expect(context.beefyVaultOperator.address).to.be.a.string;
+    });
+
+    describe("AddVault()", () => {
+        it("Should revert if vault is address zero", async () => {
+            const vaultToAdd = ethers.constants.AddressZero;
+            const tokenToAdd = Wallet.createRandom().address;
+            await expect(
+                context.beefyVaultStorage.connect(context.masterDeployer).addVault(vaultToAdd, tokenToAdd),
+            ).to.be.revertedWith("BVS: INVALID_VAULT_ADDRESS");
+        });
+
+        it("Should revert if token is address zero", async () => {
+            const vaultToAdd = Wallet.createRandom().address;
+            const tokenToAdd = ethers.constants.AddressZero;
+            await expect(
+                context.beefyVaultStorage.connect(context.masterDeployer).addVault(vaultToAdd, tokenToAdd),
+            ).to.be.revertedWith("BVS: INVALID_TOKEN_ADDRESS");
+        });
+
+        it("Should add new vault", async () => {
+            const vaultToAdd = Wallet.createRandom().address;
+            const tokenToAdd = Wallet.createRandom().address;
+            await context.beefyVaultStorage.connect(context.masterDeployer).addVault(vaultToAdd, tokenToAdd);
+
+            expect(await context.beefyVaultStorage.vaults(vaultToAdd)).to.equal(tokenToAdd);
+        });
+    });
+
+    describe("AddVault()", () => {
+        it("Should revert if non-existent vault", async () => {
+            const vaultToRemove = Wallet.createRandom().address;
+
+            await expect(
+                context.beefyVaultStorage.connect(context.masterDeployer).removeVault(vaultToRemove),
+            ).to.be.revertedWith("BVS: NON_EXISTENT_VAULT");
+        });
+
+        it("Should remove vault", async () => {
+            const vaultToAdd = Wallet.createRandom().address;
+            const tokenToAdd = Wallet.createRandom().address;
+            await context.beefyVaultStorage.connect(context.masterDeployer).addVault(vaultToAdd, tokenToAdd);
+
+            await context.beefyVaultStorage.connect(context.masterDeployer).removeVault(vaultToAdd);
+
+            expect(await context.beefyVaultStorage.vaults(vaultToAdd)).to.equal(ethers.constants.AddressZero);
+        });
     });
 
     describe("deposit()", () => {
