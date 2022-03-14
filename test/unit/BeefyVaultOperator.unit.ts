@@ -24,7 +24,7 @@ describeOnBscFork("BeefyVaultOperator", () => {
         expect(context.beefyVaultOperator.address).to.be.a.string;
     });
 
-    describe("AddVault()", () => {
+    describe("addVault()", () => {
         it("Should revert if vault is address zero", async () => {
             const vaultToAdd = ethers.constants.AddressZero;
             const tokenToAdd = Wallet.createRandom().address;
@@ -41,6 +41,16 @@ describeOnBscFork("BeefyVaultOperator", () => {
             ).to.be.revertedWith("BVS: INVALID_TOKEN_ADDRESS");
         });
 
+        it("Should revert if already existent vault", async () => {
+            const vaultToAdd = Wallet.createRandom().address;
+            const tokenToAdd = Wallet.createRandom().address;
+            await context.beefyVaultStorage.connect(context.masterDeployer).addVault(vaultToAdd, tokenToAdd);
+
+            await expect(
+                context.beefyVaultStorage.connect(context.masterDeployer).addVault(vaultToAdd, tokenToAdd),
+            ).to.be.revertedWith("BVS: ALREADY_EXISTENT_VAULT");
+        });
+
         it("Should add new vault", async () => {
             const vaultToAdd = Wallet.createRandom().address;
             const tokenToAdd = Wallet.createRandom().address;
@@ -50,7 +60,7 @@ describeOnBscFork("BeefyVaultOperator", () => {
         });
     });
 
-    describe("AddVault()", () => {
+    describe("removeVault()", () => {
         it("Should revert if non-existent vault", async () => {
             const vaultToRemove = Wallet.createRandom().address;
 

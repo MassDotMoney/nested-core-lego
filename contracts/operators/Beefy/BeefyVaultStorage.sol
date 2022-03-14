@@ -24,6 +24,7 @@ contract BeefyVaultStorage is Ownable {
     function addVault(address vault, address token) external onlyOwner {
         require(vault != address(0), "BVS: INVALID_VAULT_ADDRESS");
         require(token != address(0), "BVS: INVALID_TOKEN_ADDRESS");
+        require(vaults[vault] == address(0), "BVS: ALREADY_EXISTENT_VAULT");
         vaults[vault] = token;
         emit VaultAdded(vault, token);
     }

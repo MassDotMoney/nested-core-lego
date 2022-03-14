@@ -34,24 +34,24 @@ contract BeefyVaultOperator {
     ///         - [0] : The vault token received address
     ///         - [1] : The token deposited address
     function deposit(
-        IERC20 vault,
+        address vault,
         uint256 amount,
         uint256 minVaultAmount
     ) external payable returns (uint256[] memory amounts, address[] memory tokens) {
         require(amount != 0, "BVO: INVALID_AMOUNT");
-        IERC20 token = IERC20(operatorStorage.vaults(address(vault)));
+        IERC20 token = IERC20(operatorStorage.vaults(vault));
         require(address(token) != address(0), "BVO: INVALID_VAULT");
         amounts = new uint256[](2);
         tokens = new address[](2);
 
-        uint256 vaultBalanceBefore = vault.balanceOf(address(this));
+        uint256 vaultBalanceBefore = IERC20(vault).balanceOf(address(this));
         uint256 tokenBalanceBefore = token.balanceOf(address(this));
 
-        ExchangeHelpers.setMaxAllowance(token, address(vault));
-        (bool success, ) = address(vault).call(abi.encodeWithSignature("deposit(uint256)", amount));
+        ExchangeHelpers.setMaxAllowance(token, vault);
+        (bool success, ) = vault.call(abi.encodeWithSignature("deposit(uint256)", amount));
         require(success, "BVO: DEPOSIT_CALL_FAILED");
 
-        uint256 vaultAmount = vault.balanceOf(address(this)) - vaultBalanceBefore;
+        uint256 vaultAmount = IERC20(vault).balanceOf(address(this)) - vaultBalanceBefore;
         uint256 tokenAmount = tokenBalanceBefore - token.balanceOf(address(this));
         require(vaultAmount != 0 && vaultAmount >= minVaultAmount, "BVO: INVALID_AMOUNT_RECEIVED");
         require(amount == tokenAmount, "BVO: INVALID_AMOUNT_DEPOSITED");
@@ -61,7 +61,7 @@ contract BeefyVaultOperator {
         amounts[1] = tokenAmount;
 
         // Output token
-        tokens[0] = address(vault);
+        tokens[0] = vault;
         tokens[1] = address(token);
     }
 
@@ -75,24 +75,24 @@ contract BeefyVaultOperator {
     /// @return tokens Array of token addresses
     ///         - [0] : The token received address
     ///         - [1] : The vault token deposited address
-    function withdraw(IERC20 vault, uint256 amount)
+    function withdraw(address vault, uint256 amount)
         external
         returns (uint256[] memory amounts, address[] memory tokens)
     {
         require(amount != 0, "BVO: INVALID_AMOUNT");
-        IERC20 token = IERC20(operatorStorage.vaults(address(vault)));
+        IERC20 token = IERC20(operatorStorage.vaults(vault));
         require(address(token) != address(0), "BVO: INVALID_VAULT");
         amounts = new uint256[](2);
         tokens = new address[](2);
 
         uint256 tokenBalanceBefore = token.balanceOf(address(this));
-        uint256 vaultBalanceBefore = vault.balanceOf(address(this));
+        uint256 vaultBalanceBefore = IERC20(vault).balanceOf(address(this));
 
-        (bool success, ) = address(vault).call(abi.encodeWithSignature("withdraw(uint256)", amount));
+        (bool success, ) = vault.call(abi.encodeWithSignature("withdraw(uint256)", amount));
         require(success, "BVO: WITHDRAW_CALL_FAILED");
 
         uint256 tokenAmount = token.balanceOf(address(this)) - tokenBalanceBefore;
-        uint256 vaultAmount = vaultBalanceBefore - vault.balanceOf(address(this));
+        uint256 vaultAmount = vaultBalanceBefore - IERC20(vault).balanceOf(address(this));
         require(vaultAmount == amount, "BVO: INVALID_AMOUNT_WITHDRAWED");
         require(tokenAmount != 0, "BVO: INVALID_AMOUNT");
 
@@ -102,6 +102,6 @@ contract BeefyVaultOperator {
 
         // Output token
         tokens[0] = address(token);
-        tokens[1] = address(vault);
+        tokens[1] = vault;
     }
 }
