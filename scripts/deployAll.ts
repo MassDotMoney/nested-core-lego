@@ -1,7 +1,7 @@
 import hre, { ethers, network } from "hardhat";
 import { Contract, ContractTransaction } from "ethers";
 import addresses from "../addresses.json";
-import { importOperators, registerFlat, registerZeroEx } from './utils';
+import { importOperators, registerFlat, registerZeroEx } from "./utils";
 
 interface Deployment {
     name: string;
@@ -70,7 +70,7 @@ async function main(): Promise<void> {
 
     // Add ZeroExStorage address
     const zeroExStorage = await zeroExOperator.operatorStorage();
-    deployments.push({ name: "ZeroExStorage", address: zeroExStorage })
+    deployments.push({ name: "ZeroExStorage", address: zeroExStorage });
 
     // Deploy FlatOperator
     const flatOperator = await flatOperatorFactory.deploy();
@@ -83,16 +83,15 @@ async function main(): Promise<void> {
     console.log("Withdrawer deployed : ", withdrawer.address);
 
     // Deploy NestedFactory
-    const nestedFactory = await nestedFactoryFactory
-        .deploy(
-            nestedAsset.address,
-            nestedRecords.address,
-            nestedReserve.address,
-            feeSplitter.address,
-            WETH,
-            operatorResolver.address,
-            withdrawer.address,
-        );
+    const nestedFactory = await nestedFactoryFactory.deploy(
+        nestedAsset.address,
+        nestedRecords.address,
+        nestedReserve.address,
+        feeSplitter.address,
+        WETH,
+        operatorResolver.address,
+        withdrawer.address,
+    );
     await verify("NestedFactory", nestedFactory, [
         nestedAsset.address,
         nestedRecords.address,
@@ -130,16 +129,13 @@ async function main(): Promise<void> {
     // Reset feeSplitter in proxy storage
     await run(await proxyImpl.setFeeSplitter(feeSplitter.address));
 
-    await importOperators(operatorResolver, [
-        registerFlat(flatOperator),
-        registerZeroEx(zeroExOperator),
-    ], proxyImpl);
+    await importOperators(operatorResolver, [registerFlat(flatOperator), registerZeroEx(zeroExOperator)], proxyImpl);
 
     // Convert JSON object to string
     const data = JSON.stringify(deployments);
     console.log(data);
 
-    // Verify 
+    // Verify
 
     await delay(60000);
 
@@ -177,7 +173,7 @@ async function main(): Promise<void> {
     });
 
     await delay(10000);
-    
+
     await hre.run("verify:verify", {
         address: zeroExOperator.address,
         constructorArguments: [zeroExSwapTarget],
@@ -229,7 +225,7 @@ async function main(): Promise<void> {
 
 async function verify(name: string, contract: Contract, params: any[]) {
     await contract.deployed();
-    deployments.push({ name: name, address: contract.address })
+    deployments.push({ name: name, address: contract.address });
 }
 
 async function run(tx: ContractTransaction) {
@@ -240,7 +236,7 @@ async function run(tx: ContractTransaction) {
 main()
     .then(() => process.exit(0))
     .catch((error: Error) => {
-        console.log(JSON.stringify(deployments))
+        console.log(JSON.stringify(deployments));
         console.error(error);
         process.exit(1);
     });

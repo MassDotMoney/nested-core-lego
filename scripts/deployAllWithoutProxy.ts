@@ -1,7 +1,7 @@
 import hre, { ethers, network } from "hardhat";
 import { Contract } from "ethers";
 import addresses from "../addresses.json";
-import { importOperators, registerFlat, registerZeroEx } from './utils';
+import { importOperators, registerFlat, registerZeroEx } from "./utils";
 
 interface Deployment {
     name: string;
@@ -70,7 +70,7 @@ async function main(): Promise<void> {
     console.log("ZeroExOperator deployed : ", zeroExOperator.address);
 
     // Add ZeroExStorage address
-    deployments.push({name: "ZeroExStorage", address: await zeroExOperator.operatorStorage()})
+    deployments.push({ name: "ZeroExStorage", address: await zeroExOperator.operatorStorage() });
 
     // Deploy FlatOperator
     const flatOperator = await flatOperatorFactory.deploy();
@@ -83,22 +83,23 @@ async function main(): Promise<void> {
     console.log("Withdrawer deployed : ", withdrawer.address);
 
     // Deploy NestedFactory
-    const nestedFactory = await nestedFactoryFactory
-        .deploy(
-            nestedAsset.address,
-            nestedRecords.address,
-            nestedReserve.address,
-            feeSplitter.address,
-            WETH,
-            operatorResolver.address,
-            withdrawer.address,
-        );
-    await verify("NestedFactory", nestedFactory, [nestedAsset.address,
+    const nestedFactory = await nestedFactoryFactory.deploy(
+        nestedAsset.address,
         nestedRecords.address,
         nestedReserve.address,
         feeSplitter.address,
         WETH,
-        operatorResolver.address]);
+        operatorResolver.address,
+        withdrawer.address,
+    );
+    await verify("NestedFactory", nestedFactory, [
+        nestedAsset.address,
+        nestedRecords.address,
+        nestedReserve.address,
+        feeSplitter.address,
+        WETH,
+        operatorResolver.address,
+    ]);
     console.log("NestedFactory deployed : ", nestedFactory.address);
 
     // Set factory to asset, records and reserve
@@ -112,10 +113,11 @@ async function main(): Promise<void> {
     // Add operators to OperatorResolver
 
     // Add operators to OperatorResolver
-    await importOperators(operatorResolver, [
-        registerFlat(flatOperator),
-        registerZeroEx(zeroExOperator),
-    ], nestedFactory);
+    await importOperators(
+        operatorResolver,
+        [registerFlat(flatOperator), registerZeroEx(zeroExOperator)],
+        nestedFactory,
+    );
 
     // Convert JSON object to string
     const data = JSON.stringify(deployments);
@@ -132,13 +134,13 @@ async function verify(name: string, contract: Contract, params: any[]) {
             constructorArguments: params,
         });
     }
-    deployments.push({name: name, address: contract.address})
+    deployments.push({ name: name, address: contract.address });
 }
 
 main()
     .then(() => process.exit(0))
     .catch((error: Error) => {
-        console.log(JSON.stringify(deployments))
+        console.log(JSON.stringify(deployments));
         console.error(error);
         process.exit(1);
     });

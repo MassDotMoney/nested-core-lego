@@ -1,7 +1,7 @@
 import hre from "hardhat";
 import { getSigners } from "hardhat-deploy-ethers/dist/src/helpers";
 
-async function main(): Promise<void> { 
+async function main(): Promise<void> {
     const nonceToReach = 117; // to set
 
     const signers = await getSigners(hre);
@@ -15,8 +15,8 @@ async function main(): Promise<void> {
     for (let i = nextNonce; i < nonceToReach; i++) {
         let txSent = await signers[0].sendTransaction({
             to: signers[0].address,
-            value: 0
-        })
+            value: 0,
+        });
         await txSent.wait();
     }
 }

@@ -1,6 +1,6 @@
-import { FlatOperator, NestedFactory, OperatorResolver, ZeroExOperator } from '../typechain';
+import { FlatOperator, NestedFactory, OperatorResolver, ZeroExOperator } from "../typechain";
 import { FactoryAndOperatorsFixture } from "../test/shared/fixtures";
-import * as ethers from 'ethers';
+import * as ethers from "ethers";
 import { BigNumber, BigNumberish, BytesLike } from "ethers";
 import * as w3utils from "web3-utils";
 
@@ -51,7 +51,11 @@ export function buildOrderStruct(operator: string, outToken: string, data: [RawD
     };
 }
 
-export async function importOperators(inResolver: OperatorResolver, operators: Op[], nestedFactory: NestedFactory | null) {
+export async function importOperators(
+    inResolver: OperatorResolver,
+    operators: Op[],
+    nestedFactory: NestedFactory | null,
+) {
     // Import operator in resolver
     let tx = await inResolver.importOperators(
         operators.map(o => toBytes32(o.name)),
@@ -59,7 +63,7 @@ export async function importOperators(inResolver: OperatorResolver, operators: O
             implementation: o.contract,
             selector: computeSelector(o.signature),
         })),
-        []
+        [],
     );
     await tx.wait();
 
@@ -72,7 +76,12 @@ export async function importOperators(inResolver: OperatorResolver, operators: O
     await tx?.wait();
 }
 
-export async function importOperatorsWithSigner(inResolver: OperatorResolver, operators: Op[], nestedFactory: NestedFactory | null, signer: ethers.Wallet) {
+export async function importOperatorsWithSigner(
+    inResolver: OperatorResolver,
+    operators: Op[],
+    nestedFactory: NestedFactory | null,
+    signer: ethers.Wallet,
+) {
     // Import operator in resolver
     let tx = await inResolver.connect(signer).importOperators(
         operators.map(o => toBytes32(o.name)),
@@ -80,7 +89,7 @@ export async function importOperatorsWithSigner(inResolver: OperatorResolver, op
             implementation: o.contract,
             selector: computeSelector(o.signature),
         })),
-        []
+        [],
     );
     await tx.wait();
 
@@ -102,26 +111,25 @@ export function computeSelector(signature: string): string {
     let iface = new ethers.utils.Interface([signature]);
     const fns = Object.keys(iface.functions);
     if (fns.length !== 1) {
-        throw new Error('Multiple functions defined (??!)');
+        throw new Error("Multiple functions defined (??!)");
     }
     return iface.getSighash(fns[0]);
 }
 
-
 export function registerZeroEx(operator: ZeroExOperator): Op {
     return {
-        name: 'ZeroEx',
+        name: "ZeroEx",
         contract: operator.address,
-        signature: 'function performSwap(address sellToken, address buyToken, bytes calldata swapCallData)',
-    }
+        signature: "function performSwap(address sellToken, address buyToken, bytes calldata swapCallData)",
+    };
 }
 
 export function registerFlat(operator: FlatOperator): Op {
     return {
-        name: 'Flat',
+        name: "Flat",
         contract: operator.address,
-        signature: 'function transfer(address token, uint256 amount)',
-    }
+        signature: "function transfer(address token, uint256 amount)",
+    };
 }
 
 export function toBytes32(key: string) {
@@ -140,7 +148,11 @@ export function cleanResult<T>(r: T): T {
 }
 
 // Create the Orders to buy KNC and UNI with DAI
-export function getUniAndKncWithDaiOrders(context: FactoryAndOperatorsFixture, uniBought: BigNumber, kncBought: BigNumber) {
+export function getUniAndKncWithDaiOrders(
+    context: FactoryAndOperatorsFixture,
+    uniBought: BigNumber,
+    kncBought: BigNumber,
+) {
     return [
         buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
             ["address", context.mockDAI.address],
@@ -174,7 +186,11 @@ export function getUniAndKncWithDaiOrders(context: FactoryAndOperatorsFixture, u
 }
 
 // Create the Orders to buy KNC and UNI with ETH
-export function getUniAndKncWithETHOrders(context: FactoryAndOperatorsFixture, uniBought: BigNumber, kncBought: BigNumber) {
+export function getUniAndKncWithETHOrders(
+    context: FactoryAndOperatorsFixture,
+    uniBought: BigNumber,
+    kncBought: BigNumber,
+) {
     return [
         buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
             ["address", context.WETH.address],
@@ -208,7 +224,12 @@ export function getUniAndKncWithETHOrders(context: FactoryAndOperatorsFixture, u
 }
 
 // Generic function to create a 1:1 Order
-export function getTokenBWithTokenAOrders(context: FactoryAndOperatorsFixture, amount: BigNumber, tokenA: string, tokenB: string) {
+export function getTokenBWithTokenAOrders(
+    context: FactoryAndOperatorsFixture,
+    amount: BigNumber,
+    tokenA: string,
+    tokenB: string,
+) {
     return [
         buildOrderStruct(context.zeroExOperatorNameBytes32, tokenB, [
             ["address", tokenA],
@@ -225,7 +246,11 @@ export function getTokenBWithTokenAOrders(context: FactoryAndOperatorsFixture, a
 }
 
 // Create the Orders to get USDC with UNI and KNC
-export function getUsdcWithUniAndKncOrders(context: FactoryAndOperatorsFixture, uniSold: BigNumber, kncSold: BigNumber) {
+export function getUsdcWithUniAndKncOrders(
+    context: FactoryAndOperatorsFixture,
+    uniSold: BigNumber,
+    kncSold: BigNumber,
+) {
     return [
         buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
             ["address", context.mockUNI.address],
@@ -259,7 +284,11 @@ export function getUsdcWithUniAndKncOrders(context: FactoryAndOperatorsFixture, 
 }
 
 // Create the Orders to get Eth with UNI and KNC
-export function getWethWithUniAndKncOrders(context: FactoryAndOperatorsFixture, uniSold: BigNumber, kncSold: BigNumber) {
+export function getWethWithUniAndKncOrders(
+    context: FactoryAndOperatorsFixture,
+    uniSold: BigNumber,
+    kncSold: BigNumber,
+) {
     return [
         buildOrderStruct(context.zeroExOperatorNameBytes32, context.mockUNI.address, [
             ["address", context.mockUNI.address],

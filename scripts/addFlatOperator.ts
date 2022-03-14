@@ -1,6 +1,6 @@
 import hre, { ethers, network } from "hardhat";
 import addresses from "../addresses.json";
-import { importOperators, registerFlat } from './utils';
+import { importOperators, registerFlat } from "./utils";
 
 const chainId: string = network.config.chainId.toString();
 const context = JSON.parse(JSON.stringify(addresses));
@@ -30,9 +30,7 @@ async function main(): Promise<void> {
         });
     }
 
-    await importOperators(operatorResolver, [
-        registerFlat(flatOperator)
-    ], nestedFactory);
+    await importOperators(operatorResolver, [registerFlat(flatOperator)], nestedFactory);
 }
 
 main()
