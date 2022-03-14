@@ -4,8 +4,9 @@ import { appendDecimals } from "../helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 import { DummyRouter, FeeSplitter, MockERC20, NestedBuybacker, WETH9 } from "../../typechain";
+import { describeWithoutFork } from "../shared/provider";
 
-describe("NestedBuybacker", () => {
+describeWithoutFork("NestedBuybacker", () => {
     let alice: SignerWithAddress, bob: SignerWithAddress, communityReserve: SignerWithAddress;
     let feeSplitter: FeeSplitter, mockWETH: WETH9;
     let mockNST: MockERC20, mockUSDT: MockERC20;

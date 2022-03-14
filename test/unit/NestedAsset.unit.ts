@@ -2,16 +2,15 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { NestedAsset, NestedAsset__factory } from "../../typechain";
-import { BigNumber } from "ethers";
+import { describeWithoutFork } from "../shared/provider";
 
-describe("NestedAsset", () => {
+describeWithoutFork("NestedAsset", () => {
     let NestedAsset: NestedAsset__factory, asset: NestedAsset;
     let factory: SignerWithAddress,
         alice: SignerWithAddress,
         bob: SignerWithAddress,
         feeToSetter: SignerWithAddress,
         feeTo: SignerWithAddress;
-    const metadataUri = "ipfs://bafybeiam5u4xc5527tv6ghlwamd6azfthmcuoa6uwnbbvqbtsyne4p7khq/metadata.json";
 
     before(async () => {
         NestedAsset = await ethers.getContractFactory("NestedAsset");

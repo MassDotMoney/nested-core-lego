@@ -1,7 +1,7 @@
 import { LoadFixtureFunction } from "../types";
 import { zeroExOperatorFixture, ZeroExOperatorFixture } from "../shared/fixtures";
 import { ActorFixture } from "../shared/actors";
-import { createFixtureLoader, expect, provider } from "../shared/provider";
+import { createFixtureLoader, describeWithoutFork, expect, provider } from "../shared/provider";
 import { BigNumber, Wallet } from "ethers";
 
 let loadFixture: LoadFixtureFunction;
@@ -9,7 +9,7 @@ let loadFixture: LoadFixtureFunction;
 /*
  * The operator's in-depth tests are in the factory tests.
  */
-describe("ZeroExOperator", () => {
+describeWithoutFork("ZeroExOperator", () => {
     let context: ZeroExOperatorFixture;
     const actors = new ActorFixture(provider.getWallets() as Wallet[], provider);
 

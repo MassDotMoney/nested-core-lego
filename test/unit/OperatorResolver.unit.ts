@@ -1,6 +1,6 @@
 import { LoadFixtureFunction } from "../types";
 import { OperatorResolverFixture, operatorResolverFixture } from "../shared/fixtures";
-import { createFixtureLoader, provider, expect } from "../shared/provider";
+import { createFixtureLoader, provider, expect, describeWithoutFork } from "../shared/provider";
 import { toBytes32 } from "../helpers";
 import { ActorFixture } from "../shared/actors";
 import { Wallet } from "ethers";
@@ -11,7 +11,7 @@ import { computeSelector } from "../../scripts/utils";
 
 let loadFixture: LoadFixtureFunction;
 
-describe("OperatorResolver", () => {
+describeWithoutFork("OperatorResolver", () => {
     let context: OperatorResolverFixture;
     const actors = new ActorFixture(provider.getWallets() as Wallet[], provider);
 

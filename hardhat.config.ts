@@ -35,6 +35,10 @@ const config: HardhatUserConfig = {
             // but Hardhat uses a different number by default. Please voice your support for MetaMask to fix this:
             // https://github.com/MetaMask/metamask-extension/issues/9827
             chainId: 1337,
+            forking: {
+                url: process.env.FORK_URL, 
+                enabled: process.env.FORKING === "true" 
+            }
         },
         ropsten: {
             url: `https://eth-ropsten.alchemyapi.io/v2/${process.env.ALCHEMY_ROPSTEN_API_KEY}`,

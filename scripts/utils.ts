@@ -1,6 +1,7 @@
-import { FlatOperator, NestedFactory, OperatorResolver, ZeroExOperator } from "../typechain";
-import { FactoryAndOperatorsFixture } from "../test/shared/fixtures";
-import * as ethers from "ethers";
+import { BeefyVaultOperator, FlatOperator, NestedFactory, OperatorResolver, ZeroExOperator } from '../typechain';
+import { FactoryAndOperatorsFixture, FactoryAndOperatorsForkingBSCFixture } from "../test/shared/fixtures";
+import * as ethers from 'ethers';
+
 import { BigNumber, BigNumberish, BytesLike } from "ethers";
 import * as w3utils from "web3-utils";
 
@@ -132,6 +133,22 @@ export function registerFlat(operator: FlatOperator): Op {
     };
 }
 
+export function registerBeefyDeposit(operator: BeefyVaultOperator): Op {
+    return {
+        name: 'BeefyDeposit',
+        contract: operator.address,
+        signature: 'function deposit(address vault, uint256 amount, uint256 minVaultAmount)',
+    }
+}
+
+export function registerBeefyWithdraw(operator: BeefyVaultOperator): Op {
+    return {
+        name: 'BeefyWithdraw',
+        contract: operator.address,
+        signature: 'function withdraw(address vault, uint256 amount)',
+    }
+}
+
 export function toBytes32(key: string) {
     return w3utils.rightPad(w3utils.asciiToHex(key), 64);
 }
@@ -219,6 +236,27 @@ export function getUniAndKncWithETHOrders(
                     ),
                 ]),
             ],
+        ]),
+    ];
+}
+
+// Create a Deposit order in Beefy (BNB Venus Vault on BSC)
+export function getBeefyBnbVenusDepositOrder(context: FactoryAndOperatorsForkingBSCFixture, bnbToDeposit: BigNumber) {
+    return [
+        buildOrderStruct(context.beefyVaultDepositOperatorNameBytes32, context.beefyVenusBNBVaultAddress, [
+            ["address", context.beefyVenusBNBVaultAddress],
+            ["uint256", bnbToDeposit],
+            ["uint256", 0] // 100% slippage
+        ]),
+    ];
+}
+
+// Create a Withdraw order in Beefy (BNB Venus Vault on BSC)
+export function getBeefyBnbVenusWithdrawOrder(context: FactoryAndOperatorsForkingBSCFixture, mooToWithdraw: BigNumber) {
+    return [
+        buildOrderStruct(context.beefyVaultWithdrawOperatorNameBytes32, context.beefyVenusBNBVaultAddress, [
+            ["address", context.beefyVenusBNBVaultAddress],
+            ["uint256", mooToWithdraw]
         ]),
     ];
 }

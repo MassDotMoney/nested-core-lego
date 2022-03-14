@@ -1,8 +1,7 @@
 import { LoadFixtureFunction } from "../types";
 import { factoryAndOperatorsFixture, FactoryAndOperatorsFixture } from "../shared/fixtures";
-import { createFixtureLoader, expect, provider } from "../shared/provider";
+import { createFixtureLoader, expect, provider, describeWithoutFork } from "../shared/provider";
 import { appendDecimals, getExpectedFees } from "../helpers";
-import { ethers } from "hardhat";
 import * as utils from "../../scripts/utils";
 
 let loadFixture: LoadFixtureFunction;
@@ -13,7 +12,7 @@ interface Order {
     callData: string | [];
 }
 
-describe("FlatOperator", () => {
+describeWithoutFork("FlatOperator", () => {
     let context: FactoryAndOperatorsFixture;
 
     before("loader", async () => {
