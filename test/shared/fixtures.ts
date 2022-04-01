@@ -3,6 +3,7 @@ import { ethers, network } from "hardhat";
 import { ActorFixture } from "./actors";
 
 import {
+    AugustusSwapper,
     BeefyVaultOperator,
     BeefyVaultStorage,
     DummyRouter,
@@ -15,6 +16,7 @@ import {
     NestedRecords,
     NestedReserve,
     OperatorResolver,
+    ParaswapOperator,
     TestableOperatorCaller,
     WETH9,
     Withdrawer,
@@ -29,6 +31,7 @@ import {
     registerZeroEx,
     registerBeefyDeposit,
     registerBeefyWithdraw,
+    registerParaswap,
 } from "../../scripts/utils";
 
 export type OperatorResolverFixture = { operatorResolver: OperatorResolver };
@@ -85,6 +88,44 @@ export const zeroExOperatorFixture: Fixture<ZeroExOperatorFixture> = async (wall
     return { zeroExOperator, dummyRouter, dummyRouterInterface, mockUNI, mockDAI, testableOperatorCaller };
 };
 
+export type ParaswapOperatorFixture = {
+    paraswapOperator: ParaswapOperator;
+    augustusSwapper: AugustusSwapper;
+    augustusSwapperInterface: Interface;
+    mockUNI: MockERC20;
+    mockDAI: MockERC20;
+    testableOperatorCaller: TestableOperatorCaller;
+};
+
+export const paraswapOperatorFixture: Fixture<ParaswapOperatorFixture> = async (wallets, provider) => {
+    const signer = new ActorFixture(wallets as Wallet[], provider).zeroExOperatorOwner();
+
+    const augustusSwapperFactory = await ethers.getContractFactory("AugustusSwapper");
+    const augustusSwapper = await augustusSwapperFactory.connect(signer).deploy();
+
+    const augustusSwapperInterface = augustusSwapper.interface;
+
+    const paraswapOperatorFactory = await ethers.getContractFactory("ParaswapOperator");
+    const paraswapOperator = await paraswapOperatorFactory.connect(signer).deploy(await augustusSwapper.proxy(), augustusSwapper.address);
+
+    const mockERC20Factory = await ethers.getContractFactory("MockERC20");
+    const mockUNI = await mockERC20Factory.deploy("Mocked UNI", "UNI", appendDecimals(3000000));
+    await mockUNI.deployed();
+    const mockDAI = await mockERC20Factory.deploy("Mocked DAI", "DAI", appendDecimals(3000000));
+    await mockDAI.deployed();
+
+    await mockUNI.transfer(augustusSwapper.address, appendDecimals(1000));
+    await mockDAI.transfer(augustusSwapper.address, appendDecimals(1000));
+
+    const testableOperatorCallerFactory = await ethers.getContractFactory("TestableOperatorCaller");
+    const testableOperatorCaller = await testableOperatorCallerFactory.connect(signer).deploy(paraswapOperator.address);
+
+    await mockUNI.transfer(testableOperatorCaller.address, appendDecimals(1000));
+    await mockDAI.transfer(testableOperatorCaller.address, appendDecimals(1000));
+
+    return { paraswapOperator, augustusSwapper, augustusSwapperInterface, mockUNI, mockDAI, testableOperatorCaller };
+};
+
 export type FactoryAndOperatorsFixture = {
     WETH: WETH9;
     mockUNI: MockERC20;
@@ -100,8 +141,11 @@ export type FactoryAndOperatorsFixture = {
     maxHoldingsCount: BigNumber;
     operatorResolver: OperatorResolver;
     dummyRouter: DummyRouter;
+    augustusSwapper: AugustusSwapper;
     zeroExOperator: ZeroExOperator;
     zeroExOperatorNameBytes32: string;
+    paraswapOperator: ParaswapOperator;
+    paraswapOperatorNameBytes32: string;
     flatOperator: FlatOperator;
     flatOperatorNameBytes32: string;
     withdrawer: Withdrawer;
@@ -182,6 +226,18 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
     const zeroExOperator = await zeroExOperatorFactory.connect(masterDeployer).deploy(dummyRouter.address);
     await zeroExOperator.deployed();
 
+    // Deploy AugustusSwapper (Fake Paraswap)
+    const augustusSwapperFactory = await ethers.getContractFactory("AugustusSwapper");
+    const augustusSwapper = await augustusSwapperFactory.connect(masterDeployer).deploy();
+    await augustusSwapper.deployed();
+
+    // Deploy ParaswapOperator
+    const paraswapOperatorFactory = await ethers.getContractFactory("ParaswapOperator");
+    const paraswapOperator = await paraswapOperatorFactory
+        .connect(masterDeployer)
+        .deploy(await augustusSwapper.proxy(), augustusSwapper.address);
+    await paraswapOperator.deployed();
+
     // Deploy FlatOperator
     const flatOperatorFactory = await ethers.getContractFactory("FlatOperator");
     const flatOperator = await flatOperatorFactory.connect(masterDeployer).deploy();
@@ -256,7 +312,7 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
 
     await importOperatorsWithSigner(
         operatorResolver,
-        [registerZeroEx(zeroExOperator), registerFlat(flatOperator)],
+        [registerZeroEx(zeroExOperator), registerFlat(flatOperator), registerParaswap(paraswapOperator)],
         nestedFactory,
         masterDeployer,
     );
@@ -274,6 +330,10 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
     await mockKNC.connect(masterDeployer).transfer(dummyRouter.address, baseAmount);
     await mockDAI.connect(masterDeployer).transfer(dummyRouter.address, baseAmount);
     await mockUSDC.connect(masterDeployer).transfer(dummyRouter.address, baseAmount);
+    await mockUNI.connect(masterDeployer).transfer(augustusSwapper.address, baseAmount);
+    await mockKNC.connect(masterDeployer).transfer(augustusSwapper.address, baseAmount);
+    await mockDAI.connect(masterDeployer).transfer(augustusSwapper.address, baseAmount);
+    await mockUSDC.connect(masterDeployer).transfer(augustusSwapper.address, baseAmount);
     await mockUNI.connect(masterDeployer).transfer(user1.address, baseAmount);
     await mockKNC.connect(masterDeployer).transfer(user1.address, baseAmount);
     await mockDAI.connect(masterDeployer).transfer(user1.address, baseAmount);
@@ -286,8 +346,9 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
     await mockUSDC.connect(user1).approve(nestedFactory.address, baseAmount);
 
     // Wrap some ETH and send them to the dummy router
-    await WETH.connect(masterDeployer).deposit({ value: appendDecimals(100) });
+    await WETH.connect(masterDeployer).deposit({ value: appendDecimals(200) });
     await WETH.connect(masterDeployer).transfer(dummyRouter.address, appendDecimals(100));
+    await WETH.connect(masterDeployer).transfer(augustusSwapper.address, appendDecimals(100));
 
     // Deploy NestedAssetBatcher
     const nestedAssetBatcherFactory = await ethers.getContractFactory("NestedAssetBatcher");
@@ -315,6 +376,9 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
         flatOperatorNameBytes32: toBytes32("Flat"),
         withdrawer,
         dummyRouter,
+        augustusSwapper,
+        paraswapOperator,
+        paraswapOperatorNameBytes32: toBytes32("Paraswap"),
         zeroExOperator,
         nestedFactory,
         nestedReserve,

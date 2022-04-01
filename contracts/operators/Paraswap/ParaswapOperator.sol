@@ -8,11 +8,15 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /// @title The paraswap operator to execute swap with the aggregator
 /// @dev see documentation => https://developers.paraswap.network/smart-contracts
 contract ParaswapOperator is IParaswapOperator {
-    address public constant TOKEN_TRANSFER_PROXY = 0x216B4B4Ba9F3e719726886d34a177484278Bfcae;
-    address public constant AUGUSTUS_SWAPPER = 0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57;
+    address public immutable tokenTransferProxy;
+    address public immutable augustusSwapper;
 
-    /// @dev No storage
-    constructor() {}
+    /// @dev No storage, only immutable
+    constructor(address _tokenTransferProxy, address _augustusSwapper) {
+        require(_tokenTransferProxy != address(0) && _augustusSwapper != address(0), "PSO: INVALID_ADDRESS");
+        tokenTransferProxy = _tokenTransferProxy;
+        augustusSwapper = _augustusSwapper;
+    }
 
     /// @inheritdoc IParaswapOperator
     function performSwap(
@@ -26,8 +30,8 @@ contract ParaswapOperator is IParaswapOperator {
         uint256 buyBalanceBeforePurchase = buyToken.balanceOf(address(this));
         uint256 sellBalanceBeforePurchase = sellToken.balanceOf(address(this));
 
-        ExchangeHelpers.setMaxAllowance(sellToken, TOKEN_TRANSFER_PROXY);
-        (bool success, ) = AUGUSTUS_SWAPPER.call(swapCallData);
+        ExchangeHelpers.setMaxAllowance(sellToken, tokenTransferProxy);
+        (bool success, ) = augustusSwapper.call(swapCallData);
         require(success, "PSO: SWAP_FAILED");
 
         uint256 amountBought = buyToken.balanceOf(address(this)) - buyBalanceBeforePurchase;
