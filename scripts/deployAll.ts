@@ -103,7 +103,11 @@ async function main(): Promise<void> {
     ]);
     console.log("NestedFactory deployed : ", nestedFactory.address);
 
+    await delay(3000);
+    
     const owner = await nestedRecords.owner();
+
+    await delay(3000);
 
     // Deploy FactoryProxy
     const factoryProxy = await transparentUpgradeableProxyFactory.deploy(nestedFactory.address, owner, []);
@@ -226,6 +230,7 @@ async function main(): Promise<void> {
 async function verify(name: string, contract: Contract, params: any[]) {
     await contract.deployed();
     deployments.push({ name: name, address: contract.address });
+    await delay(6000);
 }
 
 async function run(tx: ContractTransaction) {

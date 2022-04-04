@@ -19,9 +19,9 @@
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-            "multisig": "",
+            "multisig": "0x2B93035B9f93E617aC468B220E7a1E5012Bd6E3d",
             "emergencyMultisig": "",
-            "nestedTreasury": ""
+            "nestedTreasury": "0x2eeE8d38eA788A7260df8C4D32f39066DD80eF3B"
         }
     },
     "56": {

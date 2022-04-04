@@ -9,6 +9,7 @@ import "@nomiclabs/hardhat-solhint";
 import "hardhat-contract-sizer";
 import "hardhat-dependency-compiler";
 import "@nomiclabs/hardhat-etherscan";
+import "@tenderly/hardhat-tenderly";
 
 import { HardhatUserConfig } from "hardhat/config";
 
@@ -107,6 +108,10 @@ const config: HardhatUserConfig = {
             "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol"
         ],
     },
+    tenderly: {
+        project: "",
+        username: "",
+    }
 };
 
 export default config;
