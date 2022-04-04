@@ -1,6 +1,13 @@
-import { BeefyVaultOperator, FlatOperator, NestedFactory, OperatorResolver, ZeroExOperator } from '../typechain';
+import {
+    BeefyVaultOperator,
+    FlatOperator,
+    NestedFactory,
+    OperatorResolver,
+    ParaswapOperator,
+    ZeroExOperator,
+} from "../typechain";
 import { FactoryAndOperatorsFixture, FactoryAndOperatorsForkingBSCFixture } from "../test/shared/fixtures";
-import * as ethers from 'ethers';
+import * as ethers from "ethers";
 
 import { BigNumber, BigNumberish, BytesLike } from "ethers";
 import * as w3utils from "web3-utils";
@@ -125,6 +132,14 @@ export function registerZeroEx(operator: ZeroExOperator): Op {
     };
 }
 
+export function registerParaswap(operator: ParaswapOperator): Op {
+    return {
+        name: "Paraswap",
+        contract: operator.address,
+        signature: "function performSwap(address sellToken, address buyToken, bytes calldata swapCallData)",
+    };
+}
+
 export function registerFlat(operator: FlatOperator): Op {
     return {
         name: "Flat",
@@ -135,18 +150,18 @@ export function registerFlat(operator: FlatOperator): Op {
 
 export function registerBeefyDeposit(operator: BeefyVaultOperator): Op {
     return {
-        name: 'BeefyDeposit',
+        name: "BeefyDeposit",
         contract: operator.address,
-        signature: 'function deposit(address vault, uint256 amount, uint256 minVaultAmount)',
-    }
+        signature: "function deposit(address vault, uint256 amount, uint256 minVaultAmount)",
+    };
 }
 
 export function registerBeefyWithdraw(operator: BeefyVaultOperator): Op {
     return {
-        name: 'BeefyWithdraw',
+        name: "BeefyWithdraw",
         contract: operator.address,
-        signature: 'function withdraw(address vault, uint256 amount)',
-    }
+        signature: "function withdraw(address vault, uint256 amount)",
+    };
 }
 
 export function toBytes32(key: string) {
@@ -246,7 +261,7 @@ export function getBeefyBnbVenusDepositOrder(context: FactoryAndOperatorsForking
         buildOrderStruct(context.beefyVaultDepositOperatorNameBytes32, context.beefyVenusBNBVaultAddress, [
             ["address", context.beefyVenusBNBVaultAddress],
             ["uint256", bnbToDeposit],
-            ["uint256", 0] // 100% slippage
+            ["uint256", 0], // 100% slippage
         ]),
     ];
 }
@@ -256,7 +271,7 @@ export function getBeefyBnbVenusWithdrawOrder(context: FactoryAndOperatorsForkin
     return [
         buildOrderStruct(context.beefyVaultWithdrawOperatorNameBytes32, context.beefyVenusBNBVaultAddress, [
             ["address", context.beefyVenusBNBVaultAddress],
-            ["uint256", mooToWithdraw]
+            ["uint256", mooToWithdraw],
         ]),
     ];
 }

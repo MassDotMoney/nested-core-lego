@@ -66,11 +66,12 @@ describeWithoutFork("NestedFactory", () => {
             // Get the operators from the factory
             const operators = await context.nestedFactory.resolverOperatorsRequired();
 
-            // Must have 2 operators ("ZeroEx" from Fixture and "test")
-            expect(operators.length).to.be.equal(3);
+            // Must have 4 operators ("ZeroEx", "Flat", "Paraswap" from Fixture and "test")
+            expect(operators.length).to.be.equal(4);
             expect(operators[0]).to.be.equal(context.zeroExOperatorNameBytes32);
             expect(operators[1]).to.be.equal(context.flatOperatorNameBytes32);
-            expect(operators[2]).to.be.equal(toBytes32("test"));
+            expect(operators[2]).to.be.equal(context.paraswapOperatorNameBytes32);
+            expect(operators[3]).to.be.equal(toBytes32("test"));
         });
     });
 
@@ -116,8 +117,8 @@ describeWithoutFork("NestedFactory", () => {
             // Get the operators from the factory
             let operators = await context.nestedFactory.resolverOperatorsRequired();
 
-            // Must have 2 operators ("ZeroEx" from Fixture and "Flat")
-            expect(operators.length).to.be.equal(2);
+            // Must have 3 operators ("ZeroEx", "Flat", and "Paraswap" from Fixture)
+            expect(operators.length).to.be.equal(3);
             expect(operators[0]).to.be.equal(context.zeroExOperatorNameBytes32);
             expect(operators[1]).to.be.equal(context.flatOperatorNameBytes32);
 
@@ -150,7 +151,7 @@ describeWithoutFork("NestedFactory", () => {
                 .connect(context.masterDeployer)
                 .removeOperator(context.zeroExOperatorNameBytes32);
             operators = await context.nestedFactory.resolverOperatorsRequired();
-            expect(operators[0]).to.be.equal(context.flatOperatorNameBytes32);
+            expect(operators[0]).to.be.equal(context.paraswapOperatorNameBytes32);
         });
 
         it("remove an operator without rebuilding", async () => {
@@ -175,8 +176,8 @@ describeWithoutFork("NestedFactory", () => {
             // Get the operators from the factory
             let operators = await context.nestedFactory.resolverOperatorsRequired();
 
-            // Must have 2 operators ("ZeroEx" from Fixture and "Flat")
-            expect(operators.length).to.be.equal(2);
+            // Must have 3 operators ("ZeroEx", "Flat", and "Paraswap" from Fixture)
+            expect(operators.length).to.be.equal(3);
             expect(operators[0]).to.be.equal(context.zeroExOperatorNameBytes32);
             expect(operators[1]).to.be.equal(context.flatOperatorNameBytes32);
 
