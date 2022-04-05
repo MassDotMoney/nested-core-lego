@@ -1,6 +1,6 @@
 import hre, { ethers, network } from "hardhat";
-import addresses from "../addresses.json";
-import { importOperators, registerFlat } from "./utils";
+import addresses from "../../addresses.json";
+import { importOperators, registerParaswap } from "../utils";
 
 const chainId: string = network.config.chainId.toString();
 const context = JSON.parse(JSON.stringify(addresses));
@@ -12,25 +12,39 @@ const etherscan = false;
 const delay = async (ms: number) => new Promise(res => setTimeout(res, ms));
 
 async function main(): Promise<void> {
-    const flatOperatorFactory = await ethers.getContractFactory("FlatOperator");
+    const paraswapOperatorFactory = await ethers.getContractFactory("ParaswapOperator");
     const operatorResolverFactory = await ethers.getContractFactory("OperatorResolver");
     const nestedFactoryFactory = await ethers.getContractFactory("NestedFactory");
-
+    
     const operatorResolver = await operatorResolverFactory.attach(context[chainId].OperatorResolver);
     const nestedFactory = await nestedFactoryFactory.attach(context[chainId].NestedFactory);
 
-    // Deploy FlatOperator
-    const flatOperator = await flatOperatorFactory.deploy();
-    await flatOperator.deployed();
+    const tokenTransferProxy = "0x216B4B4Ba9F3e719726886d34a177484278Bfcae";
+    const augustusSwapper = "0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57";
+ 
+    // Deploy ParaswapOperator
+    const paraswapOperator = await paraswapOperatorFactory.deploy(tokenTransferProxy, augustusSwapper);
+    await paraswapOperator.deployed();
+    console.log
+
+    // Verify on tenderly
+    const contracts = [
+        {
+            name: 'ParaswapOperator',
+            address: paraswapOperator.address
+        }]
+    await hre.tenderly.verify(...contracts);
+
     if (etherscan) {
         // wait 1 minute (recommended)
         await delay(60000);
         await hre.run("verify:verify", {
-            address: flatOperator.address,
+            address: paraswapOperator.address,
+            constructorArguments: [tokenTransferProxy, augustusSwapper]
         });
     }
 
-    await importOperators(operatorResolver, [registerFlat(flatOperator)], nestedFactory);
+    await importOperators(operatorResolver, [registerParaswap(paraswapOperator)], nestedFactory);
 }
 
 main()
