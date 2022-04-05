@@ -226,9 +226,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
 
         for (uint256 i = 0; i < tokensLength; i++) {
             address token = tokens[i];
-            uint256 amount = nestedRecords.getAssetHolding(_nftId, token);
-            reserve.withdraw(IERC20(token), amount);
-
+            uint256 amount = _safeWithdraw(token, _nftId);
             _safeSubmitOrder(token, address(_buyToken), amount, _nftId, _orders[i]);
         }
 
@@ -264,8 +262,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
 
         address token = nestedRecords.getAssetTokens(_nftId)[_tokenIndex];
 
-        uint256 amount = nestedRecords.getAssetHolding(_nftId, token);
-        reserve.withdraw(IERC20(token), amount);
+        uint256 amount = _safeWithdraw(token, _nftId);
         _safeTransferWithFees(IERC20(token), amount, _msgSender(), _nftId);
 
         nestedRecords.deleteAsset(_nftId, _tokenIndex);
@@ -600,6 +597,17 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
             _transferFeeWithRoyalty(feeAmount, _token, _nftId);
             SafeERC20.safeTransfer(_token, _dest, _amount - feeAmount);
         }
+    }
+
+    /// @dev Withdraw from reserve with care of deflationary tokens.
+    /// @param _token The token to withdraw
+    /// @param _nftId The NFT id to withdraw from
+    /// @return The withdrawed amount from the reserve
+    function _safeWithdraw(address _token, uint256 _nftId) private returns (uint256) {
+        uint256 holdingAmount = nestedRecords.getAssetHolding(_nftId, _token);
+        uint256 balanceBefore = IERC20(_token).balanceOf(address(this));
+        reserve.withdraw(IERC20(_token), holdingAmount);
+        return IERC20(_token).balanceOf(address(this)) - balanceBefore;
     }
 
     /// @dev Verify that msg.value is equal to the amount needed (in the orders)
