@@ -15,7 +15,7 @@
         "FlatOperator": "",
         "Timelock": "",
         "NestedAssetBatcher": "",
-        "config" : {
+        "config": {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
@@ -40,7 +40,7 @@
         "FlatOperator": "0x6bDc58D3287176b40ad2243eC0CF35f33F2119DA",
         "Timelock": "0x42f93A591C2eF6Ce52426a027F2529Eef4738F5A",
         "NestedAssetBatcher": "0x9EE92a94A8Ace98F36F19b35091C34e9D9bccD54",
-        "config" : {
+        "config": {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
@@ -65,13 +65,38 @@
         "FlatOperator": "0xD75aF988B2282C1B466C7640B01E4B89239a72D8",
         "Timelock": "0x42f93A591C2eF6Ce52426a027F2529Eef4738F5A",
         "NestedAssetBatcher": "0xD81b8221f57eB314AB9C6606F418653CCfC90eB5",
-        "config" : {
+        "config": {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
             "multisig": "0xf9B701cE5bc5E83C65301c733e1d91f18eF35d8E",
             "emergencyMultisig": "0x66E5393d0D780b84A26f166450F4778ccDFAfE07",
             "nestedTreasury": "0x44FE6e6513BBf4e19Bbf421f3AA8ef60e15006AB"
+        }
+    },
+    "250": {
+        "name": "fantom",
+        "Deployer": "0xb7eb3F6a9abCae7559484fB126B8F872781Cf9dD",
+        "NestedFactoryProxy": "",
+        "Withdrawer": "",
+        "NestedFactory_1": "",
+        "NestedRecords": "",
+        "NestedReserve": "",
+        "NestedAsset": "",
+        "FeeSplitter": "",
+        "OperatorResolver": "",
+        "ZeroExOperator": "",
+        "ZeroExStorage": "",
+        "FlatOperator": "",
+        "Timelock": "",
+        "NestedAssetBatcher": "",
+        "config": {
+            "maxHoldingsCount": 12,
+            "zeroExSwapTarget": "0xdef189deaef76e379df891899eb5a00a94cbc250",
+            "WETH": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
+            "multisig": "0xA30b05583365E56f4672FfBCeadE458818e5f0a1",
+            "emergencyMultisig": "0x38ae60704579f44ADb3D7E60830AC2400A10BB7b",
+            "nestedTreasury": "0x0d276a90Ce591844AEd5c8B93072cA5D59face06"
         }
     },
     "42220": {
@@ -90,7 +115,7 @@
         "FlatOperator": "",
         "Timelock": "",
         "NestedAssetBatcher": "",
-        "config" : {
+        "config": {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0x471ece3750da237f93b8e339c536989b8978a438",
@@ -115,7 +140,7 @@
         "FlatOperator": "0x6bDc58D3287176b40ad2243eC0CF35f33F2119DA",
         "Timelock": "0x42f93A591C2eF6Ce52426a027F2529Eef4738F5A",
         "NestedAssetBatcher": "0x9EE92a94A8Ace98F36F19b35091C34e9D9bccD54",
-        "config" : {
+        "config": {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",

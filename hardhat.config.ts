@@ -64,6 +64,11 @@ const config: HardhatUserConfig = {
             chainId: 137,
             accounts: accounts,
         },
+        fantom: {
+            url: "https://rpc.ftm.tools/",
+            chainId: 250,
+            accounts: accounts,
+        },
         celo: {
             url: "https://forno.celo.org/",
             chainId: 42220,
