@@ -54,6 +54,11 @@ const config: HardhatUserConfig = {
             chainId: 1,
             accounts: accounts,
         },
+        optimism: {
+            url: "https://mainnet.optimism.io/",
+            chainId: 10,
+            accounts: accounts,
+        },
         bsc: {
             url: "https://bsc-dataseed.binance.org/",
             chainId: 56,

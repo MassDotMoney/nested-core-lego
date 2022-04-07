@@ -24,6 +24,31 @@
             "nestedTreasury": "0x2eeE8d38eA788A7260df8C4D32f39066DD80eF3B"
         }
     },
+    "10": {
+        "name": "optimism",
+        "Deployer": "0xb7eb3F6a9abCae7559484fB126B8F872781Cf9dD",
+        "NestedFactoryProxy": "",
+        "Withdrawer": "",
+        "NestedFactory_1": "",
+        "NestedRecords": "",
+        "NestedReserve": "",
+        "NestedAsset": "",
+        "FeeSplitter": "",
+        "OperatorResolver": "",
+        "ZeroExOperator": "",
+        "ZeroExStorage": "",
+        "FlatOperator": "",
+        "Timelock": "",
+        "NestedAssetBatcher": "",
+        "config": {
+            "maxHoldingsCount": 12,
+            "zeroExSwapTarget": "0xDEF1ABE32c034e558Cdd535791643C58a13aCC10",
+            "WETH": "0x4200000000000000000000000000000000000006",
+            "multisig": "0x37F560eaaa7e40fF9d575825eB03d5631BfB8d50",
+            "emergencyMultisig": "0x75b8ac2a08eD803C7002134639C6CACaf0A6470D",
+            "nestedTreasury": "0x0b928f82d2E3371420136DE930f2dCd7928b2e61"
+        }
+    },
     "56": {
         "name": "bsc",
         "Deployer": "0xb7eb3F6a9abCae7559484fB126B8F872781Cf9dD",
