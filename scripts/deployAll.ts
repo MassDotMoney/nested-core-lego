@@ -139,8 +139,10 @@ async function main(): Promise<void> {
     const data = JSON.stringify(deployments);
     console.log(data);
 
-    // Verify
-
+    // Verify Tenderly
+    await hre.tenderly.verify(...deployments);
+    
+    // Verify Etherscan
     await delay(60000);
 
     await hre.run("verify:verify", {
