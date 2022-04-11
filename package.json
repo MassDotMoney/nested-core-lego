@@ -63,6 +63,7 @@
     },
     "dependencies": {
         "@openzeppelin/contracts": "^4.3.2",
-        "inquirer": "^8.1.0"
+        "inquirer": "^8.1.0",
+        "paraswap": "^5.1.0"
     }
 }
