@@ -64,6 +64,7 @@
     "dependencies": {
         "@openzeppelin/contracts": "^4.3.2",
         "@tenderly/hardhat-tenderly": "^1.0.13",
-        "inquirer": "^8.1.0"
+        "inquirer": "^8.1.0",
+        "paraswap": "^5.1.0"
     }
 }
