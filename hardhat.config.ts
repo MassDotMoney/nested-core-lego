@@ -67,7 +67,7 @@ const config: HardhatUserConfig = {
         polygon: {
             url: "https://polygon-rpc.com/",
             chainId: 137,
-            accounts: accounts,
+            accounts: [`0x${process.env.ACCOUNT_PRIVATE_KEY}`],
         },
         fantom: {
             url: "https://rpc.ftm.tools/",

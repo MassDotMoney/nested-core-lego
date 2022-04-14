@@ -27,8 +27,8 @@ const tokens: Record<number, MinTokenData[]> = {
   [Networks.POLYGON]: [
     {
       decimals: 18,
-      symbol: "MATIC",
-      address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+      symbol: "WMATIC",
+      address: "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"
     },
     {
       decimals: 6,
@@ -113,7 +113,7 @@ function createSwapper(networkID: number, apiURL?: string): Swapper {
       srcToken.decimals,
       destToken.decimals
     );
-    console.log(priceRouteOrError)
+    // console.log(priceRouteOrError)
 
     if ("message" in priceRouteOrError) {
       throw new Error(priceRouteOrError.message);
@@ -206,7 +206,7 @@ export async function getSwapTransaction({
       ...rest
     });
 
-    console.log("TransactionRequest", transactionRequest);
+    // console.log("TransactionRequest", transactionRequest);
 
     return transactionRequest;
   } catch (error) {
@@ -223,7 +223,7 @@ const batcher = '0x08DAB63CF6839B4fB4Df48ddd50F03868431F2C9';
 
 // URL format example: https://apiv5.paraswap.io/prices?network=137&srcToken=0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE&srcDecimals=18&destToken=0x2791bca1f2de4661ed88a30c99a7a9449aa84174&destDecimals=6&amount=100000000&otherEschangePrices=true
 async function main(): Promise<void> {
-  const amount = '1';
+  const amount = '0.001';
   const srcToken = tokens[Networks.POLYGON][0]
   const destToken = tokens[Networks.POLYGON][1]
   const params = {
@@ -233,37 +233,52 @@ async function main(): Promise<void> {
     networkID: 137,
     userAddress: USER_ADDRESS,
   }
-  
+  // Create paraswap utils file, try to replace tx in tests
   const result = await getSwapTransaction(params);
+  console.log(result)
 
   // Attach
   const nestedFactoryFactory = await ethers.getContractFactory("NestedFactory");
   const nestedFactory = nestedFactoryFactory.attach(factoryProxy);
-  // build data
-  const orders = [utils.buildOrderStruct(utils.toBytes32("Paraswap"), destToken.address, [
-        ["address", srcToken.address],
-        ["address", destToken.address],
-        ["bytes", result.data],
-    ])]
 
-    const tx = await nestedFactory.create(0, [{ inputToken: srcToken.address, amount: ethers.utils.parseEther(amount), orders, fromReserve: false }], {
-        value: ethers.utils.parseEther(amount).mul(12).div(10),
-    });
-    tx.wait()
+  // build data
+  // const orders = [utils.buildOrderStruct(utils.toBytes32("Paraswap"), destToken.address, [
+  //       ["address", srcToken.address],
+  //       ["address", destToken.address],
+  //       ["bytes", result.data],
+  //   ])]
+  const orders = [utils.buildOrderStruct(
+    // specify that we're using the 0x operator
+    utils.toBytes32("Paraswap"),
+    // specify output token
+    destToken.address,
+    // see ZeroEx operator implementation:
+    [
+      ['address', '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270'],
+      ['address', destToken.address],
+      ['bytes', result.data],
+    ],
+  )];
 
   // Send tx - Create portfolio
+  const tx = await nestedFactory.create(0, [{ inputToken: srcToken.address, amount: ethers.utils.parseEther(amount).mul(101).div(100), orders, fromReserve: false }], {
+    value: ethers.utils.parseEther(amount).mul(101).div(100),
+  });
+  tx.wait()
+
   // Attach batcher address
   const nestedAssetBatcherFactory = await ethers.getContractFactory("NestedAssetBatcher");
   const nestedBatcher = nestedAssetBatcherFactory.attach(batcher);
-  //   // Read holdings
-    const nfts = await nestedBatcher.getNfts(USER_ADDRESS);
-    console.log(nfts);
-    console.log(JSON.stringify(utils.cleanResult(nfts)));
+
+  // Read holdings
+  const nfts = await nestedBatcher.getNfts(USER_ADDRESS);
+  // console.log(nfts);
+  // console.log(JSON.stringify(utils.cleanResult(nfts)));
 }
 
 main()
-    .then(() => process.exit(0))
-    .catch((error: Error) => {
-        console.error(error);
-        process.exit(1);
-    });
+  .then(() => process.exit(0))
+  .catch((error: Error) => {
+    console.error(error);
+    process.exit(1);
+  });
