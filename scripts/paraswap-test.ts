@@ -220,7 +220,6 @@ const factoryProxy = '0x53b89bab5a8d589e5c3be4642a7128c3f27da790';
 // Get batcher address
 const batcher = '0x08DAB63CF6839B4fB4Df48ddd50F03868431F2C9';
 
-
 // URL format example: https://apiv5.paraswap.io/prices?network=137&srcToken=0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE&srcDecimals=18&destToken=0x2791bca1f2de4661ed88a30c99a7a9449aa84174&destDecimals=6&amount=100000000&otherEschangePrices=true
 async function main(): Promise<void> {
   const amount = '0.001';
@@ -233,6 +232,18 @@ async function main(): Promise<void> {
     networkID: 137,
     userAddress: USER_ADDRESS,
   }
+
+  // -> workaround missing attribute ignore-checks in SDK
+  // The paraswap SDK runs validation when building a quote.
+  // Neither the user, not the factory holds WMATIC
+  // hence paraswap assume the call will fail
+  // 1. wrap MATIC > amount on uniswap
+  // Below we will pretend that the trade is initiated by the user, and not the factory
+  // 2. so we need to increase the allowance to trick paraswap to think the trade will pass
+  // const ERC20Factory = await ethers.getContractFactory("MockERC20");
+  // const wmatic = ERC20Factory.attach('0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270')
+  // await wmatic.approve('0x216B4B4Ba9F3e719726886d34a177484278Bfcae', ethers.utils.parseEther(amount))
+
   // Create paraswap utils file, try to replace tx in tests
   const result = await getSwapTransaction(params);
   console.log(result)
@@ -241,18 +252,9 @@ async function main(): Promise<void> {
   const nestedFactoryFactory = await ethers.getContractFactory("NestedFactory");
   const nestedFactory = nestedFactoryFactory.attach(factoryProxy);
 
-  // build data
-  // const orders = [utils.buildOrderStruct(utils.toBytes32("Paraswap"), destToken.address, [
-  //       ["address", srcToken.address],
-  //       ["address", destToken.address],
-  //       ["bytes", result.data],
-  //   ])]
   const orders = [utils.buildOrderStruct(
-    // specify that we're using the 0x operator
     utils.toBytes32("Paraswap"),
-    // specify output token
     destToken.address,
-    // see ZeroEx operator implementation:
     [
       ['address', '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270'],
       ['address', destToken.address],
@@ -261,7 +263,7 @@ async function main(): Promise<void> {
   )];
 
   // Send tx - Create portfolio
-  const tx = await nestedFactory.create(0, [{ inputToken: srcToken.address, amount: ethers.utils.parseEther(amount).mul(101).div(100), orders, fromReserve: false }], {
+  const tx = await nestedFactory.create(0, [{ inputToken: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE', amount: ethers.utils.parseEther(amount).mul(101).div(100), orders, fromReserve: false }], {
     value: ethers.utils.parseEther(amount).mul(101).div(100),
   });
   tx.wait()
@@ -272,8 +274,8 @@ async function main(): Promise<void> {
 
   // Read holdings
   const nfts = await nestedBatcher.getNfts(USER_ADDRESS);
-  // console.log(nfts);
-  // console.log(JSON.stringify(utils.cleanResult(nfts)));
+  console.log(nfts);
+  console.log(JSON.stringify(utils.cleanResult(nfts)));
 }
 
 main()
