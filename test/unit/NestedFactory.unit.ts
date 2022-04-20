@@ -234,6 +234,68 @@ describeWithoutFork("NestedFactory", () => {
         });
     });
 
+    describe("setEntryFees()", () => {
+        it("cant be invoked by an user", async () => {
+            await expect(
+                context.nestedFactory.connect(context.user1).setEntryFees(100),
+            ).to.be.revertedWith("OPD: NOT_OWNER");
+        });
+
+        it("cant set zero", async () => {
+            await expect(
+                context.nestedFactory.connect(context.masterDeployer).setEntryFees(0),
+            ).to.be.revertedWith("NF: ZERO_FEES");
+        });
+
+        it("cant set more than 10,000", async () => {
+            await expect(
+                context.nestedFactory.connect(context.masterDeployer).setEntryFees(10001),
+            ).to.be.revertedWith("NF: FEES_OVERFLOW");
+        });
+
+        it("set value", async () => {
+            await context.nestedFactory.connect(context.masterDeployer).setEntryFees(10000);
+            expect(await context.nestedFactory.entryFees()).to.be.equal(10000);
+        });
+
+        it("emit EntryFeesUpdated event", async () => {
+            await expect(context.nestedFactory.connect(context.masterDeployer).setEntryFees(100))
+                .to.emit(context.nestedFactory, "EntryFeesUpdated")
+                .withArgs(100);
+        });
+    });
+
+    describe("setExitFees()", () => {
+        it("cant be invoked by an user", async () => {
+            await expect(
+                context.nestedFactory.connect(context.user1).setExitFees(100),
+            ).to.be.revertedWith("OPD: NOT_OWNER");
+        });
+
+        it("cant set zero", async () => {
+            await expect(
+                context.nestedFactory.connect(context.masterDeployer).setExitFees(0),
+            ).to.be.revertedWith("NF: ZERO_FEES");
+        });
+
+        it("cant set more than 10,000", async () => {
+            await expect(
+                context.nestedFactory.connect(context.masterDeployer).setExitFees(10001),
+            ).to.be.revertedWith("NF: FEES_OVERFLOW");
+        });
+
+        it("set value", async () => {
+            await context.nestedFactory.connect(context.masterDeployer).setExitFees(10000);
+            expect(await context.nestedFactory.exitFees()).to.be.equal(10000);
+        });
+
+        it("emit ExitFeesUpdated event", async () => {
+            await expect(context.nestedFactory.connect(context.masterDeployer).setExitFees(100))
+                .to.emit(context.nestedFactory, "ExitFeesUpdated")
+                .withArgs(100);
+        });
+    });
+
     describe("create()", () => {
         it("reverts if Orders list is empty", async () => {
             let orders: utils.OrderStruct[] = [];
