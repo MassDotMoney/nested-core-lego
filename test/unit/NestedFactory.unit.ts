@@ -36,7 +36,7 @@ describeWithoutFork("NestedFactory", () => {
     });
 
     describe("addOperator()", () => {
-        it("cant be invoked by an user", async () => {
+        it("cant be invoked by a user", async () => {
             await expect(
                 context.nestedFactory.connect(context.user1).addOperator(toBytes32("test")),
             ).to.be.revertedWith("OPD: NOT_OWNER");
@@ -76,7 +76,7 @@ describeWithoutFork("NestedFactory", () => {
     });
 
     describe("removeOperator()", () => {
-        it("cant be invoked by an user", async () => {
+        it("cant be invoked by a user", async () => {
             await expect(
                 context.nestedFactory.connect(context.user1).removeOperator(toBytes32("test")),
             ).to.be.revertedWith("OPD: NOT_OWNER");
@@ -210,7 +210,7 @@ describeWithoutFork("NestedFactory", () => {
 
     describe("setFeeSplitter()", () => {
         const newFeeSplitter = Wallet.createRandom().address;
-        it("cant be invoked by an user", async () => {
+        it("cant be invoked by a user", async () => {
             await expect(
                 context.nestedFactory.connect(context.user1).setFeeSplitter(newFeeSplitter),
             ).to.be.revertedWith("OPD: NOT_OWNER");
@@ -235,7 +235,7 @@ describeWithoutFork("NestedFactory", () => {
     });
 
     describe("setEntryFees()", () => {
-        it("cant be invoked by an user", async () => {
+        it("cant be invoked by a user", async () => {
             await expect(
                 context.nestedFactory.connect(context.user1).setEntryFees(100),
             ).to.be.revertedWith("OPD: NOT_OWNER");
@@ -266,7 +266,7 @@ describeWithoutFork("NestedFactory", () => {
     });
 
     describe("setExitFees()", () => {
-        it("cant be invoked by an user", async () => {
+        it("cant be invoked by a user", async () => {
             await expect(
                 context.nestedFactory.connect(context.user1).setExitFees(100),
             ).to.be.revertedWith("OPD: NOT_OWNER");
