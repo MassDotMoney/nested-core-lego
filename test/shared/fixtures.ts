@@ -310,6 +310,14 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
     tx = await nestedFactory.connect(masterDeployer).setFeeSplitter(feeSplitter.address);
     await tx.wait();
 
+    // Set entry fees in proxy storage
+    tx = await nestedFactory.connect(masterDeployer).setEntryFees(100);
+    await tx.wait();
+
+    // Set exit fees in proxy storage
+    tx = await nestedFactory.connect(masterDeployer).setExitFees(100);
+    await tx.wait();
+
     await importOperatorsWithSigner(
         operatorResolver,
         [registerZeroEx(zeroExOperator), registerFlat(flatOperator), registerParaswap(paraswapOperator)],
@@ -555,6 +563,14 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
 
     // Reset feeSplitter in proxy storage
     tx = await nestedFactory.connect(masterDeployer).setFeeSplitter(feeSplitter.address);
+    await tx.wait();
+
+    // Set entry fees in proxy storage
+    tx = await nestedFactory.connect(masterDeployer).setEntryFees(100);
+    await tx.wait();
+
+    // Set exit fees in proxy storage
+    tx = await nestedFactory.connect(masterDeployer).setExitFees(100);
     await tx.wait();
 
     await importOperatorsWithSigner(

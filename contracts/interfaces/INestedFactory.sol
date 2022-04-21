@@ -13,6 +13,14 @@ interface INestedFactory {
     /// @param feeSplitter The new feeSplitter address
     event FeeSplitterUpdated(address feeSplitter);
 
+    /// @dev Emitted when the entryFees is updated
+    /// @param entryFees The new entryFees amount
+    event EntryFeesUpdated(uint256 entryFees);
+
+    /// @dev Emitted when the exitFees is updated
+    /// @param exitFees The new exitFees amount
+    event ExitFeesUpdated(uint256 exitFees);
+
     /// @dev Emitted when the reserve is updated
     /// @param reserve The new reserve address
     event ReserveUpdated(address reserve);
@@ -90,6 +98,16 @@ interface INestedFactory {
     /// @notice Sets the address receiving the fees
     /// @param _feeSplitter The address of the receiver
     function setFeeSplitter(FeeSplitter _feeSplitter) external;
+
+    /// @notice Sets the entry fees amount
+    ///         Where 1 = 0.01% and 10000 = 100%
+    /// @param _entryFees Entry fees amount
+    function setEntryFees(uint256 _entryFees) external;
+
+    /// @notice Sets the exit fees amount
+    ///         Where 1 = 0.01% and 10000 = 100%
+    /// @param _exitFees Exit fees amount
+    function setExitFees(uint256 _exitFees) external;
 
     /// @notice The Factory is not storing funds, but some users can make
     /// bad manipulations and send tokens to the contract.

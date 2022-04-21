@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/StorageSlot.sol";
 
 /// @notice Ownable re-implementation to initialize the owner in the
-///         proxy storage after an "upgradeToAndCall()` (delegatecall).
+///         proxy storage after an "upgradeToAndCall()" (delegatecall).
 /// @dev The implementation contract owner will be address zero (by removing the constructor)
 abstract contract OwnableProxyDelegation is Context {
     /// @dev The contract owner

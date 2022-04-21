@@ -15,6 +15,8 @@ import "./NestedAsset.sol";
 import "./NestedRecords.sol";
 import "./Withdrawer.sol";
 
+import "hardhat/console.sol";
+
 /// @title Creates, updates and destroys NestedAssets (portfolios).
 /// @notice Responsible for the business logic of the protocol and interaction with operators
 contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegation, MixinOperatorResolver {
@@ -43,6 +45,14 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
 
     /// @dev Helper to withdraw native tokens from wrapper
     Withdrawer private immutable withdrawer;
+
+    /// @dev Fees when funds stay in portfolios
+    ///      From 1 to 10,000 (0.01% to 100%)
+    uint256 public entryFees;
+
+    /// @dev Fees when funds are withdrawed
+    ///      From 1 to 10,000 (0.01% to 100%)
+    uint256 public exitFees;
 
     /* ---------------------------- CONSTRUCTOR ---------------------------- */
 
@@ -143,6 +153,22 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     }
 
     /// @inheritdoc INestedFactory
+    function setEntryFees(uint256 _entryFees) external override onlyOwner {
+        require(_entryFees != 0, "NF: ZERO_FEES");
+        require(_entryFees <= 10000, "NF: FEES_OVERFLOW");
+        entryFees = _entryFees;
+        emit EntryFeesUpdated(_entryFees);
+    }
+
+    /// @inheritdoc INestedFactory
+    function setExitFees(uint256 _exitFees) external override onlyOwner {
+        require(_exitFees != 0, "NF: ZERO_FEES");
+        require(_exitFees <= 10000, "NF: FEES_OVERFLOW");
+        exitFees = _exitFees;
+        emit ExitFeesUpdated(_exitFees);
+    }
+
+    /// @inheritdoc INestedFactory
     function unlockTokens(IERC20 _token) external override onlyOwner {
         uint256 amount = _token.balanceOf(address(this));
         SafeERC20.safeTransfer(_token, msg.sender, amount);
@@ -232,9 +258,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
 
         // Amount calculation to send fees and tokens
         uint256 amountBought = _buyToken.balanceOf(address(this)) - buyTokenInitialBalance;
-
+        uint256 amountFees = (amountBought * exitFees) / 10000; // Exit Fees
         unchecked {
-            uint256 amountFees = amountBought / 100; // 1% Fee
             amountBought -= amountFees;
 
             _transferFeeWithRoyalty(amountFees, _buyToken, _nftId);
@@ -347,7 +372,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
                 true // always to the reserve
             );
         }
-        feesAmount = amountSpent / 100; // 1% Fee
+        feesAmount = (amountSpent * entryFees) / 10000; // Entry Fees
         require(amountSpent <= _inputTokenAmount - feesAmount, "NF: OVERSPENT");
         unchecked {
             uint256 underSpentAmount = _inputTokenAmount - feesAmount - amountSpent;
@@ -411,7 +436,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         amountBought = _batchedOrders.outputToken.balanceOf(address(this)) - amountBought;
 
         unchecked {
-            feesAmount = amountBought / 100; // 1% Fee
+            // Entry or Exit Fees
+            feesAmount = (amountBought * (_toReserve ? entryFees : exitFees)) / 10000;
 
             if (_toReserve) {
                 _transferToReserveAndStore(_batchedOrders.outputToken, amountBought - feesAmount, _nftId);
@@ -595,8 +621,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         address _dest,
         uint256 _nftId
     ) private {
+        uint256 feeAmount = (_amount * exitFees) / 10000; // Exit Fee
         unchecked {
-            uint256 feeAmount = _amount / 100; // 1% Fee
             _transferFeeWithRoyalty(feeAmount, _token, _nftId);
             SafeERC20.safeTransfer(_token, _dest, _amount - feeAmount);
         }
