@@ -11,22 +11,15 @@ import "./../../interfaces/external/IBeefyZapUniswapV2.sol";
 ///       swapping and adding liquidity.
 contract BeefyZapLPVaultOperator {
     BeefyVaultStorage public immutable operatorStorage;
-    IBeefyZapUniswapV2 public immutable zapper;
 
-    constructor(
-        address _zapper,
-        address[] memory vaults,
-        address[] memory tokens
-    ) {
+    constructor(address[] memory vaults, address[] memory zappers) {
         uint256 vaultsLength = vaults.length;
-        require(vaultsLength == tokens.length, "BLVO: INVALID_VAULTS_LENGTH");
-        require(_zapper != address(0), "BLVO: INVALID_ZAPPER_ADDR");
+        require(vaultsLength == zappers.length, "BLVO: INVALID_VAULTS_LENGTH");
 
-        zapper = IBeefyZapUniswapV2(_zapper);
         operatorStorage = new BeefyVaultStorage();
 
         for (uint256 i; i < vaultsLength; i++) {
-            operatorStorage.addVault(vaults[i], tokens[i]);
+            operatorStorage.addVault(vaults[i], zappers[i]);
         }
 
         operatorStorage.transferOwnership(msg.sender);
@@ -60,7 +53,7 @@ contract BeefyZapLPVaultOperator {
 
         // Beefy Zapper will check if token is present in liquidity pair
         ExchangeHelpers.setMaxAllowance(token, vault);
-        zapper.beefIn(vault, 0, address(token), amount);
+        IBeefyZapUniswapV2(operatorStorage.vaults(vault)).beefIn(vault, 0, address(token), amount);
 
         uint256 vaultAmount = IERC20(vault).balanceOf(address(this)) - vaultBalanceBefore;
         uint256 tokenAmount = tokenBalanceBefore - token.balanceOf(address(this));
@@ -103,7 +96,7 @@ contract BeefyZapLPVaultOperator {
         uint256 vaultBalanceBefore = IERC20(vault).balanceOf(address(this));
 
         ExchangeHelpers.setMaxAllowance(token, vault);
-        zapper.beefOutAndSwap(vault, amount, address(token), minTokenAmount);
+        IBeefyZapUniswapV2(operatorStorage.vaults(vault)).beefOutAndSwap(vault, amount, address(token), minTokenAmount);
 
         uint256 tokenAmount = token.balanceOf(address(this)) - tokenBalanceBefore;
         uint256 vaultAmount = vaultBalanceBefore - IERC20(vault).balanceOf(address(this));

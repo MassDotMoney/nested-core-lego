@@ -1,5 +1,6 @@
 import {
     BeefyVaultOperator,
+    BeefyZapLPVaultOperator,
     FlatOperator,
     NestedFactory,
     OperatorResolver,
@@ -161,6 +162,22 @@ export function registerBeefyWithdraw(operator: BeefyVaultOperator): Op {
         name: "BeefyWithdraw",
         contract: operator.address,
         signature: "function withdraw(address vault, uint256 amount)",
+    };
+}
+
+export function registerBeefyZapLPDeposit(operator: BeefyZapLPVaultOperator): Op {
+    return {
+        name: "BeefyZapLPDeposit",
+        contract: operator.address,
+        signature: "function deposit(address vault, address token, uint256 amount, uint256 minVaultAmount)",
+    };
+}
+
+export function registerBeefyZapLPWithdraw(operator: BeefyZapLPVaultOperator): Op {
+    return {
+        name: "BeefyZapLPWithdraw",
+        contract: operator.address,
+        signature: "function withdraw(address vault, uint256 amount, address token, uint256 minTokenAmount)",
     };
 }
 
