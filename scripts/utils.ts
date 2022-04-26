@@ -311,6 +311,8 @@ export function getBeefyBiswapWithdrawOrder(context: FactoryAndOperatorsForkingB
         buildOrderStruct(context.beefyZapLPVaultWithdrawOperatorNameBytes32, context.beefyBiswapVaultAddress, [
             ["address", context.beefyBiswapVaultAddress],
             ["uint256", mooToWithdraw],
+            ["address", context.WBNB.address],
+            ["uint256", 0], // 100% slippage
         ]),
     ];
 }

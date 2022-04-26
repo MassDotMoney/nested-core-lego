@@ -184,7 +184,73 @@ describeOnBscFork("BeefyZapLPVaultOperator", () => {
         });
     });
 
-    // Beefy withdraw features will be tested once we have found a solution 
-    // to the automatic refund of the beefy zapper dust that prevents 
-    // execution due to the "NF: ETH_SENDER_NOT_WITHDRAWER" error.
+    describe("withdraw()", () => {
+        beforeEach("Create NFT (id 1) with BNB deposited", async () => {
+            const bnbToDeposit = appendDecimals(1);
+            const bnbToDepositAndFees = bnbToDeposit.add(getExpectedFees(bnbToDeposit));
+
+            // Orders to withdraw from beefy
+            let orders: utils.OrderStruct[] = utils.getBeefyBiswapDepositOrder(context, bnbToDeposit);
+
+            // User1 creates the portfolio/NFT
+            await context.nestedFactory
+                .connect(context.user1)
+                .create(0, [{ inputToken: ETH, amount: bnbToDepositAndFees, orders, fromReserve: false }], {
+                    value: bnbToDepositAndFees,
+                });
+        });
+
+        it("Should revert if amount to withdraw is zero", async () => {
+            const mockERC20Factory = await ethers.getContractFactory("MockERC20");
+            const vault = mockERC20Factory.attach(context.beefyBiswapVaultAddress);
+
+            const mooBalance = await vault.balanceOf(context.nestedReserve.address);
+
+            // Orders to withdraw from beefy
+            let orders: utils.OrderStruct[] = utils.getBeefyBiswapWithdrawOrder(context, BIG_NUMBER_ZERO);
+
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .processOutputOrders(1, [
+                        { outputToken: context.WBNB.address, amounts: [mooBalance], orders, toReserve: true },
+                    ]),
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
+        });
+
+        it("Destroy/Withdraw from Beefy", async () => {
+            const mockERC20Factory = await ethers.getContractFactory("MockERC20");
+            const nestedFactoryFactory = await ethers.getContractFactory("NestedFactory");
+            const vault = mockERC20Factory.attach(context.beefyBiswapVaultAddress);
+            const nestedFactory = nestedFactoryFactory.attach(context.nestedFactory.address);
+
+            // Get entry fees amount from Nested Factory from 1 to 10,000 (0.01% to 100%)
+            const entryFees = (await nestedFactory.entryFees())
+
+            // Moo balance of the nested reserve before the withdraw 
+            const mooBalance: BigNumber = await vault.balanceOf(context.nestedReserve.address);
+
+            // Orders to withdraw from beefy
+            let orders: utils.OrderStruct[] = utils.getBeefyBiswapWithdrawOrder(context, mooBalance);
+
+            await context.nestedFactory.connect(context.user1).destroy(1, context.WBNB.address, orders);
+
+            // All moo removed from reserve
+            expect(await vault.balanceOf(context.nestedReserve.address)).to.be.equal(BIG_NUMBER_ZERO);
+            expect(await vault.balanceOf(context.nestedFactory.address)).to.be.equal(BIG_NUMBER_ZERO);
+
+            // The user has received all the tokens, minus the fees
+            expect(await vault.balanceOf(context.user1.address)).to.be.equal(
+                mooBalance.sub(entryFees.mul(mooBalance).div(10000))
+            )
+
+            /*
+                * I can't predict the WBNB received in the FeeSplitter.
+                * It should be greater than 0.01 WBNB, but sub 1% to allow a margin of error
+                */
+            expect(await context.WBNB.balanceOf(context.feeSplitter.address)).to.be.gt(
+                getExpectedFees(appendDecimals(1)).sub(getExpectedFees(appendDecimals(1)).div(100)),
+            );
+        });
+    });
 });
