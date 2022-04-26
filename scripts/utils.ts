@@ -293,6 +293,28 @@ export function getBeefyBnbVenusWithdrawOrder(context: FactoryAndOperatorsForkin
     ];
 }
 
+// Create a Deposit order in Beefy (Biswap USDT-BNB on Bsc)
+export function getBeefyBiswapDepositOrder(context: FactoryAndOperatorsForkingBSCFixture, bnbToDeposit: BigNumber) {
+    return [
+        buildOrderStruct(context.beefyZapLPVaultDepositOperatorNameBytes32, context.beefyBiswapVaultAddress, [
+            ["address", context.beefyBiswapVaultAddress],
+            ["address", context.WBNB.address],
+            ["uint256", bnbToDeposit],
+            ["uint256", 0], // 100% slippage
+        ]),
+    ];
+}
+
+// Create a Withdraw order in Beefy (Biswap USDT-BNB on Bsc)
+export function getBeefyBiswapWithdrawOrder(context: FactoryAndOperatorsForkingBSCFixture, mooToWithdraw: BigNumber) {
+    return [
+        buildOrderStruct(context.beefyZapLPVaultWithdrawOperatorNameBytes32, context.beefyBiswapVaultAddress, [
+            ["address", context.beefyBiswapVaultAddress],
+            ["uint256", mooToWithdraw],
+        ]),
+    ];
+}
+
 // Generic function to create a 1:1 Order
 export function getTokenBWithTokenAOrders(
     context: FactoryAndOperatorsFixture,

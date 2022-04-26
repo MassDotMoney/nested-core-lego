@@ -44,7 +44,8 @@ contract BeefyZapLPVaultOperator {
         uint256 minVaultAmount
     ) external payable returns (uint256[] memory amounts, address[] memory tokens) {
         require(amount != 0, "BLVO: INVALID_AMOUNT");
-        require(operatorStorage.vaults(vault) != address(0), "BLVO: INVALID_VAULT");
+        address zapper = operatorStorage.vaults(vault);
+        require(zapper != address(0), "BLVO: INVALID_VAULT");
         amounts = new uint256[](2);
         tokens = new address[](2);
 
@@ -52,8 +53,8 @@ contract BeefyZapLPVaultOperator {
         uint256 tokenBalanceBefore = token.balanceOf(address(this));
 
         // Beefy Zapper will check if token is present in liquidity pair
-        ExchangeHelpers.setMaxAllowance(token, vault);
-        IBeefyZapUniswapV2(operatorStorage.vaults(vault)).beefIn(vault, 0, address(token), amount);
+        ExchangeHelpers.setMaxAllowance(token, zapper);
+        IBeefyZapUniswapV2(zapper).beefIn(vault, 0, address(token), amount);
 
         uint256 vaultAmount = IERC20(vault).balanceOf(address(this)) - vaultBalanceBefore;
         uint256 tokenAmount = tokenBalanceBefore - token.balanceOf(address(this));
