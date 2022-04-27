@@ -509,12 +509,12 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
     const beefyVaultStorage = beefyVaultStorageFactory.attach(await beefyVaultOperator.operatorStorage());
 
     // Deploy Beefy Zap LP (Biswap USDT-BNB LP vault)
-    const biswapZapperAddress = "0x9a76a315109663d9f2e105be7a6df18b4f7b16f0";
+    const biswapRouterAddress = "0x3a6d8cA21D1CF76F653A67577FA0D27453350dD8";
     const beefyBiswapVaultAddress = "0xe2AD2c5702f6c9073f85b00E4743066E1D1035f8";
     const beefyZapLPVaultOperatorFactory = await ethers.getContractFactory("BeefyZapLPVaultOperator");
     const beefyZapLPVaultOperator = await beefyZapLPVaultOperatorFactory
         .connect(masterDeployer)
-        .deploy([beefyBiswapVaultAddress], [biswapZapperAddress]);
+        .deploy([beefyBiswapVaultAddress], [biswapRouterAddress]);
     await beefyZapLPVaultOperator.deployed();
 
     const beefyZapLPVaultStorage = beefyVaultStorageFactory.attach(await beefyZapLPVaultOperator.operatorStorage());

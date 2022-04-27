@@ -245,9 +245,9 @@ describeOnBscFork("BeefyZapLPVaultOperator", () => {
             )
 
             /*
-                * I can't predict the WBNB received in the FeeSplitter.
-                * It should be greater than 0.01 WBNB, but sub 1% to allow a margin of error
-                */
+            * I can't predict the WBNB received in the FeeSplitter.
+            * It should be greater than 0.01 WBNB, but sub 1% to allow a margin of error
+            */
             expect(await context.WBNB.balanceOf(context.feeSplitter.address)).to.be.gt(
                 getExpectedFees(appendDecimals(1)).sub(getExpectedFees(appendDecimals(1)).div(100)),
             );
