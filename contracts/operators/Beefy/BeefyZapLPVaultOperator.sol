@@ -97,15 +97,16 @@ contract BeefyZapLPVaultOperator {
         uint256 minTokenAmount
     ) external returns (uint256[] memory amounts, address[] memory tokens) {
         require(amount != 0, "BLVO: INVALID_AMOUNT");
-        require(operatorStorage.vaults(vault) != address(0), "BLVO: INVALID_VAULT");
+        address router = operatorStorage.vaults(vault);
+        require(router != address(0), "BLVO: INVALID_VAULT");
+
         amounts = new uint256[](2);
         tokens = new address[](2);
 
         uint256 tokenBalanceBefore = token.balanceOf(address(this));
         uint256 vaultBalanceBefore = IERC20(vault).balanceOf(address(this));
 
-        ExchangeHelpers.setMaxAllowance(token, vault);
-        // IBeefyZapUniswapV2(operatorStorage.vaults(vault)).beefOutAndSwap(vault, amount, address(token), minTokenAmount);
+        beefOutAndSwap(router, vault, amount, address(token), minTokenAmount);
 
         uint256 tokenAmount = token.balanceOf(address(this)) - tokenBalanceBefore;
         uint256 vaultAmount = vaultBalanceBefore - IERC20(vault).balanceOf(address(this));
@@ -119,6 +120,56 @@ contract BeefyZapLPVaultOperator {
         // Output token
         tokens[0] = address(token);
         tokens[1] = vault;
+    }
+
+    /// @notice Perform a vault token withdraw (moo) from Beefy, and
+    ///         transfer the rest as one of the paired token.abi
+    /// @param router The uniswap v2 router address to use for swaping and adding liquidity
+    /// @param vault The vault address to withdraw from
+    /// @param amount The vault token amount to withdraw
+    /// @param token One of the paired token
+    /// @param minTokenAmount The minimum token amount expected
+    function beefOutAndSwap(
+        address router,
+        address vault,
+        uint256 amount,
+        address token,
+        uint256 minTokenAmount
+    ) private {
+        IBeefyVaultV6 beefyVault = IBeefyVaultV6(vault);
+        IBiswapRouter02 biswapRouter = IBiswapRouter02(router);
+        IUniswapV2Pair pair = beefyVault.want();
+
+        // Withdraw the LP tokens, only with the remaining Vault tokens
+        // after subtracting the "amount" value
+        beefyVault.withdraw(IERC20(beefyVault).balanceOf(address(this)) - amount);
+
+        address token0 = pair.token0();
+        address token1 = pair.token1();
+        require(token0 == token || token1 == token, "BLVO: INVALID_TOKEN");
+
+        address cachedPairAddress = address(beefyVault.want());
+
+        IERC20(cachedPairAddress).safeTransfer(cachedPairAddress, IERC20(cachedPairAddress).balanceOf(address(this)));
+        pair.burn(address(this));
+
+        address swapToken = token1 == token ? token0 : token1;
+
+        address[] memory path = new address[](2);
+        path[0] = swapToken;
+        path[1] = token;
+        IERC20 cachedERC20SwapToken = IERC20(swapToken);
+
+        ExchangeHelpers.setMaxAllowance(cachedERC20SwapToken, address(router));
+        biswapRouter.swapExactTokensForTokens(
+            cachedERC20SwapToken.balanceOf(address(this)),
+            minTokenAmount,
+            path,
+            address(this),
+            block.timestamp
+        );
+
+        returnAsset(IERC20(vault), IERC20(vault).balanceOf(address(this)));
     }
 
     /// @notice Zap one of the paired tokens for the LP Token, deposit the

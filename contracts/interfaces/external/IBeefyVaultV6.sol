@@ -8,4 +8,6 @@ interface IBeefyVaultV6 is IERC20 {
     function want() external view returns (IUniswapV2Pair);
 
     function deposit(uint256 _amount) external;
+
+    function withdraw(uint256 _shares) external;
 }
