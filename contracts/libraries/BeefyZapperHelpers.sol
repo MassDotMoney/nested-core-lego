@@ -10,34 +10,37 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 library BeefyZapperHelpers {
     using SafeERC20 for IERC20;
 
-    /// @notice Withdraw the vault token (moo) from Beefy and return
-    ///         the token address path in order to swap the remaining
-    ///         tokens after the withdraw
-    /// @param vault The beefy vault to be used for the withdraw
-    /// @param outputAmount The vault token amount to withdraw
+    /// @notice After Withdrawing the vault token (moo) from Beefy, we remove
+    ///         the liquidity and return the token address path in order to
+    ///         swap the remaining tokens.
+    /// @param pair The token pair.
     /// @param outputToken One of the paired tokens in which to retrieve the remaining value after the withdraw
     /// @param router The address of the router for which to set allowance for the swap
-    function withdrawAndSetupSwap(
-        IBeefyVaultV6 vault,
-        uint256 outputAmount,
+    function removeLiquidityAndSetupSwap(
+        address pair,
         address outputToken,
         address router
-    ) internal returns (address[] memory path) {
-        IUniswapV2Pair pair = IUniswapV2Pair(vault.want());
-        // Withdraw the LP tokens, only with the remaining Vault tokens
-        // after subtracting the "amount" value
-        vault.withdraw(IERC20(vault).balanceOf(address(this)) - outputAmount);
-
-        address token0 = pair.token0();
-        address token1 = pair.token1();
+    ) internal returns (address[] memory path, uint256 tokenAmountIn) {
+        address token0 = IUniswapV2Pair(pair).token0();
+        address token1 = IUniswapV2Pair(pair).token1();
         require(token0 == outputToken || token1 == outputToken, "BLVO: INVALID_TOKEN");
 
-        address cachedPairAddress = vault.want();
+        // LP Tokens needs to be sent back to the pair address to be burned
+        IERC20(pair).safeTransfer(pair, IERC20(pair).balanceOf(address(this)));
 
-        IERC20(cachedPairAddress).safeTransfer(cachedPairAddress, IERC20(cachedPairAddress).balanceOf(address(this)));
-        pair.burn(address(this));
+        // We are removing liquidity by burning the LP Token and not
+        // by calling `removeLiquidity` since we are checking the final
+        // output amount (minTokenAmount).
+        (uint256 amount0, uint256 amount1) = IUniswapV2Pair(pair).burn(address(this));
 
-        address swapToken = token1 == outputToken ? token0 : token1;
+        address swapToken;
+        if (token1 == outputToken) {
+            swapToken = token0;
+            tokenAmountIn = amount0;
+        } else {
+            swapToken = token1;
+            tokenAmountIn = amount1;
+        }
 
         ExchangeHelpers.setMaxAllowance(IERC20(swapToken), router);
 
@@ -53,39 +56,32 @@ library BeefyZapperHelpers {
     /// @param vault The beefy vault address for which to set allowance for the deposit
     /// @param router The address of the router for which to set allowances for the swap
     /// @param inputToken The input token to use for the deposit (and for the balancing swap)
-    function setupTokenBalancingSwap(
+    /// @return path Array of tokens to swap token[0] to token[1]
+    /// @return isInput0 True if inputToken is the token0 from the pair
+    function setupAddLiquiditySwap(
         IUniswapV2Pair pair,
         address vault,
         address router,
         address inputToken
-    ) internal returns (address[] memory path, bool isInputA) {
+    ) internal returns (address[] memory path, bool isInput0) {
+        ExchangeHelpers.setMaxAllowance(IERC20(address(pair)), vault);
+
         address cachedToken0 = pair.token0();
         address cachedToken1 = pair.token1();
 
-        ExchangeHelpers.setMaxAllowance(IERC20(address(pair)), vault);
         ExchangeHelpers.setMaxAllowance(IERC20(cachedToken0), router);
         ExchangeHelpers.setMaxAllowance(IERC20(cachedToken1), router);
 
-        isInputA = cachedToken0 == inputToken;
-        require(isInputA || cachedToken1 == inputToken, "BLVO: INVALID_INPUT_TOKEN");
+        isInput0 = cachedToken0 == inputToken;
+        require(isInput0 || cachedToken1 == inputToken, "BLVO: INVALID_INPUT_TOKEN");
 
         path = new address[](2);
         path[0] = inputToken;
 
-        if (isInputA) {
+        if (isInput0) {
             path[1] = cachedToken1;
         } else {
             path[1] = cachedToken0;
-        }
-    }
-
-    /// @notice Returns a certain amount of tokens to the msg.sender
-    /// @param token The address of the token to return
-    /// @param amount The amount of token to return
-    function returnAsset(IERC20 token, uint256 amount) internal {
-        require(address(token) != address(0), "BLVO: INVALID_TOKEN_TO_RETURN");
-        if (amount > 0) {
-            token.safeTransfer(msg.sender, amount);
         }
     }
 }

@@ -85,8 +85,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
 
     /// @dev Receive function
     receive() external payable {
-        // TODO: must be uncommented for the beefy LP operator
-        // require(msg.sender == address(withdrawer), "NF: ETH_SENDER_NOT_WITHDRAWER");
+        require(msg.sender == address(withdrawer), "NF: ETH_SENDER_NOT_WITHDRAWER");
     }
 
     /* ------------------------------ MODIFIERS ---------------------------- */

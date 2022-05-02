@@ -36,7 +36,7 @@ contract BeefyZapBiswapLPVaultOperator {
     ///         asset in the Beefy vault and receive the vault token (moo).
     /// @param vault The vault address to deposit into
     /// @param token The token to zap
-    /// @param amount The token amount to deposit
+    /// @param amountToDeposit The token amount to deposit
     /// @param minVaultAmount The minimum vault token amount expected
     /// @return amounts Array of amounts :
     ///         - [0] : The vault token received amount
@@ -47,10 +47,10 @@ contract BeefyZapBiswapLPVaultOperator {
     function deposit(
         address vault,
         IERC20 token,
-        uint256 amount,
+        uint256 amountToDeposit,
         uint256 minVaultAmount
     ) external payable returns (uint256[] memory amounts, address[] memory tokens) {
-        require(amount != 0, "BLVO: INVALID_AMOUNT");
+        require(amountToDeposit != 0, "BLVO: INVALID_AMOUNT");
         address router = operatorStorage.vaults(vault);
         require(router != address(0), "BLVO: INVALID_VAULT");
         amounts = new uint256[](2);
@@ -59,20 +59,17 @@ contract BeefyZapBiswapLPVaultOperator {
         uint256 vaultBalanceBefore = IERC20(vault).balanceOf(address(this));
         uint256 tokenBalanceBefore = token.balanceOf(address(this));
 
-        zapAndStakeLp(router, vault, token, amount);
+        _zapAndStakeLp(router, IBeefyVaultV6(vault), token, amountToDeposit);
 
         uint256 vaultAmount = IERC20(vault).balanceOf(address(this)) - vaultBalanceBefore;
-        uint256 tokenAmount = tokenBalanceBefore - token.balanceOf(address(this));
-
-        uint256 tokenDust = amount - tokenAmount;
-        BeefyZapperHelpers.returnAsset(token, tokenDust);
+        uint256 depositedAmount = tokenBalanceBefore - token.balanceOf(address(this));
 
         require(vaultAmount != 0 && vaultAmount >= minVaultAmount, "BLVO: INVALID_AMOUNT_RECEIVED");
-        require(amount == (tokenAmount + tokenDust), "BLVO: INVALID_AMOUNT_DEPOSITED");
+        require(depositedAmount != 0 && amountToDeposit >= depositedAmount, "BLVO: INVALID_AMOUNT_DEPOSITED");
 
         // Output amounts
         amounts[0] = vaultAmount;
-        amounts[1] = tokenAmount + tokenDust;
+        amounts[1] = depositedAmount;
 
         // Output token
         tokens[0] = vault;
@@ -107,7 +104,7 @@ contract BeefyZapBiswapLPVaultOperator {
         uint256 tokenBalanceBefore = token.balanceOf(address(this));
         uint256 vaultBalanceBefore = IERC20(vault).balanceOf(address(this));
 
-        withdrawAndSwap(router, vault, amount, address(token), minTokenAmount);
+        _withdrawAndSwap(router, vault, amount, address(token));
 
         uint256 tokenAmount = token.balanceOf(address(this)) - tokenBalanceBefore;
         uint256 vaultAmount = vaultBalanceBefore - IERC20(vault).balanceOf(address(this));
@@ -129,84 +126,81 @@ contract BeefyZapBiswapLPVaultOperator {
     /// @param vault The vault address to withdraw from
     /// @param amount The vault token amount to withdraw
     /// @param token One of the paired token
-    /// @param minTokenAmount The minimum token amount expected
-    function withdrawAndSwap(
+    function _withdrawAndSwap(
         address router,
         address vault,
         uint256 amount,
-        address token,
-        uint256 minTokenAmount
+        address token
     ) private {
-        IBeefyVaultV6 beefyVault = IBeefyVaultV6(vault);
         IBiswapRouter02 biswapRouter = IBiswapRouter02(router);
+        IBeefyVaultV6(vault).withdraw(amount);
 
-        address[] memory path = BeefyZapperHelpers.withdrawAndSetupSwap(beefyVault, amount, token, router);
+        address pair = IBeefyVaultV6(vault).want();
 
-        biswapRouter.swapExactTokensForTokens(
-            IERC20(address(beefyVault.want())).balanceOf(address(this)),
-            minTokenAmount,
-            path,
-            address(this),
-            block.timestamp
+        (address[] memory path, uint256 tokenAmountIn) = BeefyZapperHelpers.removeLiquidityAndSetupSwap(
+            pair,
+            token,
+            router
         );
 
-        BeefyZapperHelpers.returnAsset(IERC20(vault), IERC20(vault).balanceOf(address(this)));
+        // Slippage 100% since we are checking the final amount (minTokenAmount) for the slippage
+        biswapRouter.swapExactTokensForTokens(tokenAmountIn, 0, path, address(this), block.timestamp);
     }
 
-    /// @notice Zap one of the paired tokens for the LP Token, deposit the
+    /// @dev Zap one of the paired tokens for the LP Token, deposit the
     ///         asset in the Beefy vault and receive the vault token (moo)
     /// @param router The uniswap v2 router address to use for swaping and adding liquidity
     /// @param vault The vault address to deposit into
     /// @param token The token to zap
     /// @param amount The token amount to deposit
-    function zapAndStakeLp(
+    function _zapAndStakeLp(
         address router,
-        address vault,
+        IBeefyVaultV6 vault,
         IERC20 token,
         uint256 amount
     ) private {
-        IBeefyVaultV6 beefyVault = IBeefyVaultV6(vault);
         IBiswapRouter02 biswapRouter = IBiswapRouter02(router);
-        IBiswapPair pair = IBiswapPair(beefyVault.want());
+        IBiswapPair pair = IBiswapPair(vault.want());
 
         require(pair.factory() == biswapRouter.factory(), "BLVO: INVALID_VAULT");
 
-        (address[] memory path, bool isInputA) = BeefyZapperHelpers.setupTokenBalancingSwap(
+        (address[] memory path, bool isInput0) = BeefyZapperHelpers.setupAddLiquiditySwap(
             pair,
-            vault,
+            address(vault),
             router,
             address(token)
         );
 
+        (uint256 reserve0, uint256 reserve1, ) = pair.getReserves();
+
         // The amount of input token to swap
         // to get the same value of output token
         uint256 swapAmountIn;
-        if (isInputA) {
-            swapAmountIn = getOptimalSwapAmount(amount, biswapRouter, pair);
+        if (isInput0) {
+            swapAmountIn = _getOptimalSwapAmount(amount, reserve0, reserve1, biswapRouter, pair);
         } else {
-            swapAmountIn = getOptimalSwapAmount(amount, biswapRouter, pair);
+            swapAmountIn = _getOptimalSwapAmount(amount, reserve1, reserve0, biswapRouter, pair);
         }
 
-        uint256 lpAmount = swapAndAddLiquidity(amount, swapAmountIn, path, biswapRouter);
-
-        beefyVault.deposit(lpAmount);
+        uint256 lpAmount = _swapAndAddLiquidity(amount, swapAmountIn, path, biswapRouter);
+        vault.deposit(lpAmount);
     }
 
-    /// @notice Swap input tokenA into TokenB to get the same value in tokenA
+    /// @dev Swap input tokenA into TokenB to get the same value in tokenA
     ///         as in tokenB to then add liquidity and store the obtained LP
-    ///         token in the vault beefy
+    ///         token in the vault beefy.
+    /// Note : path.length must be equal to 2 with path[0] = tokenA and path[1] = tokenB
     /// @param amount The amount of tokenA to invest
     /// @param swapAmountIn The amount of tokenA to swap for tokenB
     /// @param path An array of the two paired token addresses
     /// @param biswapRouter The uniswapV2 router to be used for swap and liquidity addition
-    /// @dev path.length must be equal to 2 with path[0] = tokenA and path[1] = tokenB
-    function swapAndAddLiquidity(
+    function _swapAndAddLiquidity(
         uint256 amount,
         uint256 swapAmountIn,
         address[] memory path,
         IBiswapRouter02 biswapRouter
     ) private returns (uint256 mintedLpAmount) {
-        uint256[] memory swapedAmounts = biswapRouter.swapExactTokensForTokens(
+        uint256[] memory swappedAmounts = biswapRouter.swapExactTokensForTokens(
             swapAmountIn,
             1,
             path,
@@ -217,8 +211,8 @@ contract BeefyZapBiswapLPVaultOperator {
         (, , mintedLpAmount) = biswapRouter.addLiquidity(
             path[0],
             path[1],
-            amount - swapedAmounts[0],
-            swapedAmounts[1],
+            amount - swappedAmounts[0],
+            swappedAmounts[1],
             1,
             1,
             address(this),
@@ -226,26 +220,34 @@ contract BeefyZapBiswapLPVaultOperator {
         );
     }
 
-    /// @notice Calculate the optimal amount of tokenA to swap in order
+    /// @dev Calculate the optimal amount of tokenA to swap in order
     ///         to obtain the same market value of tokenB after the trade
     ///         in order to add as many tokensA and tokensB as possible
     ///         to the liquidity so that as few as possible remain.
     /// @param investmentA The total amount of tokenA to invest
     /// @param pair The IBiswapPair to be used
-    function getOptimalSwapAmount(
+    function _getOptimalSwapAmount(
         uint256 investmentA,
+        uint256 reserveA,
+        uint256 reserveB,
         IBiswapRouter02 router,
         IBiswapPair pair
     ) private view returns (uint256 swapAmount) {
-        (uint256 reserveA, uint256 reserveB, ) = pair.getReserves();
         require(reserveA > 1000, "BLVO: PAIR_RESERVE_TOO_LOW");
         require(reserveB > 1000, "BLVO: PAIR_RESERVE_TOO_LOW");
 
+        // The initial plan is to swap half of tokenA total amount to add liquidity
         uint256 halfInvestment = investmentA / 2;
+
+        // Get the tokenB output for swapping tokenA (with the given reserves)
         uint256 nominator = router.getAmountOut(halfInvestment, reserveA, reserveB, pair.swapFee());
+
+        // Get the amount of reserveB token representing equivalent value after swapping
+        // tokenA for tokenB (previous operation).
         uint256 denominator = router.quote(halfInvestment, reserveA + halfInvestment, reserveB - nominator);
+
         // Equivalent of the simplification of a quadratic equation (ax² + bx + c = 0)
-        // Please read the ./README.md at the "optimal swap amount" section
+        // See : "optimal swap amount" in readme
         swapAmount = investmentA - Babylonian.sqrt((halfInvestment * halfInvestment * nominator) / denominator);
     }
 }

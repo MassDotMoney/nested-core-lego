@@ -95,9 +95,12 @@ describeOnBscFork("BeefyZapLPVaultOperator", () => {
 
             expect(await context.user1.getBalance()).to.be.equal(ethBalanceBefore.sub(bnbToDepositAndFees).sub(txFees));
 
-            // The FeeSplitter must receive the right fee amount
-            expect(await context.WBNB.balanceOf(context.feeSplitter.address)).to.be.equal(
-                getExpectedFees(bnbToDeposit),
+            /*
+            * I can't predict the WBNB received in the FeeSplitter.
+            * It should be greater than 0.01 WBNB, but sub 1% to allow some dust sent back to the user (without fees)
+            */
+            expect(await context.WBNB.balanceOf(context.feeSplitter.address)).to.be.gt(
+                getExpectedFees(bnbToDeposit).sub(getExpectedFees(bnbToDeposit).div(100)),
             );
 
             const expectedNfts = [
@@ -172,8 +175,8 @@ describeOnBscFork("BeefyZapLPVaultOperator", () => {
 
             const nfts = await context.nestedAssetBatcher.getNfts(context.user1.address);
 
-            expect(nfts[0].assets.length).to.equal(1);
-            expect(nfts[0].assets[0].token).to.equal(context.beefyBiswapVaultAddress);
+            expect(nfts[0].assets.length).to.equal(2); // WBNB (dust) + Moo
+            expect(nfts[0].assets[1].token).to.equal(context.beefyBiswapVaultAddress);
 
             // Moo and WBNB in Fee Splitter
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
@@ -224,9 +227,6 @@ describeOnBscFork("BeefyZapLPVaultOperator", () => {
             const vault = mockERC20Factory.attach(context.beefyBiswapVaultAddress);
             const nestedFactory = nestedFactoryFactory.attach(context.nestedFactory.address);
 
-            // Get entry fees amount from Nested Factory from 1 to 10,000 (0.01% to 100%)
-            const entryFees = (await nestedFactory.entryFees())
-
             // Moo balance of the nested reserve before the withdraw 
             const mooBalance: BigNumber = await vault.balanceOf(context.nestedReserve.address);
 
@@ -238,11 +238,6 @@ describeOnBscFork("BeefyZapLPVaultOperator", () => {
             // All moo removed from reserve
             expect(await vault.balanceOf(context.nestedReserve.address)).to.be.equal(BIG_NUMBER_ZERO);
             expect(await vault.balanceOf(context.nestedFactory.address)).to.be.equal(BIG_NUMBER_ZERO);
-
-            // The user has received all the tokens, minus the fees
-            expect(await vault.balanceOf(context.user1.address)).to.be.equal(
-                mooBalance.sub(entryFees.mul(mooBalance).div(10000))
-            )
 
             /*
             * I can't predict the WBNB received in the FeeSplitter.
