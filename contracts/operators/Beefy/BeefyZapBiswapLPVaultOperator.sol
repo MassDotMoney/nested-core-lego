@@ -59,7 +59,7 @@ contract BeefyZapBiswapLPVaultOperator {
         uint256 vaultBalanceBefore = IERC20(vault).balanceOf(address(this));
         uint256 tokenBalanceBefore = token.balanceOf(address(this));
 
-        beefIn(router, vault, token, amount);
+        zapAndStakeLp(router, vault, token, amount);
 
         uint256 vaultAmount = IERC20(vault).balanceOf(address(this)) - vaultBalanceBefore;
         uint256 tokenAmount = tokenBalanceBefore - token.balanceOf(address(this));
@@ -107,7 +107,7 @@ contract BeefyZapBiswapLPVaultOperator {
         uint256 tokenBalanceBefore = token.balanceOf(address(this));
         uint256 vaultBalanceBefore = IERC20(vault).balanceOf(address(this));
 
-        beefOutAndSwap(router, vault, amount, address(token), minTokenAmount);
+        withdrawAndSwap(router, vault, amount, address(token), minTokenAmount);
 
         uint256 tokenAmount = token.balanceOf(address(this)) - tokenBalanceBefore;
         uint256 vaultAmount = vaultBalanceBefore - IERC20(vault).balanceOf(address(this));
@@ -130,7 +130,7 @@ contract BeefyZapBiswapLPVaultOperator {
     /// @param amount The vault token amount to withdraw
     /// @param token One of the paired token
     /// @param minTokenAmount The minimum token amount expected
-    function beefOutAndSwap(
+    function withdrawAndSwap(
         address router,
         address vault,
         uint256 amount,
@@ -159,7 +159,7 @@ contract BeefyZapBiswapLPVaultOperator {
     /// @param vault The vault address to deposit into
     /// @param token The token to zap
     /// @param amount The token amount to deposit
-    function beefIn(
+    function zapAndStakeLp(
         address router,
         address vault,
         IERC20 token,
@@ -182,12 +182,14 @@ contract BeefyZapBiswapLPVaultOperator {
         // to get the same value of output token
         uint256 swapAmountIn;
         if (isInputA) {
-            swapAmountIn = getSwapAmount(amount, biswapRouter, pair);
+            swapAmountIn = getOptimalSwapAmount(amount, biswapRouter, pair);
         } else {
-            swapAmountIn = getSwapAmount(amount, biswapRouter, pair);
+            swapAmountIn = getOptimalSwapAmount(amount, biswapRouter, pair);
         }
 
-        swapAndStake(amount, swapAmountIn, path, biswapRouter, beefyVault);
+        uint256 lpAmount = swapAndAddLiquidity(amount, swapAmountIn, path, biswapRouter);
+
+        beefyVault.deposit(lpAmount);
     }
 
     /// @notice Swap input tokenA into TokenB to get the same value in tokenA
@@ -197,15 +199,13 @@ contract BeefyZapBiswapLPVaultOperator {
     /// @param swapAmountIn The amount of tokenA to swap for tokenB
     /// @param path An array of the two paired token addresses
     /// @param biswapRouter The uniswapV2 router to be used for swap and liquidity addition
-    /// @param beefyVault The Beefy vault to be used for the LP token deposit
     /// @dev path.length must be equal to 2 with path[0] = tokenA and path[1] = tokenB
-    function swapAndStake(
+    function swapAndAddLiquidity(
         uint256 amount,
         uint256 swapAmountIn,
         address[] memory path,
-        IBiswapRouter02 biswapRouter,
-        IBeefyVaultV6 beefyVault
-    ) private {
+        IBiswapRouter02 biswapRouter
+    ) private returns (uint256 mintedLpAmount) {
         uint256[] memory swapedAmounts = biswapRouter.swapExactTokensForTokens(
             swapAmountIn,
             1,
@@ -214,7 +214,7 @@ contract BeefyZapBiswapLPVaultOperator {
             block.timestamp
         );
 
-        (, , uint256 amountLiquidity) = biswapRouter.addLiquidity(
+        (, , mintedLpAmount) = biswapRouter.addLiquidity(
             path[0],
             path[1],
             amount - swapedAmounts[0],
@@ -224,8 +224,6 @@ contract BeefyZapBiswapLPVaultOperator {
             address(this),
             block.timestamp
         );
-
-        beefyVault.deposit(amountLiquidity);
     }
 
     /// @notice Calculate the optimal amount of tokenA to swap in order
@@ -234,7 +232,7 @@ contract BeefyZapBiswapLPVaultOperator {
     ///         to the liquidity so that as few as possible remain.
     /// @param investmentA The total amount of tokenA to invest
     /// @param pair The IBiswapPair to be used
-    function getSwapAmount(
+    function getOptimalSwapAmount(
         uint256 investmentA,
         IBiswapRouter02 router,
         IBiswapPair pair
