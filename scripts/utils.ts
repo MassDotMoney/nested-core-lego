@@ -1,6 +1,7 @@
 import {
     BeefyVaultOperator,
     BeefyZapBiswapLPVaultOperator,
+    BeefyZapUniswapLPVaultOperator,
     FlatOperator,
     NestedFactory,
     OperatorResolver,
@@ -165,17 +166,33 @@ export function registerBeefyWithdraw(operator: BeefyVaultOperator): Op {
     };
 }
 
-export function registerBeefyZapLPDeposit(operator: BeefyZapBiswapLPVaultOperator): Op {
+export function registerBeefyZapBiswapLPDeposit(operator: BeefyZapBiswapLPVaultOperator): Op {
     return {
-        name: "BeefyZapLPDeposit",
+        name: "BeefyZapBiswapLPDeposit",
         contract: operator.address,
         signature: "function deposit(address vault, address token, uint256 amount, uint256 minVaultAmount)",
     };
 }
 
-export function registerBeefyZapLPWithdraw(operator: BeefyZapBiswapLPVaultOperator): Op {
+export function registerBeefyZapBiswapLPWithdraw(operator: BeefyZapBiswapLPVaultOperator): Op {
     return {
-        name: "BeefyZapLPWithdraw",
+        name: "BeefyZapBiswapLPWithdraw",
+        contract: operator.address,
+        signature: "function withdraw(address vault, uint256 amount, address token, uint256 minTokenAmount)",
+    };
+}
+
+export function registerBeefyZapUniswapLPDeposit(operator: BeefyZapUniswapLPVaultOperator): Op {
+    return {
+        name: "BeefyZapUniswapLPDeposit",
+        contract: operator.address,
+        signature: "function deposit(address vault, address token, uint256 amount, uint256 minVaultAmount)",
+    };
+}
+
+export function registerBeefyZapUniswapLPWithdraw(operator: BeefyZapBiswapLPVaultOperator): Op {
+    return {
+        name: "BeefyZapUniswapLPWithdraw",
         contract: operator.address,
         signature: "function withdraw(address vault, uint256 amount, address token, uint256 minTokenAmount)",
     };
@@ -294,9 +311,33 @@ export function getBeefyBnbVenusWithdrawOrder(context: FactoryAndOperatorsForkin
 }
 
 // Create a Deposit order in Beefy (Biswap USDT-BNB on Bsc)
+export function getBeefyUniswapDepositOrder(context: FactoryAndOperatorsForkingBSCFixture, bnbToDeposit: BigNumber) {
+    return [
+        buildOrderStruct(context.beefyZapUniswapLPVaultDepositOperatorNameBytes32, context.beefyUniswapVaultAddress, [
+            ["address", context.beefyUniswapVaultAddress],
+            ["address", context.WBNB.address],
+            ["uint256", bnbToDeposit],
+            ["uint256", 0], // 100% slippage
+        ]),
+    ];
+}
+
+// Create a Withdraw order in Beefy (Biswap USDT-BNB on Bsc)
+export function getBeefyUniswapWithdrawOrder(context: FactoryAndOperatorsForkingBSCFixture, mooToWithdraw: BigNumber) {
+    return [
+        buildOrderStruct(context.beefyZapUniswapLPVaultDepositOperatorNameBytes32, context.beefyUniswapVaultAddress, [
+            ["address", context.beefyUniswapVaultAddress],
+            ["uint256", mooToWithdraw],
+            ["address", context.WBNB.address],
+            ["uint256", 0], // 100% slippage
+        ]),
+    ];
+}
+
+// Create a Deposit order in Beefy (Biswap USDT-BNB on Bsc)
 export function getBeefyBiswapDepositOrder(context: FactoryAndOperatorsForkingBSCFixture, bnbToDeposit: BigNumber) {
     return [
-        buildOrderStruct(context.beefyZapLPVaultDepositOperatorNameBytes32, context.beefyBiswapVaultAddress, [
+        buildOrderStruct(context.beefyZapBiswapLPVaultDepositOperatorNameBytes32, context.beefyBiswapVaultAddress, [
             ["address", context.beefyBiswapVaultAddress],
             ["address", context.WBNB.address],
             ["uint256", bnbToDeposit],
@@ -308,7 +349,7 @@ export function getBeefyBiswapDepositOrder(context: FactoryAndOperatorsForkingBS
 // Create a Withdraw order in Beefy (Biswap USDT-BNB on Bsc)
 export function getBeefyBiswapWithdrawOrder(context: FactoryAndOperatorsForkingBSCFixture, mooToWithdraw: BigNumber) {
     return [
-        buildOrderStruct(context.beefyZapLPVaultWithdrawOperatorNameBytes32, context.beefyBiswapVaultAddress, [
+        buildOrderStruct(context.beefyZapBiswapLPVaultDepositOperatorNameBytes32, context.beefyBiswapVaultAddress, [
             ["address", context.beefyBiswapVaultAddress],
             ["uint256", mooToWithdraw],
             ["address", context.WBNB.address],

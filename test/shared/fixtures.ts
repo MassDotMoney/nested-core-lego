@@ -6,6 +6,7 @@ import {
     AugustusSwapper,
     BeefyVaultOperator,
     BeefyVaultStorage,
+    BeefyZapUniswapLPVaultOperator,
     DummyRouter,
     FeeSplitter,
     FlatOperator,
@@ -32,8 +33,10 @@ import {
     registerBeefyDeposit,
     registerBeefyWithdraw,
     registerParaswap,
-    registerBeefyZapLPDeposit,
-    registerBeefyZapLPWithdraw,
+    registerBeefyZapBiswapLPDeposit,
+    registerBeefyZapBiswapLPWithdraw,
+    registerBeefyZapUniswapLPDeposit,
+    registerBeefyZapUniswapLPWithdraw,
 } from "../../scripts/utils";
 import { BeefyZapBiswapLPVaultOperator } from "../../typechain/BeefyZapBiswapLPVaultOperator";
 
@@ -424,10 +427,15 @@ export type FactoryAndOperatorsForkingBSCFixture = {
     beefyVaultDepositOperatorNameBytes32: string;
     beefyVaultWithdrawOperatorNameBytes32: string;
     beefyBiswapVaultAddress: string;
-    beefyZapLPVaultOperator: BeefyZapBiswapLPVaultOperator;
-    beefyZapLPVaultStorage: BeefyVaultStorage;
-    beefyZapLPVaultDepositOperatorNameBytes32: string;
-    beefyZapLPVaultWithdrawOperatorNameBytes32: string;
+    beefyZapBiswapLPVaultOperator: BeefyZapBiswapLPVaultOperator;
+    beefyZapBiswapLPVaultStorage: BeefyVaultStorage;
+    beefyZapBiswapLPVaultDepositOperatorNameBytes32: string;
+    beefyZapBiswapLPVaultWithdrawOperatorNameBytes32: string;
+    beefyUniswapVaultAddress: string;
+    beefyZapUniswapLPVaultOperator: BeefyZapUniswapLPVaultOperator;
+    beefyZapUniswapLPVaultStorage: BeefyVaultStorage;
+    beefyZapUniswapLPVaultDepositOperatorNameBytes32: string;
+    beefyZapUniswapLPVaultWithdrawOperatorNameBytes32: string;
     withdrawer: Withdrawer;
     nestedFactory: NestedFactory;
     nestedReserve: NestedReserve;
@@ -517,7 +525,18 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
         .deploy([beefyBiswapVaultAddress], [biswapRouterAddress]);
     await beefyZapBiswapLPVaultOperator.deployed();
 
-    const beefyZapLPVaultStorage = beefyVaultStorageFactory.attach(await beefyZapBiswapLPVaultOperator.operatorStorage());
+    const beefyZapBiswapLPVaultStorage = beefyVaultStorageFactory.attach(await beefyZapBiswapLPVaultOperator.operatorStorage());
+
+    // Deploy Beefy Zap Lp (Uniswap ERA-WBNB LP vault)
+    const uniswapRouterAddress = "0x10ED43C718714eb63d5aA57B78B54704E256024E";
+    const beefyUniswapVaultAddress = "0xbaAcbb2A18Db15D185AE5fAdc53bEe21Ed626a5e";
+    const beefyZapUniswapLPVaultOperatorFactory = await ethers.getContractFactory("BeefyZapUniswapLPVaultOperator");
+    const beefyZapUniswapLPVaultOperator = await beefyZapUniswapLPVaultOperatorFactory
+        .connect(masterDeployer)
+        .deploy([beefyUniswapVaultAddress], [uniswapRouterAddress]);
+    await beefyZapUniswapLPVaultOperator.deployed();
+
+    const beefyZapUniswapLPVaultStorage = beefyVaultStorageFactory.attach(await beefyZapUniswapLPVaultOperator.operatorStorage());
 
     // Deploy Withdrawer
     const withdrawerFactory = await ethers.getContractFactory("Withdrawer");
@@ -601,8 +620,10 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
             registerFlat(flatOperator),
             registerBeefyDeposit(beefyVaultOperator),
             registerBeefyWithdraw(beefyVaultOperator),
-            registerBeefyZapLPDeposit(beefyZapBiswapLPVaultOperator),
-            registerBeefyZapLPWithdraw(beefyZapBiswapLPVaultOperator),
+            registerBeefyZapBiswapLPDeposit(beefyZapBiswapLPVaultOperator),
+            registerBeefyZapBiswapLPWithdraw(beefyZapBiswapLPVaultOperator),
+            registerBeefyZapUniswapLPDeposit(beefyZapUniswapLPVaultOperator),
+            registerBeefyZapUniswapLPWithdraw(beefyZapUniswapLPVaultOperator),
         ],
         nestedFactory,
         masterDeployer,
@@ -643,10 +664,15 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
         beefyVaultDepositOperatorNameBytes32: toBytes32("BeefyDeposit"),
         beefyVaultWithdrawOperatorNameBytes32: toBytes32("BeefyWithdraw"),
         beefyBiswapVaultAddress,
-        beefyZapLPVaultOperator: beefyZapBiswapLPVaultOperator,
-        beefyZapLPVaultStorage,
-        beefyZapLPVaultDepositOperatorNameBytes32: toBytes32("BeefyZapLPDeposit"),
-        beefyZapLPVaultWithdrawOperatorNameBytes32: toBytes32("BeefyZapLPWithdraw"),
+        beefyZapBiswapLPVaultOperator,
+        beefyZapBiswapLPVaultStorage,
+        beefyZapBiswapLPVaultDepositOperatorNameBytes32: toBytes32("BeefyZapBiswapLPDeposit"),
+        beefyZapBiswapLPVaultWithdrawOperatorNameBytes32: toBytes32("BeefyZapBiswapLPWithdraw"),
+        beefyUniswapVaultAddress,
+        beefyZapUniswapLPVaultOperator,
+        beefyZapUniswapLPVaultStorage,
+        beefyZapUniswapLPVaultDepositOperatorNameBytes32: toBytes32("BeefyZapUniswapLPDeposit"),
+        beefyZapUniswapLPVaultWithdrawOperatorNameBytes32: toBytes32("BeefyZapUniswapLPWithdraw"),
         withdrawer,
         zeroExOperator,
         nestedFactory,

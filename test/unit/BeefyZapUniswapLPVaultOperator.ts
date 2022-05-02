@@ -8,7 +8,7 @@ import { ethers } from "hardhat";
 
 let loadFixture: LoadFixtureFunction;
 
-describeOnBscFork("BeefyZapLPVaultOperator", () => {
+describeOnBscFork("BeefyZapUniswapLPVaultOperator", () => {
     let context: FactoryAndOperatorsForkingBSCFixture;
     const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
@@ -21,7 +21,7 @@ describeOnBscFork("BeefyZapLPVaultOperator", () => {
     });
 
     it("deploys and has an address", async () => {
-        expect(context.beefyZapLPVaultOperator.address).to.be.a.string;
+        expect(context.beefyZapUniswapLPVaultOperator.address).to.be.a.string;
     });
 
     // BeefyVaultStorage already tested iun BeefyVaultOperator.ts
@@ -33,7 +33,7 @@ describeOnBscFork("BeefyZapLPVaultOperator", () => {
             const bnbToDepositAndFees = bnbToDeposit.add(getExpectedFees(bnbToDeposit));
 
             // Orders to deposit in beefy with amount 0
-            let orders: utils.OrderStruct[] = utils.getBeefyBiswapDepositOrder(context, BIG_NUMBER_ZERO);
+            let orders: utils.OrderStruct[] = utils.getBeefyUniswapDepositOrder(context, BIG_NUMBER_ZERO);
 
             // User1 creates the portfolio/NFT
             await expect(
@@ -51,7 +51,7 @@ describeOnBscFork("BeefyZapLPVaultOperator", () => {
             const bnbToDepositAndFees = bnbToDeposit.add(getExpectedFees(bnbToDeposit));
 
             // Orders to deposit in beefy with "initial amount x 2" (more than msg.value)
-            let orders: utils.OrderStruct[] = utils.getBeefyBiswapDepositOrder(context, bnbToDepositAndFees.mul(2));
+            let orders: utils.OrderStruct[] = utils.getBeefyUniswapDepositOrder(context, bnbToDepositAndFees.mul(2));
 
             // User1 creates the portfolio/NFT
             await expect(
@@ -71,7 +71,7 @@ describeOnBscFork("BeefyZapLPVaultOperator", () => {
             const ethBalanceBefore = await context.user1.getBalance();
 
             // Orders to Deposit in beefy
-            let orders: utils.OrderStruct[] = utils.getBeefyBiswapDepositOrder(context, bnbToDeposit);
+            let orders: utils.OrderStruct[] = utils.getBeefyUniswapDepositOrder(context, bnbToDeposit);
 
             // User1 creates the portfolio/NFT
             const tx = await context.nestedFactory
@@ -87,7 +87,7 @@ describeOnBscFork("BeefyZapLPVaultOperator", () => {
             expect(await context.nestedAsset.ownerOf(1)).to.be.equal(context.user1.address);
 
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
-            const vault = mockERC20Factory.attach(context.beefyBiswapVaultAddress);
+            const vault = mockERC20Factory.attach(context.beefyUniswapVaultAddress);
 
             // Moo tokens in vault
             const mooBalanceReserve = await vault.balanceOf(context.nestedReserve.address);
@@ -106,7 +106,7 @@ describeOnBscFork("BeefyZapLPVaultOperator", () => {
             const expectedNfts = [
                 {
                     id: BigNumber.from(1),
-                    assets: [{ token: context.beefyBiswapVaultAddress, qty: mooBalanceReserve }],
+                    assets: [{ token: context.beefyUniswapVaultAddress, qty: mooBalanceReserve }],
                 },
             ];
 
@@ -151,8 +151,8 @@ describeOnBscFork("BeefyZapLPVaultOperator", () => {
 
             // Orders to Deposit in beefy
             orders = [
-                utils.buildOrderStruct(context.beefyZapLPVaultDepositOperatorNameBytes32, context.WBNB.address, [
-                    ["address", context.beefyBiswapVaultAddress],
+                utils.buildOrderStruct(context.beefyZapUniswapLPVaultDepositOperatorNameBytes32, context.WBNB.address, [
+                    ["address", context.beefyUniswapVaultAddress],
                     ["address", context.WBNB.address],
                     ["uint256", totalToBought],
                     ["uint256", 0], // 100% slippage
@@ -163,7 +163,7 @@ describeOnBscFork("BeefyZapLPVaultOperator", () => {
             await expect(
                 context.nestedFactory.connect(context.user1).processOutputOrders(1, [
                     {
-                        outputToken: context.beefyBiswapVaultAddress,
+                        outputToken: context.beefyUniswapVaultAddress,
                         amounts: [totalToBought],
                         orders,
                         toReserve: true,
@@ -176,11 +176,11 @@ describeOnBscFork("BeefyZapLPVaultOperator", () => {
             const nfts = await context.nestedAssetBatcher.getNfts(context.user1.address);
 
             expect(nfts[0].assets.length).to.equal(2); // WBNB (dust) + Moo
-            expect(nfts[0].assets[1].token).to.equal(context.beefyBiswapVaultAddress);
+            expect(nfts[0].assets[1].token).to.equal(context.beefyUniswapVaultAddress);
 
             // Moo and WBNB in Fee Splitter
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
-            const vault = mockERC20Factory.attach(context.beefyBiswapVaultAddress);
+            const vault = mockERC20Factory.attach(context.beefyUniswapVaultAddress);
 
             expect(await vault.balanceOf(context.feeSplitter.address)).to.not.be.equal(BIG_NUMBER_ZERO);
             expect(await context.WBNB.balanceOf(context.feeSplitter.address)).to.not.be.equal(BIG_NUMBER_ZERO);
@@ -193,7 +193,7 @@ describeOnBscFork("BeefyZapLPVaultOperator", () => {
             const bnbToDepositAndFees = bnbToDeposit.add(getExpectedFees(bnbToDeposit));
 
             // Orders to withdraw from beefy
-            let orders: utils.OrderStruct[] = utils.getBeefyBiswapDepositOrder(context, bnbToDeposit);
+            let orders: utils.OrderStruct[] = utils.getBeefyUniswapDepositOrder(context, bnbToDeposit);
 
             // User1 creates the portfolio/NFT
             await context.nestedFactory
@@ -205,12 +205,12 @@ describeOnBscFork("BeefyZapLPVaultOperator", () => {
 
         it("Should revert if amount to withdraw is zero", async () => {
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
-            const vault = mockERC20Factory.attach(context.beefyBiswapVaultAddress);
+            const vault = mockERC20Factory.attach(context.beefyUniswapVaultAddress);
 
             const mooBalance = await vault.balanceOf(context.nestedReserve.address);
 
             // Orders to withdraw from beefy
-            let orders: utils.OrderStruct[] = utils.getBeefyBiswapWithdrawOrder(context, BIG_NUMBER_ZERO);
+            let orders: utils.OrderStruct[] = utils.getBeefyUniswapWithdrawOrder(context, BIG_NUMBER_ZERO);
 
             await expect(
                 context.nestedFactory
@@ -224,14 +224,14 @@ describeOnBscFork("BeefyZapLPVaultOperator", () => {
         it("Destroy/Withdraw from Beefy", async () => {
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
             const nestedFactoryFactory = await ethers.getContractFactory("NestedFactory");
-            const vault = mockERC20Factory.attach(context.beefyBiswapVaultAddress);
+            const vault = mockERC20Factory.attach(context.beefyUniswapVaultAddress);
             const nestedFactory = nestedFactoryFactory.attach(context.nestedFactory.address);
 
             // Moo balance of the nested reserve before the withdraw 
             const mooBalance: BigNumber = await vault.balanceOf(context.nestedReserve.address);
 
             // Orders to withdraw from beefy
-            let orders: utils.OrderStruct[] = utils.getBeefyBiswapWithdrawOrder(context, mooBalance);
+            let orders: utils.OrderStruct[] = utils.getBeefyUniswapWithdrawOrder(context, mooBalance);
 
             await context.nestedFactory.connect(context.user1).destroy(1, context.WBNB.address, orders);
 
