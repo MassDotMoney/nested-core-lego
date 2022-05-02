@@ -3,9 +3,10 @@ pragma solidity 0.8.11;
 
 import "./BeefyVaultStorage.sol";
 import "./../../libraries/ExchangeHelpers.sol";
+import "./../../libraries/BeefyZapperHelpers.sol";
 import "./../../interfaces/external/IBeefyVaultV6.sol";
 import "./../../interfaces/external/IBiswapRouter02.sol";
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
+import "./../../interfaces/external/IBiswapPair.sol";
 import "@uniswap/lib/contracts/libraries/Babylonian.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -13,7 +14,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /// @notice Deposit/Withdraw in a Beefy UniV2 LP vault using zapper
 /// Note: "Zap" means that we are converting an asset for the LP Token by
 ///       swapping and adding liquidity.
-contract BeefyZapLPVaultOperator {
+contract BeefyZapBiswapLPVaultOperator {
     using SafeERC20 for IERC20;
 
     BeefyVaultStorage public immutable operatorStorage;
@@ -64,7 +65,7 @@ contract BeefyZapLPVaultOperator {
         uint256 tokenAmount = tokenBalanceBefore - token.balanceOf(address(this));
 
         uint256 tokenDust = amount - tokenAmount;
-        returnAsset(token, tokenDust);
+        BeefyZapperHelpers.returnAsset(token, tokenDust);
 
         require(vaultAmount != 0 && vaultAmount >= minVaultAmount, "BLVO: INVALID_AMOUNT_RECEIVED");
         require(amount == (tokenAmount + tokenDust), "BLVO: INVALID_AMOUNT_DEPOSITED");
@@ -138,38 +139,18 @@ contract BeefyZapLPVaultOperator {
     ) private {
         IBeefyVaultV6 beefyVault = IBeefyVaultV6(vault);
         IBiswapRouter02 biswapRouter = IBiswapRouter02(router);
-        IUniswapV2Pair pair = beefyVault.want();
 
-        // Withdraw the LP tokens, only with the remaining Vault tokens
-        // after subtracting the "amount" value
-        beefyVault.withdraw(IERC20(beefyVault).balanceOf(address(this)) - amount);
+        address[] memory path = BeefyZapperHelpers.withdrawAndSetupSwap(beefyVault, amount, token, router);
 
-        address token0 = pair.token0();
-        address token1 = pair.token1();
-        require(token0 == token || token1 == token, "BLVO: INVALID_TOKEN");
-
-        address cachedPairAddress = address(beefyVault.want());
-
-        IERC20(cachedPairAddress).safeTransfer(cachedPairAddress, IERC20(cachedPairAddress).balanceOf(address(this)));
-        pair.burn(address(this));
-
-        address swapToken = token1 == token ? token0 : token1;
-
-        address[] memory path = new address[](2);
-        path[0] = swapToken;
-        path[1] = token;
-        IERC20 cachedERC20SwapToken = IERC20(swapToken);
-
-        ExchangeHelpers.setMaxAllowance(cachedERC20SwapToken, address(router));
         biswapRouter.swapExactTokensForTokens(
-            cachedERC20SwapToken.balanceOf(address(this)),
+            IERC20(address(beefyVault.want())).balanceOf(address(this)),
             minTokenAmount,
             path,
             address(this),
             block.timestamp
         );
 
-        returnAsset(IERC20(vault), IERC20(vault).balanceOf(address(this)));
+        BeefyZapperHelpers.returnAsset(IERC20(vault), IERC20(vault).balanceOf(address(this)));
     }
 
     /// @notice Zap one of the paired tokens for the LP Token, deposit the
@@ -186,36 +167,24 @@ contract BeefyZapLPVaultOperator {
     ) private {
         IBeefyVaultV6 beefyVault = IBeefyVaultV6(vault);
         IBiswapRouter02 biswapRouter = IBiswapRouter02(router);
-        IUniswapV2Pair pair = beefyVault.want();
+        IBiswapPair pair = IBiswapPair(beefyVault.want());
 
         require(pair.factory() == biswapRouter.factory(), "BLVO: INVALID_VAULT");
 
-        address cachedToken0 = pair.token0();
-        address cachedToken1 = pair.token1();
-
-        ExchangeHelpers.setMaxAllowance(IERC20(address(pair)), vault);
-        ExchangeHelpers.setMaxAllowance(IERC20(cachedToken0), router);
-        ExchangeHelpers.setMaxAllowance(IERC20(cachedToken1), router);
-
-        (uint256 reserveA, uint256 reserveB, ) = pair.getReserves();
-        require(reserveA > 1000, "BLVO: PAIR_RESERVE_TOO_LOW");
-        require(reserveB > 1000, "BLVO: PAIR_RESERVE_TOO_LOW");
-
-        bool isInputA = cachedToken0 == address(token);
-        require(isInputA || cachedToken1 == address(token), "BLVO: INVALID_INPUT_TOKEN");
-
-        address[] memory path = new address[](2);
-        path[0] = address(token);
+        (address[] memory path, bool isInputA) = BeefyZapperHelpers.setupTokenBalancingSwap(
+            pair,
+            vault,
+            router,
+            address(token)
+        );
 
         // The amount of input token to swap
         // to get the same value of output token
         uint256 swapAmountIn;
         if (isInputA) {
-            path[1] = cachedToken1;
-            swapAmountIn = getSwapAmount(amount, reserveA, reserveB, biswapRouter);
+            swapAmountIn = getSwapAmount(amount, biswapRouter, pair);
         } else {
-            path[1] = cachedToken0;
-            swapAmountIn = getSwapAmount(amount, reserveB, reserveA, biswapRouter);
+            swapAmountIn = getSwapAmount(amount, biswapRouter, pair);
         }
 
         swapAndStake(amount, swapAmountIn, path, biswapRouter, beefyVault);
@@ -228,7 +197,7 @@ contract BeefyZapLPVaultOperator {
     /// @param swapAmountIn The amount of tokenA to swap for tokenB
     /// @param path An array of the two paired token addresses
     /// @param biswapRouter The uniswapV2 router to be used for swap and liquidity addition
-    /// @param beefyVault The Beffy vault to be used for the LP token deposit
+    /// @param beefyVault The Beefy vault to be used for the LP token deposit
     /// @dev path.length must be equal to 2 with path[0] = tokenA and path[1] = tokenB
     function swapAndStake(
         uint256 amount,
@@ -259,32 +228,26 @@ contract BeefyZapLPVaultOperator {
         beefyVault.deposit(amountLiquidity);
     }
 
-    /// @notice Compute the amount of tokenA to swap to get the
-    ///         same value of tokenB
+    /// @notice Calculate the optimal amount of tokenA to swap in order
+    ///         to obtain the same market value of tokenB after the trade
+    ///         in order to add as many tokensA and tokensB as possible
+    ///         to the liquidity so that as few as possible remain.
     /// @param investmentA The total amount of tokenA to invest
-    /// @param reserveA The pair reserve of the invested token (tokenA reserve)
-    /// @param reserveB The pair reserve of output token (tokenB reserve)
-    /// @dev Make sure that the investmentA and the reserveA both refer to the tokenA
+    /// @param pair The IBiswapPair to be used
     function getSwapAmount(
         uint256 investmentA,
-        uint256 reserveA,
-        uint256 reserveB,
-        IBiswapRouter02 router
-    ) private pure returns (uint256 swapAmount) {
-        uint256 halfInvestment = investmentA / 2;
-        uint256 nominator = router.getAmountOut(halfInvestment, reserveA, reserveB, 1);
-        uint256 denominator = router.quote(halfInvestment, reserveA + halfInvestment, reserveB - nominator);
-        // The amount of tokenA to swap to get the same value of tokenB
-        swapAmount = investmentA - Babylonian.sqrt((halfInvestment * halfInvestment * nominator) / denominator);
-    }
+        IBiswapRouter02 router,
+        IBiswapPair pair
+    ) private view returns (uint256 swapAmount) {
+        (uint256 reserveA, uint256 reserveB, ) = pair.getReserves();
+        require(reserveA > 1000, "BLVO: PAIR_RESERVE_TOO_LOW");
+        require(reserveB > 1000, "BLVO: PAIR_RESERVE_TOO_LOW");
 
-    /// @notice Returns a certain amount of tokens to the msg.sender
-    /// @param token The address of the token to return
-    /// @param amount The amount of token to return
-    function returnAsset(IERC20 token, uint256 amount) private {
-        require(address(token) != address(0), "BLVO: INVALID_TOKEN_TO_RETURN");
-        if (amount > 0) {
-            token.safeTransfer(msg.sender, amount);
-        }
+        uint256 halfInvestment = investmentA / 2;
+        uint256 nominator = router.getAmountOut(halfInvestment, reserveA, reserveB, pair.swapFee());
+        uint256 denominator = router.quote(halfInvestment, reserveA + halfInvestment, reserveB - nominator);
+        // Equivalent of the simplification of a quadratic equation (ax² + bx + c = 0)
+        // Please read the ./README.md at the "optimal swap amount" section
+        swapAmount = investmentA - Babylonian.sqrt((halfInvestment * halfInvestment * nominator) / denominator);
     }
 }

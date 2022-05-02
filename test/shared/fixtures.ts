@@ -6,7 +6,6 @@ import {
     AugustusSwapper,
     BeefyVaultOperator,
     BeefyVaultStorage,
-    BeefyZapLPVaultOperator,
     DummyRouter,
     FeeSplitter,
     FlatOperator,
@@ -36,6 +35,7 @@ import {
     registerBeefyZapLPDeposit,
     registerBeefyZapLPWithdraw,
 } from "../../scripts/utils";
+import { BeefyZapBiswapLPVaultOperator } from "../../typechain/BeefyZapBiswapLPVaultOperator";
 
 export type OperatorResolverFixture = { operatorResolver: OperatorResolver };
 
@@ -424,7 +424,7 @@ export type FactoryAndOperatorsForkingBSCFixture = {
     beefyVaultDepositOperatorNameBytes32: string;
     beefyVaultWithdrawOperatorNameBytes32: string;
     beefyBiswapVaultAddress: string;
-    beefyZapLPVaultOperator: BeefyZapLPVaultOperator;
+    beefyZapLPVaultOperator: BeefyZapBiswapLPVaultOperator;
     beefyZapLPVaultStorage: BeefyVaultStorage;
     beefyZapLPVaultDepositOperatorNameBytes32: string;
     beefyZapLPVaultWithdrawOperatorNameBytes32: string;
@@ -511,13 +511,13 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
     // Deploy Beefy Zap LP (Biswap USDT-BNB LP vault)
     const biswapRouterAddress = "0x3a6d8cA21D1CF76F653A67577FA0D27453350dD8";
     const beefyBiswapVaultAddress = "0xe2AD2c5702f6c9073f85b00E4743066E1D1035f8";
-    const beefyZapLPVaultOperatorFactory = await ethers.getContractFactory("BeefyZapLPVaultOperator");
-    const beefyZapLPVaultOperator = await beefyZapLPVaultOperatorFactory
+    const beefyZapBiswapLPVaultOperatorFactory = await ethers.getContractFactory("BeefyZapBiswapLPVaultOperator");
+    const beefyZapBiswapLPVaultOperator = await beefyZapBiswapLPVaultOperatorFactory
         .connect(masterDeployer)
         .deploy([beefyBiswapVaultAddress], [biswapRouterAddress]);
-    await beefyZapLPVaultOperator.deployed();
+    await beefyZapBiswapLPVaultOperator.deployed();
 
-    const beefyZapLPVaultStorage = beefyVaultStorageFactory.attach(await beefyZapLPVaultOperator.operatorStorage());
+    const beefyZapLPVaultStorage = beefyVaultStorageFactory.attach(await beefyZapBiswapLPVaultOperator.operatorStorage());
 
     // Deploy Withdrawer
     const withdrawerFactory = await ethers.getContractFactory("Withdrawer");
@@ -601,8 +601,8 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
             registerFlat(flatOperator),
             registerBeefyDeposit(beefyVaultOperator),
             registerBeefyWithdraw(beefyVaultOperator),
-            registerBeefyZapLPDeposit(beefyZapLPVaultOperator),
-            registerBeefyZapLPWithdraw(beefyZapLPVaultOperator),
+            registerBeefyZapLPDeposit(beefyZapBiswapLPVaultOperator),
+            registerBeefyZapLPWithdraw(beefyZapBiswapLPVaultOperator),
         ],
         nestedFactory,
         masterDeployer,
@@ -643,7 +643,7 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
         beefyVaultDepositOperatorNameBytes32: toBytes32("BeefyDeposit"),
         beefyVaultWithdrawOperatorNameBytes32: toBytes32("BeefyWithdraw"),
         beefyBiswapVaultAddress,
-        beefyZapLPVaultOperator,
+        beefyZapLPVaultOperator: beefyZapBiswapLPVaultOperator,
         beefyZapLPVaultStorage,
         beefyZapLPVaultDepositOperatorNameBytes32: toBytes32("BeefyZapLPDeposit"),
         beefyZapLPVaultWithdrawOperatorNameBytes32: toBytes32("BeefyZapLPWithdraw"),

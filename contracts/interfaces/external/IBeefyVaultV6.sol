@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 
 interface IBeefyVaultV6 is IERC20 {
-    function want() external view returns (IUniswapV2Pair);
+    function want() external view returns (address);
 
     function deposit(uint256 _amount) external;
 
