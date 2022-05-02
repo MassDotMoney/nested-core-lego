@@ -96,9 +96,9 @@ describeOnBscFork("BeefyZapBiswapLPVaultOperator", () => {
             expect(await context.user1.getBalance()).to.be.equal(ethBalanceBefore.sub(bnbToDepositAndFees).sub(txFees));
 
             /*
-            * I can't predict the WBNB received in the FeeSplitter.
-            * It should be greater than 0.01 WBNB, but sub 1% to allow some dust sent back to the user (without fees)
-            */
+             * I can't predict the WBNB received in the FeeSplitter.
+             * It should be greater than 0.01 WBNB, but sub 1% to allow some dust sent back to the user (without fees)
+             */
             expect(await context.WBNB.balanceOf(context.feeSplitter.address)).to.be.gt(
                 getExpectedFees(bnbToDeposit).sub(getExpectedFees(bnbToDeposit).div(100)),
             );
@@ -156,7 +156,7 @@ describeOnBscFork("BeefyZapBiswapLPVaultOperator", () => {
                     ["address", context.WBNB.address],
                     ["uint256", totalToBought],
                     ["uint256", 0], // 100% slippage
-                ])
+                ]),
             ];
 
             // User1 deposit in beefy via OutputOrder
@@ -227,7 +227,7 @@ describeOnBscFork("BeefyZapBiswapLPVaultOperator", () => {
             const vault = mockERC20Factory.attach(context.beefyBiswapVaultAddress);
             const nestedFactory = nestedFactoryFactory.attach(context.nestedFactory.address);
 
-            // Moo balance of the nested reserve before the withdraw 
+            // Moo balance of the nested reserve before the withdraw
             const mooBalance: BigNumber = await vault.balanceOf(context.nestedReserve.address);
 
             // Orders to withdraw from beefy
@@ -240,9 +240,9 @@ describeOnBscFork("BeefyZapBiswapLPVaultOperator", () => {
             expect(await vault.balanceOf(context.nestedFactory.address)).to.be.equal(BIG_NUMBER_ZERO);
 
             /*
-            * I can't predict the WBNB received in the FeeSplitter.
-            * It should be greater than 0.01 WBNB, but sub 1% to allow a margin of error
-            */
+             * I can't predict the WBNB received in the FeeSplitter.
+             * It should be greater than 0.01 WBNB, but sub 1% to allow a margin of error
+             */
             expect(await context.WBNB.balanceOf(context.feeSplitter.address)).to.be.gt(
                 getExpectedFees(appendDecimals(1)).sub(getExpectedFees(appendDecimals(1)).div(100)),
             );

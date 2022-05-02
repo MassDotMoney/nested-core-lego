@@ -525,7 +525,9 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
         .deploy([beefyBiswapVaultAddress], [biswapRouterAddress]);
     await beefyZapBiswapLPVaultOperator.deployed();
 
-    const beefyZapBiswapLPVaultStorage = beefyVaultStorageFactory.attach(await beefyZapBiswapLPVaultOperator.operatorStorage());
+    const beefyZapBiswapLPVaultStorage = beefyVaultStorageFactory.attach(
+        await beefyZapBiswapLPVaultOperator.operatorStorage(),
+    );
 
     // Deploy Beefy Zap Lp (Uniswap ERA-WBNB LP vault)
     const uniswapRouterAddress = "0x10ED43C718714eb63d5aA57B78B54704E256024E";
@@ -536,7 +538,9 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
         .deploy([beefyUniswapVaultAddress], [uniswapRouterAddress]);
     await beefyZapUniswapLPVaultOperator.deployed();
 
-    const beefyZapUniswapLPVaultStorage = beefyVaultStorageFactory.attach(await beefyZapUniswapLPVaultOperator.operatorStorage());
+    const beefyZapUniswapLPVaultStorage = beefyVaultStorageFactory.attach(
+        await beefyZapUniswapLPVaultOperator.operatorStorage(),
+    );
 
     // Deploy Withdrawer
     const withdrawerFactory = await ethers.getContractFactory("Withdrawer");

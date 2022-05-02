@@ -104,7 +104,7 @@ async function main(): Promise<void> {
     console.log("NestedFactory deployed : ", nestedFactory.address);
 
     await delay(3000);
-    
+
     const owner = await nestedRecords.owner();
 
     await delay(3000);
@@ -147,7 +147,7 @@ async function main(): Promise<void> {
 
     // Verify Tenderly
     await hre.tenderly.verify(...deployments);
-    
+
     // Verify Etherscan
     await delay(60000);
 
