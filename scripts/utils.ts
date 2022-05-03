@@ -310,26 +310,38 @@ export function getBeefyBnbVenusWithdrawOrder(context: FactoryAndOperatorsForkin
     ];
 }
 
-// Create a Deposit order in Beefy (Biswap USDT-BNB on Bsc)
-export function getBeefyUniswapDepositOrder(context: FactoryAndOperatorsForkingBSCFixture, bnbToDeposit: BigNumber) {
+// Create a Deposit order in Beefy
+export function getBeefyUniswapDepositOrder(
+    context: FactoryAndOperatorsForkingBSCFixture,
+    depositTokenAddress: string,
+    tokenToDeposit: BigNumber,
+    vaultAddress: string,
+    minOutputToken?: BigNumber
+) {
     return [
-        buildOrderStruct(context.beefyZapUniswapLPVaultDepositOperatorNameBytes32, context.beefyUniswapVaultAddress, [
-            ["address", context.beefyUniswapVaultAddress],
-            ["address", context.WBNB.address],
-            ["uint256", bnbToDeposit],
-            ["uint256", 0], // 100% slippage
+        buildOrderStruct(context.beefyZapUniswapLPVaultDepositOperatorNameBytes32, vaultAddress, [
+            ["address", vaultAddress],
+            ["address", depositTokenAddress],
+            ["uint256", tokenToDeposit],
+            ["uint256", minOutputToken != null ? minOutputToken : 0], // 100% slippage if the provided slippage is null
         ]),
     ];
 }
 
-// Create a Withdraw order in Beefy (Biswap USDT-BNB on Bsc)
-export function getBeefyUniswapWithdrawOrder(context: FactoryAndOperatorsForkingBSCFixture, mooToWithdraw: BigNumber) {
+// Create a Withdraw order in Beefy
+export function getBeefyUniswapWithdrawOrder(
+    context: FactoryAndOperatorsForkingBSCFixture,
+    withdrawTokenAddress: string,
+    mooToWithdraw: BigNumber,
+    vaultAddress: string,
+    minOutputToken?: BigNumber
+) {
     return [
-        buildOrderStruct(context.beefyZapUniswapLPVaultDepositOperatorNameBytes32, context.beefyUniswapVaultAddress, [
-            ["address", context.beefyUniswapVaultAddress],
+        buildOrderStruct(context.beefyZapUniswapLPVaultWithdrawOperatorNameBytes32, vaultAddress, [
+            ["address", vaultAddress],
             ["uint256", mooToWithdraw],
-            ["address", context.WBNB.address],
-            ["uint256", 0], // 100% slippage
+            ["address", withdrawTokenAddress],
+            ["uint256", minOutputToken != null ? minOutputToken : 0], // 100% slippage if the provided slippage is null
         ]),
     ];
 }

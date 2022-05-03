@@ -428,12 +428,12 @@ export type FactoryAndOperatorsForkingBSCFixture = {
     beefyVaultWithdrawOperatorNameBytes32: string;
     beefyBiswapVaultAddress: string;
     beefyZapBiswapLPVaultOperator: BeefyZapBiswapLPVaultOperator;
-    beefyZapBiswapLPVaultStorage: BeefyVaultStorage;
     beefyZapBiswapLPVaultDepositOperatorNameBytes32: string;
     beefyZapBiswapLPVaultWithdrawOperatorNameBytes32: string;
     beefyUniswapVaultAddress: string;
+    beefyUnregisteredUniswapVaultAddress: string;
+    beefyUniswapBtcEthLPVaultAddress: string;
     beefyZapUniswapLPVaultOperator: BeefyZapUniswapLPVaultOperator;
-    beefyZapUniswapLPVaultStorage: BeefyVaultStorage;
     beefyZapUniswapLPVaultDepositOperatorNameBytes32: string;
     beefyZapUniswapLPVaultWithdrawOperatorNameBytes32: string;
     withdrawer: Withdrawer;
@@ -513,10 +513,11 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
         .deploy([beefyVenusBNBVaultAddress], [WBNB.address]);
     await beefyVaultOperator.deployed();
 
+    // Deploy Beefy vault storage
     const beefyVaultStorageFactory = await ethers.getContractFactory("BeefyVaultStorage");
     const beefyVaultStorage = beefyVaultStorageFactory.attach(await beefyVaultOperator.operatorStorage());
 
-    // Deploy Beefy Zap LP (Biswap USDT-BNB LP vault)
+    // Deploy Beefy Zap Biswap LP (USDT-BNB LP vault)
     const biswapRouterAddress = "0x3a6d8cA21D1CF76F653A67577FA0D27453350dD8";
     const beefyBiswapVaultAddress = "0xe2AD2c5702f6c9073f85b00E4743066E1D1035f8";
     const beefyZapBiswapLPVaultOperatorFactory = await ethers.getContractFactory("BeefyZapBiswapLPVaultOperator");
@@ -525,22 +526,18 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
         .deploy([beefyBiswapVaultAddress], [biswapRouterAddress]);
     await beefyZapBiswapLPVaultOperator.deployed();
 
-    const beefyZapBiswapLPVaultStorage = beefyVaultStorageFactory.attach(
-        await beefyZapBiswapLPVaultOperator.operatorStorage(),
-    );
-
-    // Deploy Beefy Zap Lp (Uniswap ERA-WBNB LP vault)
+    // Deploy Beefy Zap Uniswap LPs (ERA-WBNB LP vault and BTCB-ETH LP vault)
     const uniswapRouterAddress = "0x10ED43C718714eb63d5aA57B78B54704E256024E";
     const beefyUniswapVaultAddress = "0xbaAcbb2A18Db15D185AE5fAdc53bEe21Ed626a5e";
+    const beefyUniswapBtcEthLPVaultAddress = "0xEf43E54Bb4221106953951238FC301a1f8939490";
     const beefyZapUniswapLPVaultOperatorFactory = await ethers.getContractFactory("BeefyZapUniswapLPVaultOperator");
     const beefyZapUniswapLPVaultOperator = await beefyZapUniswapLPVaultOperatorFactory
         .connect(masterDeployer)
-        .deploy([beefyUniswapVaultAddress], [uniswapRouterAddress]);
+        .deploy(
+            [beefyUniswapVaultAddress, beefyUniswapBtcEthLPVaultAddress],
+            [uniswapRouterAddress, uniswapRouterAddress]
+        );
     await beefyZapUniswapLPVaultOperator.deployed();
-
-    const beefyZapUniswapLPVaultStorage = beefyVaultStorageFactory.attach(
-        await beefyZapUniswapLPVaultOperator.operatorStorage(),
-    );
 
     // Deploy Withdrawer
     const withdrawerFactory = await ethers.getContractFactory("Withdrawer");
@@ -669,12 +666,12 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
         beefyVaultWithdrawOperatorNameBytes32: toBytes32("BeefyWithdraw"),
         beefyBiswapVaultAddress,
         beefyZapBiswapLPVaultOperator,
-        beefyZapBiswapLPVaultStorage,
         beefyZapBiswapLPVaultDepositOperatorNameBytes32: toBytes32("BeefyZapBiswapLPDeposit"),
         beefyZapBiswapLPVaultWithdrawOperatorNameBytes32: toBytes32("BeefyZapBiswapLPWithdraw"),
         beefyUniswapVaultAddress,
+        beefyUnregisteredUniswapVaultAddress: "0xd4548D0b71D4f925aaA2be59E10c6B9248d1EF70",
+        beefyUniswapBtcEthLPVaultAddress,
         beefyZapUniswapLPVaultOperator,
-        beefyZapUniswapLPVaultStorage,
         beefyZapUniswapLPVaultDepositOperatorNameBytes32: toBytes32("BeefyZapUniswapLPDeposit"),
         beefyZapUniswapLPVaultWithdrawOperatorNameBytes32: toBytes32("BeefyZapUniswapLPWithdraw"),
         withdrawer,
