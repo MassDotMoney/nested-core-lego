@@ -427,6 +427,8 @@ export type FactoryAndOperatorsForkingBSCFixture = {
     beefyVaultDepositOperatorNameBytes32: string;
     beefyVaultWithdrawOperatorNameBytes32: string;
     beefyBiswapVaultAddress: string;
+    beefyUnregisteredBiswapVaultAddress: string;
+    beefyBiswapBtcEthLPVaultAddress: string;
     beefyZapBiswapLPVaultOperator: BeefyZapBiswapLPVaultOperator;
     beefyZapBiswapLPVaultDepositOperatorNameBytes32: string;
     beefyZapBiswapLPVaultWithdrawOperatorNameBytes32: string;
@@ -517,16 +519,19 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
     const beefyVaultStorageFactory = await ethers.getContractFactory("BeefyVaultStorage");
     const beefyVaultStorage = beefyVaultStorageFactory.attach(await beefyVaultOperator.operatorStorage());
 
-    // Deploy Beefy Zap Biswap LP (USDT-BNB LP vault)
+    // Deploy Beefy Zap Biswap LP vault operator (USDT-BNB and BTCB-ETH LP vaults)
     const biswapRouterAddress = "0x3a6d8cA21D1CF76F653A67577FA0D27453350dD8";
     const beefyBiswapVaultAddress = "0xe2AD2c5702f6c9073f85b00E4743066E1D1035f8";
+    const beefyBiswapBtcEthLPVaultAddress = "0xEeB87e7bAbF17cA97F0Eb897F24Bf475e0A9Aef7";
     const beefyZapBiswapLPVaultOperatorFactory = await ethers.getContractFactory("BeefyZapBiswapLPVaultOperator");
     const beefyZapBiswapLPVaultOperator = await beefyZapBiswapLPVaultOperatorFactory
         .connect(masterDeployer)
-        .deploy([beefyBiswapVaultAddress], [biswapRouterAddress]);
+        .deploy(
+            [beefyBiswapVaultAddress, beefyBiswapBtcEthLPVaultAddress],
+            [biswapRouterAddress, biswapRouterAddress]);
     await beefyZapBiswapLPVaultOperator.deployed();
 
-    // Deploy Beefy Zap Uniswap LPs (ERA-WBNB LP vault and BTCB-ETH LP vault)
+    // Deploy Beefy Zap Uniswap LP vault operator (ERA-WBNB and BTCB-ETH LP vaults)
     const uniswapRouterAddress = "0x10ED43C718714eb63d5aA57B78B54704E256024E";
     const beefyUniswapVaultAddress = "0xbaAcbb2A18Db15D185AE5fAdc53bEe21Ed626a5e";
     const beefyUniswapBtcEthLPVaultAddress = "0xEf43E54Bb4221106953951238FC301a1f8939490";
@@ -665,11 +670,13 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
         beefyVaultDepositOperatorNameBytes32: toBytes32("BeefyDeposit"),
         beefyVaultWithdrawOperatorNameBytes32: toBytes32("BeefyWithdraw"),
         beefyBiswapVaultAddress,
+        beefyUnregisteredBiswapVaultAddress: "0xd4548D0b71D4f925aaA2be59E10c6B9248d1EF70",
+        beefyBiswapBtcEthLPVaultAddress,
         beefyZapBiswapLPVaultOperator,
         beefyZapBiswapLPVaultDepositOperatorNameBytes32: toBytes32("BeefyZapBiswapLPDeposit"),
         beefyZapBiswapLPVaultWithdrawOperatorNameBytes32: toBytes32("BeefyZapBiswapLPWithdraw"),
         beefyUniswapVaultAddress,
-        beefyUnregisteredUniswapVaultAddress: "0xd4548D0b71D4f925aaA2be59E10c6B9248d1EF70",
+        beefyUnregisteredUniswapVaultAddress: "0xcc3D722E518fF86b113Fa6aa4434fBAA0449a0e1",
         beefyUniswapBtcEthLPVaultAddress,
         beefyZapUniswapLPVaultOperator,
         beefyZapUniswapLPVaultDepositOperatorNameBytes32: toBytes32("BeefyZapUniswapLPDeposit"),

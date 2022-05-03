@@ -347,25 +347,37 @@ export function getBeefyUniswapWithdrawOrder(
 }
 
 // Create a Deposit order in Beefy (Biswap USDT-BNB on Bsc)
-export function getBeefyBiswapDepositOrder(context: FactoryAndOperatorsForkingBSCFixture, bnbToDeposit: BigNumber) {
+export function getBeefyBiswapDepositOrder(
+    context: FactoryAndOperatorsForkingBSCFixture,
+    depositTokenAddress: string,
+    tokenToDeposit: BigNumber,
+    vaultAddress: string,
+    minOutputToken?: BigNumber
+) {
     return [
-        buildOrderStruct(context.beefyZapBiswapLPVaultDepositOperatorNameBytes32, context.beefyBiswapVaultAddress, [
-            ["address", context.beefyBiswapVaultAddress],
-            ["address", context.WBNB.address],
-            ["uint256", bnbToDeposit],
-            ["uint256", 0], // 100% slippage
+        buildOrderStruct(context.beefyZapBiswapLPVaultDepositOperatorNameBytes32, vaultAddress, [
+            ["address", vaultAddress],
+            ["address", depositTokenAddress],
+            ["uint256", tokenToDeposit],
+            ["uint256", minOutputToken != null ? minOutputToken : 0], // 100% slippage if the provided slippage is null
         ]),
     ];
 }
 
 // Create a Withdraw order in Beefy (Biswap USDT-BNB on Bsc)
-export function getBeefyBiswapWithdrawOrder(context: FactoryAndOperatorsForkingBSCFixture, mooToWithdraw: BigNumber) {
+export function getBeefyBiswapWithdrawOrder(
+    context: FactoryAndOperatorsForkingBSCFixture,
+    withdrawTokenAddress: string,
+    mooToWithdraw: BigNumber,
+    vaultAddress: string,
+    minOutputToken?: BigNumber
+) {
     return [
-        buildOrderStruct(context.beefyZapBiswapLPVaultDepositOperatorNameBytes32, context.beefyBiswapVaultAddress, [
-            ["address", context.beefyBiswapVaultAddress],
+        buildOrderStruct(context.beefyZapBiswapLPVaultWithdrawOperatorNameBytes32, vaultAddress, [
+            ["address", vaultAddress],
             ["uint256", mooToWithdraw],
-            ["address", context.WBNB.address],
-            ["uint256", 0], // 100% slippage
+            ["address", withdrawTokenAddress],
+            ["uint256", minOutputToken != null ? minOutputToken : 0], // 100% slippage if the provided slippage is null
         ]),
     ];
 }
