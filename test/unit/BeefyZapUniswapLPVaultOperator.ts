@@ -322,7 +322,7 @@ describeOnBscFork("BeefyZapUniswapLPVaultOperator", () => {
             let orders: utils.OrderStruct[] = utils.getBeefyUniswapWithdrawOrder(
                 context,
                 context.WBNB.address,
-                BIG_NUMBER_ZERO,
+                BIG_NUMBER_ZERO.add(1),
                 context.beefyUnregisteredUniswapVaultAddress
             );
 
