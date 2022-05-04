@@ -3,7 +3,6 @@ pragma solidity 0.8.11;
 
 import "./BeefyVaultStorage.sol";
 import "./../../libraries/ExchangeHelpers.sol";
-import "./../../libraries/BeefyZapperHelpers.sol";
 import "./../../interfaces/external/IBeefyVaultV6.sol";
 import "./../../interfaces/external/IBiswapRouter02.sol";
 import "./../../interfaces/external/IBiswapPair.sol";
@@ -59,7 +58,7 @@ contract BeefyZapBiswapLPVaultOperator {
         uint256 vaultBalanceBefore = IERC20(vault).balanceOf(address(this));
         uint256 tokenBalanceBefore = token.balanceOf(address(this));
 
-        _zapAndStakeLp(router, IBeefyVaultV6(vault), token, amountToDeposit);
+        _zapAndStakeLp(router, IBeefyVaultV6(vault), address(token), amountToDeposit);
 
         uint256 vaultAmount = IERC20(vault).balanceOf(address(this)) - vaultBalanceBefore;
         uint256 depositedAmount = tokenBalanceBefore - token.balanceOf(address(this));
@@ -137,11 +136,33 @@ contract BeefyZapBiswapLPVaultOperator {
 
         address pair = IBeefyVaultV6(vault).want();
 
-        (address[] memory path, uint256 tokenAmountIn) = BeefyZapperHelpers.removeLiquidityAndSetupSwap(
-            pair,
-            token,
-            router
-        );
+        address token0 = IUniswapV2Pair(pair).token0();
+        address token1 = IUniswapV2Pair(pair).token1();
+        require(token0 == token || token1 == token, "BLVO: INVALID_TOKEN");
+
+        // LP Tokens needs to be sent back to the pair address to be burned
+        IERC20(pair).safeTransfer(pair, IERC20(pair).balanceOf(address(this)));
+
+        // We are removing liquidity by burning the LP Token and not
+        // by calling `removeLiquidity` since we are checking the final
+        // output amount (minTokenAmount).
+        (uint256 amount0, uint256 amount1) = IUniswapV2Pair(pair).burn(address(this));
+        uint256 tokenAmountIn;
+
+        address swapToken;
+        if (token1 == token) {
+            swapToken = token0;
+            tokenAmountIn = amount0;
+        } else {
+            swapToken = token1;
+            tokenAmountIn = amount1;
+        }
+
+        ExchangeHelpers.setMaxAllowance(IERC20(swapToken), router);
+
+        address[] memory path = new address[](2);
+        path[0] = swapToken;
+        path[1] = token;
 
         // Slippage 100% since we are checking the final amount (minTokenAmount) for the slippage
         biswapRouter.swapExactTokensForTokens(tokenAmountIn, 0, path, address(this), block.timestamp);
@@ -156,7 +177,7 @@ contract BeefyZapBiswapLPVaultOperator {
     function _zapAndStakeLp(
         address router,
         IBeefyVaultV6 vault,
-        IERC20 token,
+        address token,
         uint256 amount
     ) private {
         IBiswapRouter02 biswapRouter = IBiswapRouter02(router);
@@ -164,12 +185,25 @@ contract BeefyZapBiswapLPVaultOperator {
 
         require(pair.factory() == biswapRouter.factory(), "BLVO: INVALID_VAULT");
 
-        (address[] memory path, bool isInput0) = BeefyZapperHelpers.setupAddLiquiditySwap(
-            pair,
-            address(vault),
-            router,
-            address(token)
-        );
+        ExchangeHelpers.setMaxAllowance(IERC20(address(pair)), address(vault));
+
+        address cachedToken0 = pair.token0();
+        address cachedToken1 = pair.token1();
+
+        ExchangeHelpers.setMaxAllowance(IERC20(cachedToken0), router);
+        ExchangeHelpers.setMaxAllowance(IERC20(cachedToken1), router);
+
+        bool isInput0 = cachedToken0 == token;
+        require(isInput0 || cachedToken1 == token, "BLVO: INVALID_INPUT_TOKEN");
+
+        address[] memory path = new address[](2);
+        path[0] = token;
+
+        if (isInput0) {
+            path[1] = cachedToken1;
+        } else {
+            path[1] = cachedToken0;
+        }
 
         (uint256 reserve0, uint256 reserve1, ) = pair.getReserves();
 
