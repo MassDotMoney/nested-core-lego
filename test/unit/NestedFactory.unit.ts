@@ -1,6 +1,6 @@
 import { LoadFixtureFunction } from "../types";
-import { factoryAndOperatorsFixture, FactoryAndOperatorsFixture } from "../shared/fixtures";
-import { createFixtureLoader, describeWithoutFork, expect, provider } from "../shared/provider";
+import { factoryAndOperatorsFixture, FactoryAndOperatorsFixture } from "../shared/helpers/fixtures/main";
+import { createFixtureLoader, describeWithoutFork, expect, provider } from "../shared/helpers/provider";
 import { BigNumber, Wallet } from "ethers";
 import { appendDecimals, BIG_NUMBER_ZERO, getExpectedFees, toBytes32 } from "../helpers";
 import { ethers, network } from "hardhat";

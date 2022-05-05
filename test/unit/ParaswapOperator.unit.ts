@@ -1,8 +1,8 @@
 import { LoadFixtureFunction } from "../types";
-import { paraswapOperatorFixture, ParaswapOperatorFixture } from "../shared/fixtures";
-import { ActorFixture } from "../shared/actors";
-import { createFixtureLoader, describeWithoutFork, expect, provider } from "../shared/provider";
+import { ActorFixture } from "../shared/helpers/actors";
+import { createFixtureLoader, describeWithoutFork, expect, provider } from "../shared/helpers/provider";
 import { BigNumber, Wallet } from "ethers";
+import { ParaswapOperatorFixture } from "../shared/helpers/fixtures/paraswapOperatorFixture";
 
 let loadFixture: LoadFixtureFunction;
 

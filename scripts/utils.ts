@@ -6,11 +6,11 @@ import {
     ParaswapOperator,
     ZeroExOperator,
 } from "../typechain";
-import { FactoryAndOperatorsFixture, FactoryAndOperatorsForkingBSCFixture } from "../test/shared/fixtures";
 import * as ethers from "ethers";
 
 import { BigNumber, BigNumberish, BytesLike } from "ethers";
 import * as w3utils from "web3-utils";
+import { FactoryAndOperatorsFixture } from "../test/shared/helpers/fixtures/factoryAndOperatorsFixture";
 
 type RawDataType = "address" | "bytes4" | "bytes" | "uint256";
 interface Op {

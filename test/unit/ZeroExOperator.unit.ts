@@ -1,8 +1,8 @@
 import { LoadFixtureFunction } from "../types";
-import { zeroExOperatorFixture, ZeroExOperatorFixture } from "../shared/fixtures";
-import { ActorFixture } from "../shared/actors";
-import { createFixtureLoader, describeWithoutFork, expect, provider } from "../shared/provider";
+import { ActorFixture } from "../shared/helpers/actors";
+import { createFixtureLoader, describeWithoutFork, expect, provider } from "../shared/helpers/provider";
 import { BigNumber, Wallet } from "ethers";
+import { ZeroExOperatorFixture } from "../shared/helpers/fixtures/zeroExOperatorFixture";
 
 let loadFixture: LoadFixtureFunction;
 

@@ -2,7 +2,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { NestedAsset, NestedAsset__factory } from "../../typechain";
-import { describeWithoutFork } from "../shared/provider";
+import { describeWithoutFork } from "../shared/helpers/provider";
 
 describeWithoutFork("NestedAsset", () => {
     let NestedAsset: NestedAsset__factory, asset: NestedAsset;

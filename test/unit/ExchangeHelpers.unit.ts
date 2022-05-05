@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { appendDecimals, BIG_NUMBER_ZERO, UINT256_MAX } from "../helpers";
 import { DummyRouter, MockERC20 } from "../../typechain";
-import { describeWithoutFork } from "../shared/provider";
+import { describeWithoutFork } from "../shared/helpers/provider";
 
 describeWithoutFork("ExchangeHelpers", () => {
     let dummyRouter: DummyRouter, mockERC20: MockERC20;

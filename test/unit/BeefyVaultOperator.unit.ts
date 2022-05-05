@@ -1,10 +1,11 @@
 import { LoadFixtureFunction } from "../types";
-import { factoryAndOperatorsForkingBSCFixture, FactoryAndOperatorsForkingBSCFixture } from "../shared/fixtures";
-import { createFixtureLoader, describeOnBscFork, expect, provider } from "../shared/provider";
+import { createFixtureLoader, describeOnBscFork, expect, provider } from "../shared/helpers/provider";
 import { BigNumber, Wallet } from "ethers";
 import { appendDecimals, BIG_NUMBER_ZERO, getExpectedFees } from "../helpers";
 import * as utils from "../../scripts/utils";
 import { ethers } from "hardhat";
+import { fixtures } from "../shared/helpers/fixtures/main";
+import { FactoryAndOperatorsForkingBSCFixture } from "../shared/types/FactoryAndOperatorsForkingBSCFixture";
 
 let loadFixture: LoadFixtureFunction;
 
@@ -17,7 +18,7 @@ describeOnBscFork("BeefyVaultOperator", () => {
     });
 
     beforeEach("create fixture loader", async () => {
-        context = await loadFixture(factoryAndOperatorsForkingBSCFixture);
+        context = await loadFixture(fixtures.factoryAndOperatorsForkingBSCFixture);
     });
 
     it("deploys and has an address", async () => {
