@@ -1,8 +1,8 @@
 import { LoadFixtureFunction } from "../types";
-import { factoryAndOperatorsFixture, FactoryAndOperatorsFixture } from "../shared/fixtures";
-import { createFixtureLoader, expect, provider, describeWithoutFork } from "../shared/provider";
+import { createFixtureLoader, expect, provider, describeWithoutFork } from "../shared/helpers/provider";
 import { appendDecimals, getExpectedFees } from "../helpers";
 import * as utils from "../../scripts/utils";
+import { FactoryAndOperatorsFixture } from "../shared/helpers/fixtures/factoryAndOperatorsFixture";
 
 let loadFixture: LoadFixtureFunction;
 

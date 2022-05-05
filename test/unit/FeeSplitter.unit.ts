@@ -3,7 +3,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 import { FeeSplitter, MockERC20, DeflationaryMockERC20, WETH9 } from "../../typechain";
-import { describeWithoutFork } from "../shared/provider";
+import { describeWithoutFork } from "../shared/helpers/provider";
 
 describeWithoutFork("Fee Splitter", () => {
     let alice: SignerWithAddress, bob: SignerWithAddress, wallet3: SignerWithAddress;

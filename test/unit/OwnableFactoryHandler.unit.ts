@@ -1,8 +1,8 @@
 import { LoadFixtureFunction } from "../types";
-import { factoryAndOperatorsFixture, FactoryAndOperatorsFixture } from "../shared/fixtures";
-import { createFixtureLoader, describeWithoutFork, expect, provider } from "../shared/provider";
+import { createFixtureLoader, describeWithoutFork, expect, provider } from "../shared/helpers/provider";
 import { ethers } from "hardhat";
 import { Wallet } from "ethers";
+import { FactoryAndOperatorsFixture } from "../shared/helpers/fixtures/factoryAndOperatorsFixture";
 
 let loadFixture: LoadFixtureFunction;
 

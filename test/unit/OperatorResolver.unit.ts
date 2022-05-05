@@ -1,13 +1,13 @@
 import { LoadFixtureFunction } from "../types";
-import { OperatorResolverFixture, operatorResolverFixture } from "../shared/fixtures";
-import { createFixtureLoader, provider, expect, describeWithoutFork } from "../shared/provider";
+import { createFixtureLoader, provider, expect, describeWithoutFork } from "../shared/helpers/provider";
 import { toBytes32 } from "../helpers";
-import { ActorFixture } from "../shared/actors";
+import { ActorFixture } from "../shared/helpers/actors";
 import { Wallet } from "ethers";
 import { ethers } from "hardhat";
 import { FakeContract, smock } from "@defi-wonderland/smock";
 import { TestableMixinResolver } from "../../typechain";
 import { computeSelector } from "../../scripts/utils";
+import { OperatorResolverFixture } from "../shared/helpers/fixtures/operatorResolverFixture";
 
 let loadFixture: LoadFixtureFunction;
 
