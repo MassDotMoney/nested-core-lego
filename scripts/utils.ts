@@ -4,13 +4,14 @@ import {
     NestedFactory,
     OperatorResolver,
     ParaswapOperator,
+    StakeDaoCurveStrategyOperator,
     ZeroExOperator,
 } from "../typechain";
 import { FactoryAndOperatorsFixture, FactoryAndOperatorsForkingBSCFixture } from "../test/shared/fixtures";
-import * as ethers from "ethers";
-
-import { BigNumber, BigNumberish, BytesLike } from "ethers";
+import * as ethers from "ethers"
+import { BigNumber, BigNumberish, BytesLike, Wallet } from "ethers";
 import * as w3utils from "web3-utils";
+import { UINT256_MAX } from "../test/helpers";
 
 type RawDataType = "address" | "bytes4" | "bytes" | "uint256";
 interface Op {
@@ -164,6 +165,22 @@ export function registerBeefyWithdraw(operator: BeefyVaultOperator): Op {
     };
 }
 
+export function registerStakeDaoDeposit(operator: StakeDaoCurveStrategyOperator): Op {
+    return {
+        name: "stakeDaoCurveStrategyDeposit",
+        contract: operator.address,
+        signature: "function deposit(address strategy, address tokenIn, uint256 amount, uint256 minAmountOut)"
+    };
+}
+
+export function registerStakeDaoWithdraw(operator: StakeDaoCurveStrategyOperator): Op {
+    return {
+        name: "stakeDaoCurveStrategyWithdraw",
+        contract: operator.address,
+        signature: "function withdraw(address strategy, address tokenIn, uint256 amount, uint256 minAmountOut)"
+    };
+}
+
 export function toBytes32(key: string) {
     return w3utils.rightPad(w3utils.asciiToHex(key), 64);
 }
@@ -276,6 +293,18 @@ export function getBeefyBnbVenusWithdrawOrder(context: FactoryAndOperatorsForkin
     ];
 }
 
+// Create a Deposit order in StakeDAO (stake dao Ellipsis.finance BUSD/USDC/USDT)
+export function getStakeDao3EpsDepositOrder(context: FactoryAndOperatorsForkingBSCFixture, strategyAddress: string, tokenToDeposit: string, amountToDeposit: BigNumber, minStrategyToken?: BigNumber) {
+    return [
+        buildOrderStruct(context.stakeDaoCurveStrategyDepositOperatorNameBytes32, strategyAddress, [
+            ["address", strategyAddress],
+            ["address", tokenToDeposit],
+            ["uint256", amountToDeposit],
+            ["uint256", minStrategyToken != null ? minStrategyToken : 0], // 100% slippage
+        ]),
+    ];
+}
+
 // Generic function to create a 1:1 Order
 export function getTokenBWithTokenAOrders(
     context: FactoryAndOperatorsFixture,
@@ -372,4 +401,20 @@ export function getWethWithUniAndKncOrders(
             ],
         ]),
     ];
+}
+
+export const setMaxAllowance = async (signer: Wallet, spender: string, contract: string) => {
+    const data =
+        ethers.utils.keccak256(
+            ethers.utils.toUtf8Bytes("increaseAllowance(address,uint256)")
+        ).slice(0, 10) +
+        abiCoder.encode(
+            ["address", "uint256"],
+            [spender, UINT256_MAX]
+        ).slice(2, 1000)
+
+    await signer.sendTransaction({
+        to: contract,
+        data: data
+    })
 }

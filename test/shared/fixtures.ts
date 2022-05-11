@@ -17,6 +17,8 @@ import {
     NestedReserve,
     OperatorResolver,
     ParaswapOperator,
+    StakeDaoCurveStrategyOperator,
+    StakeDaoStrategyStorage,
     TestableOperatorCaller,
     WETH9,
     Withdrawer,
@@ -32,9 +34,15 @@ import {
     registerBeefyDeposit,
     registerBeefyWithdraw,
     registerParaswap,
+    registerStakeDaoDeposit,
+    registerStakeDaoWithdraw,
+    setMaxAllowance,
 } from "../../scripts/utils";
+import { addUsdcBalanceTo } from "./impersonnate";
 
 export type OperatorResolverFixture = { operatorResolver: OperatorResolver };
+
+export const USDC = "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d";
 
 export const operatorResolverFixture: Fixture<OperatorResolverFixture> = async (wallets, provider) => {
     const signer = new ActorFixture(wallets as Wallet[], provider).addressResolverOwner();
@@ -418,6 +426,11 @@ export type FactoryAndOperatorsForkingBSCFixture = {
     beefyVaultStorage: BeefyVaultStorage;
     beefyVaultDepositOperatorNameBytes32: string;
     beefyVaultWithdrawOperatorNameBytes32: string;
+    stakeDaoUsdStrategyAddress: string;
+    stakeDaoCurveStrategyOperator: StakeDaoCurveStrategyOperator;
+    stakeDaoStrategyStorage: StakeDaoStrategyStorage;
+    stakeDaoCurveStrategyDepositOperatorNameBytes32: string;
+    stakeDaoCurveStrategyWithdrawOperatorNameBytes32: string;
     withdrawer: Withdrawer;
     nestedFactory: NestedFactory;
     nestedReserve: NestedReserve;
@@ -497,6 +510,19 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
 
     const beefyVaultStorageFactory = await ethers.getContractFactory("BeefyVaultStorage");
     const beefyVaultStorage = beefyVaultStorageFactory.attach(await beefyVaultOperator.operatorStorage());
+
+    // Deploy StakeDAO operator storage (USD Strategy 3pool)
+    const stakeDaoUsdStrategyAddress = "0x4835BC54e87ff7722a89450dc26D9dc2d3A69F36";
+    const usd3poolAddress = "0x160CAed03795365F3A589f10C379FfA7d75d4E76";
+    const stakeDaoCurveStrategyOperatorFactory = await ethers.getContractFactory("StakeDaoCurveStrategyOperator");
+    const stakeDaoCurveStrategyOperator = await stakeDaoCurveStrategyOperatorFactory
+        .connect(masterDeployer)
+        .deploy([stakeDaoUsdStrategyAddress], [usd3poolAddress]);
+    await stakeDaoCurveStrategyOperator.deployed();
+
+    const stakeDaoStrategyStorageFactory = await ethers.getContractFactory("StakeDaoStrategyStorage");
+    const stakeDaoStrategyStorage = stakeDaoStrategyStorageFactory.attach(await stakeDaoCurveStrategyOperator.operatorStorage());
+
 
     // Deploy Withdrawer
     const withdrawerFactory = await ethers.getContractFactory("Withdrawer");
@@ -580,6 +606,8 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
             registerFlat(flatOperator),
             registerBeefyDeposit(beefyVaultOperator),
             registerBeefyWithdraw(beefyVaultOperator),
+            registerStakeDaoDeposit(stakeDaoCurveStrategyOperator),
+            registerStakeDaoWithdraw(stakeDaoCurveStrategyOperator)
         ],
         nestedFactory,
         masterDeployer,
@@ -600,6 +628,10 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
     // Define the base amount
     const baseAmount = appendDecimals(1000);
 
+    // add ERC20 token balance to user1
+    await addUsdcBalanceTo(user1, appendDecimals(1000000))
+    await setMaxAllowance(user1, nestedFactory.address, USDC)
+
     return {
         WBNB,
         shareholder1,
@@ -619,6 +651,11 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
         beefyVaultStorage,
         beefyVaultDepositOperatorNameBytes32: toBytes32("BeefyDeposit"),
         beefyVaultWithdrawOperatorNameBytes32: toBytes32("BeefyWithdraw"),
+        stakeDaoUsdStrategyAddress,
+        stakeDaoCurveStrategyOperator,
+        stakeDaoStrategyStorage,
+        stakeDaoCurveStrategyDepositOperatorNameBytes32: toBytes32("stakeDaoCurveStrategyDeposit"),
+        stakeDaoCurveStrategyWithdrawOperatorNameBytes32: toBytes32("stakeDaoCurveStrategyWithdraw"),
         withdrawer,
         zeroExOperator,
         nestedFactory,
