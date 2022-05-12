@@ -24,6 +24,19 @@ contract StakeDaoCurveStrategyOperator {
         operatorStorage.transferOwnership(msg.sender);
     }
 
+    /// @notice Add the asset in a Curve pool liquidity, deposit
+    ///         the LP tokens in the StakeDAO strategy and receive
+    ///         the strategy token.
+    /// @param strategy The stakeDAO strategy address
+    /// @param token The input token to add in the curve pool
+    /// @param amount The input token amount to deposit
+    /// @param minStrategyToken The minimum strategy token expected
+    /// @return amounts Array of amounts :
+    ///         - [0] : The vault token received amount
+    ///         - [1] : The token deposited amount
+    /// @return tokens Array of token addresses
+    ///         - [0] : The vault token received address
+    ///         - [1] : The token deposited address
     function deposit(
         address strategy,
         IERC20 token,
@@ -57,6 +70,12 @@ contract StakeDaoCurveStrategyOperator {
         tokens[1] = address(token);
     }
 
+    /// @dev Add liquidity in the curve pool and deposit the
+    ///      LP token in the StakeDAO strategy
+    /// @param pool The Curve pool address
+    /// @param strategy The stakeDAO strategy
+    /// @param token The input token to add in the curve pool
+    /// @param amount The input token amount to deposit
     function _addLiquidityAndDepositLP(
         address pool,
         IStakeDaoStrategy strategy,
