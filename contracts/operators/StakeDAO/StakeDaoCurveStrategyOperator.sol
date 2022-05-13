@@ -47,19 +47,19 @@ contract StakeDaoCurveStrategyOperator {
         address pool = operatorStorage.strategies(strategy);
         require(pool != address(0), "SDCSO: INVALID_STRATEGY");
 
-        amounts = new uint256[](2);
-        tokens = new address[](2);
-
         uint256 strategyTokenBalanceBefore = IERC20(strategy).balanceOf(address(this));
         uint256 tokenBalanceBefore = token.balanceOf(address(this));
 
-        _addLiquidityAndDepositLP(pool, IStakeDaoStrategy(strategy), token, amount);
+        _addLiquidityAndDepositLP(ICurvePool(pool), IStakeDaoStrategy(strategy), token, amount);
 
         uint256 strategyTokenAmount = IERC20(strategy).balanceOf(address(this)) - strategyTokenBalanceBefore;
         uint256 depositedAmount = tokenBalanceBefore - token.balanceOf(address(this));
 
         require(strategyTokenAmount != 0 && strategyTokenAmount >= minStrategyToken, "SDCSO: INVALID_AMOUNT_RECEIVED");
         require(depositedAmount != 0 && amount >= depositedAmount, "SDCSO: INVALID_AMOUNT_DEPOSITED");
+
+        amounts = new uint256[](2);
+        tokens = new address[](2);
 
         // Output amounts
         amounts[0] = strategyTokenAmount;
@@ -96,7 +96,7 @@ contract StakeDaoCurveStrategyOperator {
         uint256 strategyTokenBalanceBefore = IERC20(strategy).balanceOf(address(this));
         uint256 tokenBalanceBefore = outputToken.balanceOf(address(this));
 
-        _withdrawLpAndRemoveLiquidity(IStakeDaoStrategy(strategy), ICurvePool(pool), outputToken, amount);
+        _withdrawLpAndRemoveLiquidity(IStakeDaoStrategy(strategy), ICurvePool(pool), address(outputToken), amount);
 
         uint256 strategyTokenAmount = strategyTokenBalanceBefore - IERC20(strategy).balanceOf(address(this));
         uint256 tokenAmount = outputToken.balanceOf(address(this)) - tokenBalanceBefore;
@@ -118,17 +118,16 @@ contract StakeDaoCurveStrategyOperator {
 
     /// @dev Add liquidity in the curve pool and deposit the
     ///      LP token in the StakeDAO strategy
-    /// @param pool The Curve pool address in which to add liquidity
+    /// @param curvePool The Curve pool in which to add liquidity
     /// @param strategy The stakeDAO strategy in which to deposit
     /// @param token The input token to add in the curve pool
     /// @param amount The input token amount to add in the curve pool
     function _addLiquidityAndDepositLP(
-        address pool,
+        ICurvePool curvePool,
         IStakeDaoStrategy strategy,
         IERC20 token,
         uint256 amount
     ) private {
-        ICurvePool curvePool = ICurvePool(pool);
         uint256[3] memory amounts;
 
         if (address(token) == curvePool.coins(0)) {
@@ -140,8 +139,8 @@ contract StakeDaoCurveStrategyOperator {
             amounts[2] = amount;
         }
 
-        ExchangeHelpers.setMaxAllowance(token, pool);
-        curvePool.add_liquidity(amounts, 0);
+        ExchangeHelpers.setMaxAllowance(token, address(curvePool));
+        curvePool.add_liquidity(amounts, 1);
 
         IERC20 lpToken = strategy.token();
 
@@ -158,17 +157,17 @@ contract StakeDaoCurveStrategyOperator {
     function _withdrawLpAndRemoveLiquidity(
         IStakeDaoStrategy strategy,
         ICurvePool curvePool,
-        IERC20 token,
+        address token,
         uint256 amount
     ) private {
         strategy.withdraw(amount);
 
-        if (address(token) == curvePool.coins(0)) {
+        if (token == curvePool.coins(0)) {
             curvePool.remove_liquidity_one_coin(strategy.token().balanceOf(address(this)), 0, 1);
-        } else if (address(token) == curvePool.coins(1)) {
+        } else if (token == curvePool.coins(1)) {
             curvePool.remove_liquidity_one_coin(strategy.token().balanceOf(address(this)), 1, 1);
         } else {
-            require(address(token) == curvePool.coins(2), "SDCSO: INVALID_OUTPUT_TOKEN");
+            require(token == curvePool.coins(2), "SDCSO: INVALID_OUTPUT_TOKEN");
             curvePool.remove_liquidity_one_coin(strategy.token().balanceOf(address(this)), 2, 1);
         }
     }
