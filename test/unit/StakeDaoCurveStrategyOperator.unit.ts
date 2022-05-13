@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { createFixtureLoader } from "ethereum-waffle";
 import { BigNumber, utils, Wallet } from "ethers";
 import { ethers } from "hardhat";
-import { cleanResult, getStakeDao3EpsDepositOrder, OrderStruct } from "../../scripts/utils";
+import { cleanResult, getBeefyBnbVenusDepositOrder, getBeefyBnbVenusWithdrawOrder, getStakeDao3EpsDepositOrder, getStakeDao3EpsWithdrawOrder, OrderStruct } from "../../scripts/utils";
 import { appendDecimals, BIG_NUMBER_ZERO, getExpectedFees, UINT256_MAX } from "../helpers";
 import { factoryAndOperatorsForkingBSCFixture, FactoryAndOperatorsForkingBSCFixture, USDC } from "../shared/fixtures";
 import { describeOnBscFork, provider } from "../shared/provider";
@@ -153,7 +153,7 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
-        it("Sould revert if the minStrategyToken is not respected", async () => {
+        it("Sould revert if the minStrategyToken is not reached", async () => {
             // All the amounts for this test
             let usdcToDeposit: BigNumber = appendDecimals(1000);
             let usdcToDepositWithFees: BigNumber = usdcToDeposit.add(getExpectedFees(usdcToDeposit));
@@ -217,5 +217,137 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
 
             expect(JSON.stringify(cleanResult(nfts))).to.equal(JSON.stringify(cleanResult(expectedNfts)));
         });
-    })
+    });
+
+    describe("withdraw()", () => {
+        beforeEach("Create NFT (id 1) with USDC deposited", async () => {
+            // All the amounts for this test
+            let usdcToDeposit: BigNumber = appendDecimals(1000);
+            let usdcToDepositWithFees: BigNumber = usdcToDeposit.add(getExpectedFees(usdcToDeposit));
+
+            let orders: OrderStruct[] = getStakeDao3EpsDepositOrder(context, context.stakeDaoUsdStrategyAddress, USDC, usdcToDeposit);
+
+            // // User1 creates the portfolio / NFT and submit stakeDAO deposit order
+            await context.nestedFactory
+                .connect(context.user1)
+                .create(0, [{ inputToken: USDC, amount: usdcToDepositWithFees, orders, fromReserve: false }], {
+                    value: 0,
+                });
+        });
+
+        it("Should revert if amount to withdraw is zero", async () => {
+            const mockERC20Factory = await ethers.getContractFactory("MockERC20");
+            const strategy = mockERC20Factory.attach(context.stakeDaoUsdStrategyAddress);
+
+            const strategyTokenBalance = await strategy.balanceOf(context.nestedReserve.address);
+
+            // Orders to withdraw from beefy
+            let orders: OrderStruct[] = getStakeDao3EpsWithdrawOrder(context, context.stakeDaoUsdStrategyAddress, BIG_NUMBER_ZERO, USDC);
+
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .processOutputOrders(1, [
+                        { outputToken: USDC, amounts: [strategyTokenBalance], orders, toReserve: true },
+                    ]),
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
+        });
+
+        it("Should revert if strategy is not whitelisted", async () => {
+            const mockERC20Factory = await ethers.getContractFactory("MockERC20");
+            const strategy = mockERC20Factory.attach(context.stakeDaoUsdStrategyAddress);
+            const strategyTokenBalance = await strategy.balanceOf(context.nestedReserve.address);
+
+            const unknownStrategyAddress = Wallet.createRandom().address;
+
+            // Orders to withdraw from beefy
+            let orders: OrderStruct[] = getStakeDao3EpsWithdrawOrder(context, unknownStrategyAddress, strategyTokenBalance, USDC);
+
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .processOutputOrders(1, [
+                        { outputToken: USDC, amounts: [strategyTokenBalance], orders, toReserve: true },
+                    ]),
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
+        });
+
+        it("Should revert if amount is greater than available", async () => {
+            const mockERC20Factory = await ethers.getContractFactory("MockERC20");
+            const strategy = mockERC20Factory.attach(context.stakeDaoUsdStrategyAddress);
+            const strategyTokenBalance = await strategy.balanceOf(context.nestedReserve.address);
+
+            // Orders to withdraw from beefy
+            let orders: OrderStruct[] = getStakeDao3EpsWithdrawOrder(context, context.stakeDaoUsdStrategyAddress, strategyTokenBalance.mul(2), USDC);
+
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .processOutputOrders(1, [
+                        { outputToken: USDC, amounts: [strategyTokenBalance], orders, toReserve: true },
+                    ]),
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
+        });
+
+        it("Should revert if output token is not in the curve pool", async () => {
+            const mockERC20Factory = await ethers.getContractFactory("MockERC20");
+            const strategy = mockERC20Factory.attach(context.stakeDaoUsdStrategyAddress);
+            const strategyTokenBalance = await strategy.balanceOf(context.nestedReserve.address);
+
+            // Orders to withdraw from beefy
+            let orders: OrderStruct[] = getStakeDao3EpsWithdrawOrder(context, context.stakeDaoUsdStrategyAddress, strategyTokenBalance, context.WBNB.address);
+
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .processOutputOrders(1, [
+                        { outputToken: USDC, amounts: [strategyTokenBalance], orders, toReserve: true },
+                    ]),
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
+        });
+
+        it("Should revert if minOutputToken is not reached", async () => {
+            const mockERC20Factory = await ethers.getContractFactory("MockERC20");
+            const strategy = mockERC20Factory.attach(context.stakeDaoUsdStrategyAddress);
+            const strategyTokenBalance = await strategy.balanceOf(context.nestedReserve.address);
+
+            // Orders to withdraw from beefy
+            let orders: OrderStruct[] = getStakeDao3EpsWithdrawOrder(context, context.stakeDaoUsdStrategyAddress, strategyTokenBalance, USDC, UINT256_MAX);
+
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .processOutputOrders(1, [
+                        { outputToken: USDC, amounts: [strategyTokenBalance], orders, toReserve: true },
+                    ]),
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
+        });
+
+        it("Destroy/Withdraw from stakeDAO", async () => {
+            const mockERC20Factory = await ethers.getContractFactory("MockERC20");
+            const strategy = mockERC20Factory.attach(context.stakeDaoUsdStrategyAddress);
+            const usdcContract = mockERC20Factory.attach(USDC);
+            const strategyTokenBalance = await strategy.balanceOf(context.nestedReserve.address);
+
+            // Orders to withdraw from beefy
+            let orders: OrderStruct[] = getStakeDao3EpsWithdrawOrder(context, context.stakeDaoUsdStrategyAddress, strategyTokenBalance, USDC);
+
+            await context.nestedFactory
+                .connect(context.user1)
+                .processOutputOrders(1, [
+                    { outputToken: USDC, amounts: [strategyTokenBalance], orders, toReserve: true },
+                ]);
+
+            // All strategy token removed from reserve
+            expect(await strategy.balanceOf(context.nestedReserve.address)).to.be.equal(BIG_NUMBER_ZERO);
+
+            /*
+             * I can't predict the USDC received in the FeeSplitter.
+             * It should be greater than 0.02 USDC, but sub 1% to allow a margin of error
+             */
+            expect(await usdcContract.balanceOf(context.feeSplitter.address)).to.be.gt(
+                getExpectedFees(appendDecimals(2)).sub(getExpectedFees(appendDecimals(2)).div(100)),
+            );
+        });
+    });
 });

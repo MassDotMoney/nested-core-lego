@@ -177,7 +177,7 @@ export function registerStakeDaoWithdraw(operator: StakeDaoCurveStrategyOperator
     return {
         name: "stakeDaoCurveStrategyWithdraw",
         contract: operator.address,
-        signature: "function withdraw(address strategy, address tokenIn, uint256 amount, uint256 minAmountOut)"
+        signature: "function withdraw(address strategy, uint256 amount, address outputToken, uint256 minAmountOut)"
     };
 }
 
@@ -296,15 +296,25 @@ export function getBeefyBnbVenusWithdrawOrder(context: FactoryAndOperatorsForkin
 // Create a Deposit order in StakeDAO (stake dao Ellipsis.finance BUSD/USDC/USDT)
 export function getStakeDao3EpsDepositOrder(context: FactoryAndOperatorsForkingBSCFixture, strategyAddress: string, tokenToDeposit: string, amountToDeposit: BigNumber, minStrategyToken?: BigNumber) {
     return [
-        buildOrderStruct(context.stakeDaoCurveStrategyDepositOperatorNameBytes32, strategyAddress, [
+        buildOrderStruct(context.stakeDaoCurveStrategyDepositOperatorNameBytes32, context.stakeDaoUsdStrategyAddress, [
             ["address", strategyAddress],
             ["address", tokenToDeposit],
             ["uint256", amountToDeposit],
-            ["uint256", minStrategyToken != null ? minStrategyToken : 0], // 100% slippage
+            ["uint256", minStrategyToken != null ? minStrategyToken : 0], // 100% slippage if minAmountOut is null
         ]),
     ];
 }
 
+export function getStakeDao3EpsWithdrawOrder(context: FactoryAndOperatorsForkingBSCFixture, strategyAddress: string, amountToWithdraw: BigNumber, outputToken: string, minAmountOut?: BigNumber) {
+    return [
+        buildOrderStruct(context.stakeDaoCurveStrategyWithdrawOperatorNameBytes32, context.stakeDaoUsdStrategyAddress, [
+            ["address", strategyAddress],
+            ["uint256", amountToWithdraw],
+            ["address", outputToken],
+            ["uint256", minAmountOut != null ? minAmountOut : 0], // 100% slippage if minAmountOut is null
+        ]),
+    ];
+}
 // Generic function to create a 1:1 Order
 export function getTokenBWithTokenAOrders(
     context: FactoryAndOperatorsFixture,

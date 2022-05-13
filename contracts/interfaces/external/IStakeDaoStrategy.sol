@@ -15,4 +15,6 @@ interface IStakeDaoStrategy {
     function want() external view returns (IERC20);
 
     function deposit(uint256 _amount) external;
+
+    function withdraw(uint256 _shares) external;
 }

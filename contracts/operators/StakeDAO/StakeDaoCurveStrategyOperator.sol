@@ -70,6 +70,53 @@ contract StakeDaoCurveStrategyOperator {
         tokens[1] = address(token);
     }
 
+    /// @notice Withdraw the LP token from StakeDAO and remove the
+    ///         liquidity from the Curve pool in order to receive
+    ///         one of the pool tokens.
+    ///      LP token in the StakeDAO strategy
+    /// @param strategy The stakeDAO strategy
+    /// @param amount The amount to withdraw
+    /// @param outputToken The output token to receive
+    /// @param minAmountOut The minimum output token expected
+    /// @return amounts Array of amounts :
+    ///         - [0] : The strategy token received amount
+    ///         - [1] : The token deposited amount
+    /// @return tokens Array of token addresses
+    ///         - [0] : The strategy token received address
+    ///         - [1] : The token deposited address
+    function withdraw(
+        address strategy,
+        uint256 amount,
+        IERC20 outputToken,
+        uint256 minAmountOut
+    ) external payable returns (uint256[] memory amounts, address[] memory tokens) {
+        require(amount != 0, "SDCSO: INVALID_AMOUNT");
+        address pool = operatorStorage.strategies(strategy);
+        require(pool != address(0), "SDCSO: INVALID_STRATEGY");
+
+        uint256 strategyTokenBalanceBefore = IERC20(strategy).balanceOf(address(this));
+        uint256 tokenBalanceBefore = outputToken.balanceOf(address(this));
+
+        _withdrawLpAndRemoveLiquidity(IStakeDaoStrategy(strategy), ICurvePool(pool), outputToken, amount);
+
+        uint256 strategyTokenAmount = strategyTokenBalanceBefore - IERC20(strategy).balanceOf(address(this));
+        uint256 tokenAmount = outputToken.balanceOf(address(this)) - tokenBalanceBefore;
+
+        require(strategyTokenAmount == amount, "SDCSO: INVALID_AMOUNT_WITHDRAWED");
+        require(tokenAmount >= minAmountOut, "SDCSO: INVALID_AMOUNT");
+
+        amounts = new uint256[](2);
+        tokens = new address[](2);
+
+        // Output amounts
+        amounts[0] = tokenAmount;
+        amounts[1] = amount;
+
+        // Output token
+        tokens[0] = address(outputToken);
+        tokens[1] = strategy;
+    }
+
     /// @dev Add liquidity in the curve pool and deposit the
     ///      LP token in the StakeDAO strategy
     /// @param pool The Curve pool address
@@ -101,5 +148,29 @@ contract StakeDaoCurveStrategyOperator {
 
         ExchangeHelpers.setMaxAllowance(lpToken, address(strategy));
         strategy.deposit(lpToken.balanceOf(address(this)));
+    }
+
+    /// @dev Withdraw the LP tokens from stakeDAO and remove
+    ///      the liquidity from the Curve pool
+    /// @param strategy The stakeDAO strategy to withdraw from
+    /// @param curvePool The Curve pool address in which to remove liquidity
+    /// @param token The output token to remove from the curve pool
+    /// @param amount The LP token amount to withdraw from stakeDAO
+    function _withdrawLpAndRemoveLiquidity(
+        IStakeDaoStrategy strategy,
+        ICurvePool curvePool,
+        IERC20 token,
+        uint256 amount
+    ) private {
+        strategy.withdraw(amount);
+
+        if (address(token) == curvePool.coins(0)) {
+            curvePool.remove_liquidity_one_coin(strategy.token().balanceOf(address(this)), 0, 1);
+        } else if (address(token) == curvePool.coins(1)) {
+            curvePool.remove_liquidity_one_coin(strategy.token().balanceOf(address(this)), 1, 1);
+        } else {
+            require(address(token) == curvePool.coins(2), "SDCSO: INVALID_OUTPUT_TOKEN");
+            curvePool.remove_liquidity_one_coin(strategy.token().balanceOf(address(this)), 2, 1);
+        }
     }
 }
