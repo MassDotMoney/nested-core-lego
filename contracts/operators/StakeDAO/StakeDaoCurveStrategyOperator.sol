@@ -53,9 +53,9 @@ contract StakeDaoCurveStrategyOperator {
         _addLiquidityAndDepositLP(ICurvePool(pool), IStakeDaoStrategy(strategy), token, amount);
 
         uint256 strategyTokenAmount = IERC20(strategy).balanceOf(address(this)) - strategyTokenBalanceBefore;
-        uint256 depositedAmount = tokenBalanceBefore - token.balanceOf(address(this));
-
         require(strategyTokenAmount != 0 && strategyTokenAmount >= minStrategyToken, "SDCSO: INVALID_AMOUNT_RECEIVED");
+
+        uint256 depositedAmount = tokenBalanceBefore - token.balanceOf(address(this));
         require(depositedAmount != 0 && amount >= depositedAmount, "SDCSO: INVALID_AMOUNT_DEPOSITED");
 
         amounts = new uint256[](2);
@@ -99,9 +99,9 @@ contract StakeDaoCurveStrategyOperator {
         _withdrawLpAndRemoveLiquidity(IStakeDaoStrategy(strategy), ICurvePool(pool), address(outputToken), amount);
 
         uint256 strategyTokenAmount = strategyTokenBalanceBefore - IERC20(strategy).balanceOf(address(this));
-        uint256 tokenAmount = outputToken.balanceOf(address(this)) - tokenBalanceBefore;
-
         require(strategyTokenAmount == amount, "SDCSO: INVALID_AMOUNT_WITHDRAWED");
+
+        uint256 tokenAmount = outputToken.balanceOf(address(this)) - tokenBalanceBefore;
         require(tokenAmount >= minAmountOut, "SDCSO: INVALID_AMOUNT");
 
         amounts = new uint256[](2);
@@ -139,13 +139,16 @@ contract StakeDaoCurveStrategyOperator {
             amounts[2] = amount;
         }
 
+        IERC20 lpToken = strategy.token();
+        uint256 lpTokenBalanceBefore = lpToken.balanceOf(address(this));
+
         ExchangeHelpers.setMaxAllowance(token, address(curvePool));
         curvePool.add_liquidity(amounts, 1);
 
-        IERC20 lpToken = strategy.token();
+        uint256 lpTokenToDeposit = lpToken.balanceOf(address(this)) - lpTokenBalanceBefore;
 
         ExchangeHelpers.setMaxAllowance(lpToken, address(strategy));
-        strategy.deposit(lpToken.balanceOf(address(this)));
+        strategy.deposit(lpTokenToDeposit);
     }
 
     /// @dev Withdraw the LP tokens from stakeDAO and remove
@@ -160,15 +163,29 @@ contract StakeDaoCurveStrategyOperator {
         address token,
         uint256 amount
     ) private {
+        uint256 strategyTokenBalanceBefore = strategy.token().balanceOf(address(this));
+
         strategy.withdraw(amount);
 
         if (token == curvePool.coins(0)) {
-            curvePool.remove_liquidity_one_coin(strategy.token().balanceOf(address(this)), 0, 1);
+            curvePool.remove_liquidity_one_coin(
+                strategy.token().balanceOf(address(this)) - strategyTokenBalanceBefore,
+                0,
+                1
+            );
         } else if (token == curvePool.coins(1)) {
-            curvePool.remove_liquidity_one_coin(strategy.token().balanceOf(address(this)), 1, 1);
+            curvePool.remove_liquidity_one_coin(
+                strategy.token().balanceOf(address(this)) - strategyTokenBalanceBefore,
+                1,
+                1
+            );
         } else {
             require(token == curvePool.coins(2), "SDCSO: INVALID_OUTPUT_TOKEN");
-            curvePool.remove_liquidity_one_coin(strategy.token().balanceOf(address(this)), 2, 1);
+            curvePool.remove_liquidity_one_coin(
+                strategy.token().balanceOf(address(this)) - strategyTokenBalanceBefore,
+                2,
+                1
+            );
         }
     }
 }
