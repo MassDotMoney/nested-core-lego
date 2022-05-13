@@ -13,20 +13,20 @@ contract StakeDaoCurveStrategyOperator {
     StakeDaoStrategyStorage public immutable operatorStorage;
 
     constructor(address[] memory strategies, address[] memory pools) {
-        uint256 vaultsLength = strategies.length;
-        require(vaultsLength == pools.length, "SDCSO: INVALID_POOLS_LENGTH");
+        uint256 strategiesLength = strategies.length;
+        require(strategiesLength == pools.length, "SDCSO: INVALID_POOLS_LENGTH");
         operatorStorage = new StakeDaoStrategyStorage();
 
-        for (uint256 i; i < vaultsLength; i++) {
+        for (uint256 i; i < strategiesLength; i++) {
             operatorStorage.addStrategy(strategies[i], pools[i]);
         }
 
         operatorStorage.transferOwnership(msg.sender);
     }
 
-    /// @notice Use the token to add liquidity to a Curve pool,
-    ///         deposit the LP token in a StakeDAO strategy and
-    ///         receive the strategy's token.
+    /// @notice Add liquidity to a Curve pool using the input token,
+    ///         deposit the LP token in a StakeDAO strategy and receive
+    ///         the strategy's token.
     /// @param strategy The stakeDAO strategy address in wich to deposit the LP token
     /// @param token The input token to use for adding liquidity
     /// @param amount The input token amount to use for adding liquidity
