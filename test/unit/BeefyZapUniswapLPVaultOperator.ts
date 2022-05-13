@@ -241,8 +241,13 @@ describeOnBscFork("BeefyZapUniswapLPVaultOperator", () => {
 
             const nfts = await context.nestedAssetBatcher.getNfts(context.user1.address);
 
-            expect(nfts[0].assets.length).to.equal(2); // WBNB (dust) + Moo
-            expect(nfts[0].assets[1].token).to.equal(context.beefyUniswapVaultAddress);
+            expect(nfts[0].assets.length > 0 && nfts[0].assets.length <= 2).to.be.true; // Moo + dust (not always)
+
+            if (nfts[0].assets.length == 1) {
+                expect(nfts[0].assets[0].token).to.be.equal(context.beefyUniswapVaultAddress);
+            } else {
+                expect(nfts[0].assets[1].token).to.be.equal(context.beefyUniswapVaultAddress);
+            }
 
             // Moo and WBNB in Fee Splitter
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");

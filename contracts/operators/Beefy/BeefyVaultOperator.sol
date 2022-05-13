@@ -41,8 +41,6 @@ contract BeefyVaultOperator {
         require(amount != 0, "BVO: INVALID_AMOUNT");
         IERC20 token = IERC20(operatorStorage.vaults(vault));
         require(address(token) != address(0), "BVO: INVALID_VAULT");
-        amounts = new uint256[](2);
-        tokens = new address[](2);
 
         uint256 vaultBalanceBefore = IERC20(vault).balanceOf(address(this));
         uint256 tokenBalanceBefore = token.balanceOf(address(this));
@@ -55,6 +53,9 @@ contract BeefyVaultOperator {
         uint256 tokenAmount = tokenBalanceBefore - token.balanceOf(address(this));
         require(vaultAmount != 0 && vaultAmount >= minVaultAmount, "BVO: INVALID_AMOUNT_RECEIVED");
         require(amount == tokenAmount, "BVO: INVALID_AMOUNT_DEPOSITED");
+
+        amounts = new uint256[](2);
+        tokens = new address[](2);
 
         // Output amounts
         amounts[0] = vaultAmount;
@@ -82,8 +83,6 @@ contract BeefyVaultOperator {
         require(amount != 0, "BVO: INVALID_AMOUNT");
         IERC20 token = IERC20(operatorStorage.vaults(vault));
         require(address(token) != address(0), "BVO: INVALID_VAULT");
-        amounts = new uint256[](2);
-        tokens = new address[](2);
 
         uint256 tokenBalanceBefore = token.balanceOf(address(this));
         uint256 vaultBalanceBefore = IERC20(vault).balanceOf(address(this));
@@ -95,6 +94,9 @@ contract BeefyVaultOperator {
         uint256 vaultAmount = vaultBalanceBefore - IERC20(vault).balanceOf(address(this));
         require(vaultAmount == amount, "BVO: INVALID_AMOUNT_WITHDRAWED");
         require(tokenAmount != 0, "BVO: INVALID_AMOUNT");
+
+        amounts = new uint256[](2);
+        tokens = new address[](2);
 
         // Output amounts
         amounts[0] = tokenAmount;

@@ -8,8 +8,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract BeefyVaultStorage is Ownable {
     /// @dev Emitted when a vault is added
     /// @param vault The vault address
-    /// @param underlying The underlying token address or zapper
-    event VaultAdded(address vault, address underlying);
+    /// @param tokenOrZapper The underlying token address or zapper
+    event VaultAdded(address vault, address tokenOrZapper);
 
     /// @dev Emitted when a vault is removed
     /// @param vault The removed vault address
@@ -20,13 +20,13 @@ contract BeefyVaultStorage is Ownable {
 
     /// @notice Add a beefy single asset vault
     /// @param vault The vault address
-    /// @param underlying The underlying token address or zapper (used to deposit)
-    function addVault(address vault, address underlying) external onlyOwner {
+    /// @param tokenOrZapper The underlying token address or zapper (used to deposit)
+    function addVault(address vault, address tokenOrZapper) external onlyOwner {
         require(vault != address(0), "BVS: INVALID_VAULT_ADDRESS");
-        require(underlying != address(0), "BVS: INVALID_UNDERLYING_ADDRESS");
+        require(tokenOrZapper != address(0), "BVS: INVALID_UNDERLYING_ADDRESS");
         require(vaults[vault] == address(0), "BVS: ALREADY_EXISTENT_VAULT");
-        vaults[vault] = underlying;
-        emit VaultAdded(vault, underlying);
+        vaults[vault] = tokenOrZapper;
+        emit VaultAdded(vault, tokenOrZapper);
     }
 
     /// @notice Remove a beefy vault

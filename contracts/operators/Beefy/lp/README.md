@@ -2,9 +2,9 @@
 
 ## Optimal swap amount
 
-To solve the problem of remaining dust after adding liquidity in a uniswap like liquidity pool, we need to perform a calculation to minimize the amount of unused token by the uniswap like router.
+To solve the problem of remaining dust after adding liquidity in a Uniswap-like liquidity pool, we need to perform a calculation to minimize the amount of unused tokens by the Uniswap-like router.
 
-> For this exemple, we will use an WBNB-USDT Uniswap luqidity pool, and we have 1 WBNB as a total investment.
+> For this example, we will use an WBNB-USDT Uniswap liquidity pool, and we have 1 WBNB as a total investment.
 
 ### Compute the optimal amount
 
@@ -37,7 +37,7 @@ $$b = {{B(1-f)s} \over {A+(1-f)s}}$$
 After the swap, the ratio between **A** and **B** in the liquidity pool is:
 $${A+s \over B-b} = {a-s \over b}$$
 
-From this equation we can solve for s as using [b espression](#find-b) as follow:
+From this equation we can solve for s using [b espression](#find-b) as follow:
 (A + s)b - (a - s)(B - b) = 0
 Ab + sb - aB + ab + sB - sb = 0
 Ab - aB + ab + sB = 0
@@ -47,7 +47,7 @@ Ab - aB + ab + sB = 0
 
 b = B(1 - f)s / (A + (1 - f)s)
 
-##### Replace b by his value expressed in terms of s
+##### Replace b with the value expressed in terms of s
 
 (A + a)B(1 - f)s / (A + (1 - f)s) - (a - s)B = 0
 (A + a)(1 - f)s / (A + (1 - f)s) - (a - s) = 0

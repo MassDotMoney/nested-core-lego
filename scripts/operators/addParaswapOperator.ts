@@ -25,7 +25,7 @@ async function main(): Promise<void> {
     // Deploy ParaswapOperator
     const paraswapOperator = await paraswapOperatorFactory.deploy(tokenTransferProxy, augustusSwapper);
     await paraswapOperator.deployed();
-    console.log;
+    console.log("ParaswapOperator deployed : ", paraswapOperator.address);
 
     // Verify on tenderly
     const contracts = [
