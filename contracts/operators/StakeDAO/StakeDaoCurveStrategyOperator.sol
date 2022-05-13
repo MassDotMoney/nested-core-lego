@@ -24,18 +24,18 @@ contract StakeDaoCurveStrategyOperator {
         operatorStorage.transferOwnership(msg.sender);
     }
 
-    /// @notice Add the asset in a Curve pool liquidity, deposit
-    ///         the LP tokens in the StakeDAO strategy and receive
-    ///         the strategy token.
-    /// @param strategy The stakeDAO strategy address
-    /// @param token The input token to add in the curve pool
-    /// @param amount The input token amount to deposit
+    /// @notice Use the token to add liquidity to a Curve pool,
+    ///         deposit the LP token in a StakeDAO strategy and
+    ///         receive the strategy's token.
+    /// @param strategy The stakeDAO strategy address in wich to deposit the LP token
+    /// @param token The input token to use for adding liquidity
+    /// @param amount The input token amount to use for adding liquidity
     /// @param minStrategyToken The minimum strategy token expected
     /// @return amounts Array of amounts :
-    ///         - [0] : The vault token received amount
+    ///         - [0] : The strategy token received amount
     ///         - [1] : The token deposited amount
     /// @return tokens Array of token addresses
-    ///         - [0] : The vault token received address
+    ///         - [0] : The strategy token received address
     ///         - [1] : The token deposited address
     function deposit(
         address strategy,
@@ -73,8 +73,7 @@ contract StakeDaoCurveStrategyOperator {
     /// @notice Withdraw the LP token from StakeDAO and remove the
     ///         liquidity from the Curve pool in order to receive
     ///         one of the pool tokens.
-    ///      LP token in the StakeDAO strategy
-    /// @param strategy The stakeDAO strategy
+    /// @param strategy The stakeDAO strategy to withdraw from
     /// @param amount The amount to withdraw
     /// @param outputToken The output token to receive
     /// @param minAmountOut The minimum output token expected
@@ -119,10 +118,10 @@ contract StakeDaoCurveStrategyOperator {
 
     /// @dev Add liquidity in the curve pool and deposit the
     ///      LP token in the StakeDAO strategy
-    /// @param pool The Curve pool address
-    /// @param strategy The stakeDAO strategy
+    /// @param pool The Curve pool address in which to add liquidity
+    /// @param strategy The stakeDAO strategy in which to deposit
     /// @param token The input token to add in the curve pool
-    /// @param amount The input token amount to deposit
+    /// @param amount The input token amount to add in the curve pool
     function _addLiquidityAndDepositLP(
         address pool,
         IStakeDaoStrategy strategy,
@@ -153,9 +152,9 @@ contract StakeDaoCurveStrategyOperator {
     /// @dev Withdraw the LP tokens from stakeDAO and remove
     ///      the liquidity from the Curve pool
     /// @param strategy The stakeDAO strategy to withdraw from
-    /// @param curvePool The Curve pool address in which to remove liquidity
+    /// @param curvePool The Curve pool in which to remove liquidity
     /// @param token The output token to remove from the curve pool
-    /// @param amount The LP token amount to withdraw from stakeDAO
+    /// @param amount The amount of token to withdraw from stakeDAO
     function _withdrawLpAndRemoveLiquidity(
         IStakeDaoStrategy strategy,
         ICurvePool curvePool,
