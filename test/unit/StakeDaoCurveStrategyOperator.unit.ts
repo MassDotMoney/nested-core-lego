@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { createFixtureLoader } from "ethereum-waffle";
 import { BigNumber, utils, Wallet } from "ethers";
 import { ethers } from "hardhat";
-import { cleanResult, getBeefyBnbVenusDepositOrder, getBeefyBnbVenusWithdrawOrder, getStakeDao3EpsDepositOrder, getStakeDao3EpsWithdrawOrder, OrderStruct } from "../../scripts/utils";
+import { cleanResult, getStakeDao3EpsDepositOrder, getStakeDao3EpsWithdrawOrder, OrderStruct } from "../../scripts/utils";
 import { appendDecimals, BIG_NUMBER_ZERO, getExpectedFees, UINT256_MAX } from "../helpers";
 import { factoryAndOperatorsForkingBSCFixture, FactoryAndOperatorsForkingBSCFixture, USDC } from "../shared/fixtures";
 import { describeOnBscFork, provider } from "../shared/provider";
@@ -241,7 +241,7 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
 
             const strategyTokenBalance = await strategy.balanceOf(context.nestedReserve.address);
 
-            // Orders to withdraw from beefy
+            // Orders to withdraw from stakeDAO
             let orders: OrderStruct[] = getStakeDao3EpsWithdrawOrder(context, context.stakeDaoUsdStrategyAddress, BIG_NUMBER_ZERO, USDC);
 
             await expect(
@@ -260,7 +260,7 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
 
             const unknownStrategyAddress = Wallet.createRandom().address;
 
-            // Orders to withdraw from beefy
+            // Orders to withdraw from stakeDAO
             let orders: OrderStruct[] = getStakeDao3EpsWithdrawOrder(context, unknownStrategyAddress, strategyTokenBalance, USDC);
 
             await expect(
@@ -277,7 +277,7 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
             const strategy = mockERC20Factory.attach(context.stakeDaoUsdStrategyAddress);
             const strategyTokenBalance = await strategy.balanceOf(context.nestedReserve.address);
 
-            // Orders to withdraw from beefy
+            // Orders to withdraw from stakeDAO
             let orders: OrderStruct[] = getStakeDao3EpsWithdrawOrder(context, context.stakeDaoUsdStrategyAddress, strategyTokenBalance.mul(2), USDC);
 
             await expect(
@@ -294,7 +294,7 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
             const strategy = mockERC20Factory.attach(context.stakeDaoUsdStrategyAddress);
             const strategyTokenBalance = await strategy.balanceOf(context.nestedReserve.address);
 
-            // Orders to withdraw from beefy
+            // Orders to withdraw from stakeDAO
             let orders: OrderStruct[] = getStakeDao3EpsWithdrawOrder(context, context.stakeDaoUsdStrategyAddress, strategyTokenBalance, context.WBNB.address);
 
             await expect(
@@ -311,7 +311,7 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
             const strategy = mockERC20Factory.attach(context.stakeDaoUsdStrategyAddress);
             const strategyTokenBalance = await strategy.balanceOf(context.nestedReserve.address);
 
-            // Orders to withdraw from beefy
+            // Orders to withdraw from stakeDAO
             let orders: OrderStruct[] = getStakeDao3EpsWithdrawOrder(context, context.stakeDaoUsdStrategyAddress, strategyTokenBalance, USDC, UINT256_MAX);
 
             await expect(
@@ -329,7 +329,7 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
             const usdcContract = mockERC20Factory.attach(USDC);
             const strategyTokenBalance = await strategy.balanceOf(context.nestedReserve.address);
 
-            // Orders to withdraw from beefy
+            // Orders to withdraw from stakeDAO
             let orders: OrderStruct[] = getStakeDao3EpsWithdrawOrder(context, context.stakeDaoUsdStrategyAddress, strategyTokenBalance, USDC);
 
             await context.nestedFactory
