@@ -32,11 +32,11 @@ contract StakeDaoCurveStrategyOperator {
     /// @param amount The input token amount to use for adding liquidity
     /// @param minStrategyToken The minimum strategy token expected
     /// @return amounts Array of amounts :
-    ///         - [0] : The strategy token received amount
-    ///         - [1] : The token deposited amount
+    ///         - [0] : The received strategy token amount
+    ///         - [1] : The deposited token amount
     /// @return tokens Array of token addresses
-    ///         - [0] : The strategy token received address
-    ///         - [1] : The token deposited address
+    ///         - [0] : The received strategy token address
+    ///         - [1] : The deposited token address
     function deposit(
         address strategy,
         IERC20 token,
@@ -78,11 +78,11 @@ contract StakeDaoCurveStrategyOperator {
     /// @param outputToken The output token to receive
     /// @param minAmountOut The minimum output token expected
     /// @return amounts Array of amounts :
-    ///         - [0] : The strategy token received amount
-    ///         - [1] : The token deposited amount
+    ///         - [0] : The received strategy token amount
+    ///         - [1] : The deposited token amount
     /// @return tokens Array of token addresses
-    ///         - [0] : The strategy token received address
-    ///         - [1] : The token deposited address
+    ///         - [0] : The received strategy token address
+    ///         - [1] : The deposited token address
     function withdraw(
         address strategy,
         uint256 amount,
