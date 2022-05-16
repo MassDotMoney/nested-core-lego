@@ -7,9 +7,9 @@ import "../../abstracts/MixinOperatorResolver.sol";
 
 contract AddOperator {
     /// @notice Call NestedFactory and OperatorResolver to add an operator.
-    /// @param nestedFactory TODO
-    /// @param operator TODO
-    /// @param name TODO
+    /// @param nestedFactory The NestedFactory address
+    /// @param operator The operator to add
+    /// @param name The operator bytes32 name
     function addOperator(
         address nestedFactory,
         IOperatorResolver.Operator memory operator,
