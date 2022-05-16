@@ -47,16 +47,18 @@ contract StakeDaoCurveStrategyOperator {
         address pool = operatorStorage.strategies(strategy);
         require(pool != address(0), "SDCSO: INVALID_STRATEGY");
 
-        uint256 strategyTokenBalanceBefore = IERC20(strategy).balanceOf(address(this));
         uint256 tokenBalanceBefore = token.balanceOf(address(this));
+        uint256 strategyTokenBalanceBefore = IERC20(strategy).balanceOf(address(this));
 
-        _addLiquidityAndDepositLP(ICurvePool(pool), IStakeDaoStrategy(strategy), token, amount);
-
-        uint256 strategyTokenAmount = IERC20(strategy).balanceOf(address(this)) - strategyTokenBalanceBefore;
-        require(strategyTokenAmount != 0 && strategyTokenAmount >= minStrategyToken, "SDCSO: INVALID_AMOUNT_RECEIVED");
+        _addLiquidityAndDepositLP(IStakeDaoStrategy(strategy), ICurvePool(pool), token, amount);
 
         uint256 depositedAmount = tokenBalanceBefore - token.balanceOf(address(this));
-        require(depositedAmount != 0 && amount >= depositedAmount, "SDCSO: INVALID_AMOUNT_DEPOSITED");
+        require(depositedAmount != 0, "SDCSO: INVALID_AMOUNT_DEPOSITED");
+        require(amount >= depositedAmount, "SDCSO: INVALID_AMOUNT_DEPOSITED");
+
+        uint256 strategyTokenAmount = IERC20(strategy).balanceOf(address(this)) - strategyTokenBalanceBefore;
+        require(strategyTokenAmount != 0, "SDCSO: INVALID_AMOUNT_RECEIVED");
+        require(strategyTokenAmount >= minStrategyToken, "SDCSO: INVALID_AMOUNT_RECEIVED");
 
         amounts = new uint256[](2);
         tokens = new address[](2);
@@ -118,13 +120,13 @@ contract StakeDaoCurveStrategyOperator {
 
     /// @dev Add liquidity in the curve pool and deposit the
     ///      LP token in the StakeDAO strategy
-    /// @param curvePool The Curve pool in which to add liquidity
     /// @param strategy The stakeDAO strategy in which to deposit
+    /// @param curvePool The Curve pool in which to add liquidity
     /// @param token The input token to add in the curve pool
     /// @param amount The input token amount to add in the curve pool
     function _addLiquidityAndDepositLP(
-        ICurvePool curvePool,
         IStakeDaoStrategy strategy,
+        ICurvePool curvePool,
         IERC20 token,
         uint256 amount
     ) private {
@@ -143,7 +145,7 @@ contract StakeDaoCurveStrategyOperator {
         uint256 lpTokenBalanceBefore = lpToken.balanceOf(address(this));
 
         ExchangeHelpers.setMaxAllowance(token, address(curvePool));
-        curvePool.add_liquidity(amounts, 1);
+        curvePool.add_liquidity(amounts, 0);
 
         uint256 lpTokenToDeposit = lpToken.balanceOf(address(this)) - lpTokenBalanceBefore;
 
@@ -163,29 +165,18 @@ contract StakeDaoCurveStrategyOperator {
         address token,
         uint256 amount
     ) private {
-        uint256 strategyTokenBalanceBefore = strategy.token().balanceOf(address(this));
+        IERC20 lpToken = strategy.token();
+        uint256 lpTokenBalanceBefore = lpToken.balanceOf(address(this));
 
         strategy.withdraw(amount);
 
         if (token == curvePool.coins(0)) {
-            curvePool.remove_liquidity_one_coin(
-                strategy.token().balanceOf(address(this)) - strategyTokenBalanceBefore,
-                0,
-                1
-            );
+            curvePool.remove_liquidity_one_coin(lpToken.balanceOf(address(this)) - lpTokenBalanceBefore, 0, 0);
         } else if (token == curvePool.coins(1)) {
-            curvePool.remove_liquidity_one_coin(
-                strategy.token().balanceOf(address(this)) - strategyTokenBalanceBefore,
-                1,
-                1
-            );
+            curvePool.remove_liquidity_one_coin(lpToken.balanceOf(address(this)) - lpTokenBalanceBefore, 1, 0);
         } else {
             require(token == curvePool.coins(2), "SDCSO: INVALID_OUTPUT_TOKEN");
-            curvePool.remove_liquidity_one_coin(
-                strategy.token().balanceOf(address(this)) - strategyTokenBalanceBefore,
-                2,
-                1
-            );
+            curvePool.remove_liquidity_one_coin(lpToken.balanceOf(address(this)) - lpTokenBalanceBefore, 2, 0);
         }
     }
 }

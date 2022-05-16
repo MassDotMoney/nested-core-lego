@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.11;
 
+/// @title Curve pool interface
 interface ICurvePool {
     function token() external view returns (address);
 

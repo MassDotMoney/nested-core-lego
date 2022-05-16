@@ -3,8 +3,6 @@ pragma solidity 0.8.11;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import "hardhat/console.sol";
-
 /// @title StakeDAO strategy operator's storage contract
 contract StakeDaoStrategyStorage is Ownable {
     /// @dev Emitted when a strategy is added
