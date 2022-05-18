@@ -1,11 +1,11 @@
 
-<div align="center"><img width="600" src="https://user-images.githubusercontent.com/22816913/140889449-5c5afc92-0d4d-43c8-9d02-b3489eab093f.png"></div>
+<div align="center"><img width="600" src="https://user-images.githubusercontent.com/32484870/169060570-12d1c4cb-7134-4346-8237-c9259f88d4b5.png"></div>
 <br/>
 <div align="center"><a href="https://nested.fi" > https://nested.fi </a></div>
 
 # Introduction
 
-Nested Finance is a decentralized protocol providing customizable financial products in the form of NFTs. 
+Nested is a decentralized protocol providing customizable financial products in the form of NFTs. 
 The platform allows users to put several digital assets, i.e. ERC20 tokens, inside an NFT (abbreviated as `NestedNFT`).
 <br/>
 
