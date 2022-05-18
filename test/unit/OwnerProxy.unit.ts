@@ -4,7 +4,7 @@ import { createFixtureLoader, describeWithoutFork, expect, provider } from "../s
 import { BigNumber, Wallet } from "ethers";
 import { appendDecimals, BIG_NUMBER_ZERO, getExpectedFees, toBytes32 } from "../helpers";
 import { ethers, network } from "hardhat";
-import { AddOperator, OwnerProxy, UpdateFees } from "../../typechain";
+import { AddOperator, OwnerProxy, RemoveOperator, UpdateFees } from "../../typechain";
 import * as utils from "../../scripts/utils";
 
 let loadFixture: LoadFixtureFunction;
@@ -22,6 +22,8 @@ describeWithoutFork("OwnerProxy", () => {
     let scriptUpdateFeesCalldata: string;
     let scriptAddOperator: AddOperator;
     let scriptAddOperatorCalldata: string;
+    let scriptRemoveOperator: RemoveOperator;
+    let scriptRemoveOperatorCalldata: string;
 
     before("loader", async () => {
         loadFixture = createFixtureLoader(provider.getWallets(), provider);
@@ -65,6 +67,18 @@ describeWithoutFork("OwnerProxy", () => {
             },
             toBytes32("flatTest"),
         ]);
+
+        // Deploy RemoveOperator Script
+        const scriptRemoveOperatorFactory = await ethers.getContractFactory("RemoveOperator");
+        scriptRemoveOperator = await scriptRemoveOperatorFactory.connect(context.masterDeployer).deploy();
+        await scriptRemoveOperator.deployed();
+
+        // Create "removeOperator" calldata (to call OwnerProxy)
+        // We are removing the flatTest operator
+        scriptRemoveOperatorCalldata = await scriptRemoveOperator.interface.encodeFunctionData("removeOperator", [
+            context.nestedFactory.address,
+            toBytes32("flatTest")
+        ]);
     });
 
     describe("Common", () => {
@@ -84,7 +98,7 @@ describeWithoutFork("OwnerProxy", () => {
     });
 
     describe("Update fees", () => {
-        it("Cant update fees if wrong entry fees is zero", async () => {
+        it("Cant update fees if entry fees are zero", async () => {
             // set fees to zero is not allowed
             let wrongScriptCalldata = await scriptUpdateFees.interface.encodeFunctionData("updateFees", [
                 context.nestedFactory.address,
@@ -97,7 +111,7 @@ describeWithoutFork("OwnerProxy", () => {
             ).to.be.revertedWith("NF: ZERO_FEES");
         });
 
-        it("Cant update fees if wrong exit fees is zero", async () => {
+        it("Cant update fees if exit fees are zero", async () => {
             // set fees to zero is not allowed
             let wrongScriptCalldata = await scriptUpdateFees.interface.encodeFunctionData("updateFees", [
                 context.nestedFactory.address,
@@ -127,6 +141,36 @@ describeWithoutFork("OwnerProxy", () => {
     });
 
     describe("Add operator", () => {
+        it("Cant add operator if nested factory address is zero", async () => {
+            let wrongScriptCalldata = await scriptAddOperator.interface.encodeFunctionData("addOperator", [
+                ethers.constants.AddressZero,
+                {
+                    implementation: context.flatOperator.address,
+                    selector: context.flatOperator.interface.getSighash("transfer(address,uint)"),
+                },
+                toBytes32("flatTest"),
+            ]);
+
+            await expect(
+                ownerProxy.connect(context.masterDeployer).execute(scriptAddOperator.address, wrongScriptCalldata),
+            ).to.be.revertedWith("AO-SCRIPT: INVALID_FACTORY_ADDRESS");
+        });
+
+        it("Cant add operator if operator address is zero", async () => {
+            let wrongScriptCalldata = await scriptAddOperator.interface.encodeFunctionData("addOperator", [
+                context.nestedFactory.address,
+                {
+                    implementation: ethers.constants.AddressZero,
+                    selector: context.flatOperator.interface.getSighash("transfer(address,uint)"),
+                },
+                toBytes32("flatTest"),
+            ]);
+
+            await expect(
+                ownerProxy.connect(context.masterDeployer).execute(scriptAddOperator.address, wrongScriptCalldata),
+            ).to.be.revertedWith("AO-SCRIPT: INVALID_OPERATOR_ADDRESS");
+        });
+
         it("Can add operator and call operator", async () => {
             await ownerProxy
                 .connect(context.masterDeployer)
@@ -160,6 +204,59 @@ describeWithoutFork("OwnerProxy", () => {
             )
                 .to.emit(context.nestedFactory, "NftCreated")
                 .withArgs(1, 0);
+        });
+    });
+
+    describe("remove operator", () => {
+        beforeEach("Add flatTest operator to be removed", async () => {
+            await ownerProxy
+                .connect(context.masterDeployer)
+                .execute(scriptAddOperator.address, scriptAddOperatorCalldata);
+        });
+        
+        it("Cant remove operator if nested factory address is zero", async () => {
+            let wrongScriptCalldata = await scriptRemoveOperator.interface.encodeFunctionData("removeOperator", [
+                ethers.constants.AddressZero,
+                toBytes32("flatTest"),
+            ]);
+
+            await expect(
+                ownerProxy.connect(context.masterDeployer).execute(scriptRemoveOperator.address, wrongScriptCalldata),
+            ).to.be.revertedWith("RO-SCRIPT: INVALID_FACTORY_ADDRESS");
+        });
+
+        it("Can remove operator and can't call operator", async () => {
+            await ownerProxy
+                .connect(context.masterDeployer)
+                .execute(scriptRemoveOperator.address, scriptRemoveOperatorCalldata);
+
+            // The user add 10 UNI to the portfolio
+            const uniBought = appendDecimals(10);
+            const totalToBought = uniBought;
+            const expectedFee = getExpectedFees(totalToBought);
+            const totalToSpend = totalToBought.add(expectedFee);
+
+            // Add 10 UNI with new FlatOperator
+            let orders: Order[] = [
+                {
+                    operator: toBytes32("flatTest"),
+                    token: context.mockUNI.address,
+                    callData: utils.abiCoder.encode(["address", "uint256"], [context.mockUNI.address, totalToBought]),
+                },
+            ];
+
+            // User1 creates the portfolio/NFT and emit event NftCreated
+            await expect(
+                context.nestedFactory.connect(context.user1).create(0, [
+                    {
+                        inputToken: context.mockUNI.address,
+                        amount: totalToSpend,
+                        orders,
+                        fromReserve: false,
+                    },
+                ]),
+            )
+                .to.be.revertedWith("MOR: MISSING_OPERATOR: flatTest");
         });
     });
 });
