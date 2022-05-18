@@ -517,7 +517,13 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
     const stakeDaoCurveStrategyOperatorFactory = await ethers.getContractFactory("StakeDaoCurveStrategyOperator");
     const stakeDaoCurveStrategyOperator = await stakeDaoCurveStrategyOperatorFactory
         .connect(masterDeployer)
-        .deploy([stakeDaoUsdStrategyAddress], [usd3poolAddress]);
+        .deploy(
+            [stakeDaoUsdStrategyAddress],
+            [{
+                poolAddress: usd3poolAddress,
+                coinAmount: 3
+            }]
+        );
     await stakeDaoCurveStrategyOperator.deployed();
 
     const stakeDaoStrategyStorageFactory = await ethers.getContractFactory("StakeDaoStrategyStorage");

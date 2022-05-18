@@ -12,13 +12,13 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract StakeDaoCurveStrategyOperator {
     StakeDaoStrategyStorage public immutable operatorStorage;
 
-    constructor(address[] memory strategies, address[] memory pools) {
+    constructor(address[] memory strategies, CurvePool[] memory curvePools) {
         uint256 strategiesLength = strategies.length;
-        require(strategiesLength == pools.length, "SDCSO: INVALID_POOLS_LENGTH");
+        require(strategiesLength == curvePools.length, "SDCSO: INVALID_POOLS_LENGTH");
         operatorStorage = new StakeDaoStrategyStorage();
 
         for (uint256 i; i < strategiesLength; i++) {
-            operatorStorage.addStrategy(strategies[i], pools[i]);
+            operatorStorage.addStrategy(strategies[i], curvePools[i]);
         }
 
         operatorStorage.transferOwnership(msg.sender);
@@ -44,13 +44,13 @@ contract StakeDaoCurveStrategyOperator {
         uint256 minStrategyToken
     ) external payable returns (uint256[] memory amounts, address[] memory tokens) {
         require(amount != 0, "SDCSO: INVALID_AMOUNT");
-        address pool = operatorStorage.strategies(strategy);
+        (address pool, uint96 poolCoinAmount) = operatorStorage.strategies(strategy);
         require(pool != address(0), "SDCSO: INVALID_STRATEGY");
 
         uint256 tokenBalanceBefore = token.balanceOf(address(this));
         uint256 strategyTokenBalanceBefore = IERC20(strategy).balanceOf(address(this));
 
-        _addLiquidityAndDepositLP(IStakeDaoStrategy(strategy), ICurvePool(pool), token, amount);
+        _addLiquidityAndDepositLP(IStakeDaoStrategy(strategy), ICurvePool(pool), poolCoinAmount, token, amount);
 
         uint256 depositedAmount = tokenBalanceBefore - token.balanceOf(address(this));
         require(depositedAmount != 0, "SDCSO: INVALID_AMOUNT_DEPOSITED");
@@ -92,18 +92,25 @@ contract StakeDaoCurveStrategyOperator {
         uint256 minAmountOut
     ) external payable returns (uint256[] memory amounts, address[] memory tokens) {
         require(amount != 0, "SDCSO: INVALID_AMOUNT");
-        address pool = operatorStorage.strategies(strategy);
+        (address pool, uint96 poolCoinAmount) = operatorStorage.strategies(strategy);
         require(pool != address(0), "SDCSO: INVALID_STRATEGY");
 
         uint256 strategyTokenBalanceBefore = IERC20(strategy).balanceOf(address(this));
         uint256 tokenBalanceBefore = outputToken.balanceOf(address(this));
 
-        _withdrawLpAndRemoveLiquidity(IStakeDaoStrategy(strategy), ICurvePool(pool), address(outputToken), amount);
+        _withdrawLpAndRemoveLiquidity(
+            IStakeDaoStrategy(strategy),
+            ICurvePool(pool),
+            poolCoinAmount,
+            address(outputToken),
+            amount
+        );
 
         uint256 strategyTokenAmount = strategyTokenBalanceBefore - IERC20(strategy).balanceOf(address(this));
         require(strategyTokenAmount == amount, "SDCSO: INVALID_AMOUNT_WITHDRAWED");
 
         uint256 tokenAmount = outputToken.balanceOf(address(this)) - tokenBalanceBefore;
+        require(tokenAmount != 0, "SDCSO: INVALID_AMOUNT");
         require(tokenAmount >= minAmountOut, "SDCSO: INVALID_AMOUNT");
 
         amounts = new uint256[](2);
@@ -121,31 +128,64 @@ contract StakeDaoCurveStrategyOperator {
     /// @dev Add liquidity in the curve pool and deposit the
     ///      LP token in the StakeDAO strategy
     /// @param strategy The stakeDAO strategy in which to deposit
-    /// @param curvePool The Curve pool in which to add liquidity
+    /// @param pool The Curve pool in which to add liquidity
+    /// @param poolCoinAmount The amount of coins available in the curve pool
     /// @param token The input token to add in the curve pool
     /// @param amount The input token amount to add in the curve pool
     function _addLiquidityAndDepositLP(
         IStakeDaoStrategy strategy,
-        ICurvePool curvePool,
+        ICurvePool pool,
+        uint96 poolCoinAmount,
         IERC20 token,
         uint256 amount
     ) private {
-        uint256[3] memory amounts;
-
-        if (address(token) == curvePool.coins(0)) {
-            amounts[0] = amount;
-        } else if (address(token) == curvePool.coins(1)) {
-            amounts[1] = amount;
-        } else {
-            require(address(token) == curvePool.coins(2), "SDCSO: INVALID_INPUT_TOKEN");
-            amounts[2] = amount;
-        }
-
         IERC20 lpToken = strategy.token();
         uint256 lpTokenBalanceBefore = lpToken.balanceOf(address(this));
+        ExchangeHelpers.setMaxAllowance(token, address(pool));
 
-        ExchangeHelpers.setMaxAllowance(token, address(curvePool));
-        curvePool.add_liquidity(amounts, 0);
+        if (poolCoinAmount == 2) {
+            // Curve 2pool
+            uint256[2] memory amounts;
+
+            if (address(token) == pool.coins(0)) {
+                amounts[0] = amount;
+            } else {
+                require(address(token) == pool.coins(1), "SDCSO: INVALID_INPUT_TOKEN");
+                amounts[1] = amount;
+            }
+
+            ICurvePool(address(pool)).add_liquidity(amounts, 0);
+        } else if (poolCoinAmount == 3) {
+            // Curve 3pool
+            uint256[3] memory amounts;
+
+            if (address(token) == pool.coins(0)) {
+                amounts[0] = amount;
+            } else if (address(token) == pool.coins(1)) {
+                amounts[1] = amount;
+            } else {
+                require(address(token) == pool.coins(2), "SDCSO: INVALID_INPUT_TOKEN");
+                amounts[2] = amount;
+            }
+
+            ICurvePool(address(pool)).add_liquidity(amounts, 0);
+        } else {
+            // Curve 4pool
+            uint256[4] memory amounts;
+
+            if (address(token) == pool.coins(0)) {
+                amounts[0] = amount;
+            } else if (address(token) == pool.coins(1)) {
+                amounts[1] = amount;
+            } else if (address(token) == pool.coins(2)) {
+                amounts[2] = amount;
+            } else {
+                require(address(token) == pool.coins(3), "SDCSO: INVALID_INPUT_TOKEN");
+                amounts[3] = amount;
+            }
+
+            ICurvePool(address(pool)).add_liquidity(amounts, 0);
+        }
 
         uint256 lpTokenToDeposit = lpToken.balanceOf(address(this)) - lpTokenBalanceBefore;
 
@@ -156,12 +196,13 @@ contract StakeDaoCurveStrategyOperator {
     /// @dev Withdraw the LP tokens from stakeDAO and remove
     ///      the liquidity from the Curve pool
     /// @param strategy The stakeDAO strategy to withdraw from
-    /// @param curvePool The Curve pool in which to remove liquidity
+    /// @param pool The Curve pool in which to add liquidity
     /// @param token The output token to remove from the curve pool
     /// @param amount The amount of token to withdraw from stakeDAO
     function _withdrawLpAndRemoveLiquidity(
         IStakeDaoStrategy strategy,
-        ICurvePool curvePool,
+        ICurvePool pool,
+        uint96 poolCoinAmount,
         address token,
         uint256 amount
     ) private {
@@ -170,13 +211,36 @@ contract StakeDaoCurveStrategyOperator {
 
         strategy.withdraw(amount);
 
-        if (token == curvePool.coins(0)) {
-            curvePool.remove_liquidity_one_coin(lpToken.balanceOf(address(this)) - lpTokenBalanceBefore, 0, 0);
-        } else if (token == curvePool.coins(1)) {
-            curvePool.remove_liquidity_one_coin(lpToken.balanceOf(address(this)) - lpTokenBalanceBefore, 1, 0);
+        if (poolCoinAmount == 2) {
+            // Curve 2pool
+            if (token == pool.coins(0)) {
+                pool.remove_liquidity_one_coin(lpToken.balanceOf(address(this)) - lpTokenBalanceBefore, 0, 0);
+            } else {
+                require(token == pool.coins(1), "SDCSO: INVALID_OUTPUT_TOKEN");
+                pool.remove_liquidity_one_coin(lpToken.balanceOf(address(this)) - lpTokenBalanceBefore, 1, 0);
+            }
+        } else if (poolCoinAmount == 3) {
+            // Curve 3pool
+            if (token == pool.coins(0)) {
+                pool.remove_liquidity_one_coin(lpToken.balanceOf(address(this)) - lpTokenBalanceBefore, 0, 0);
+            } else if (token == pool.coins(1)) {
+                pool.remove_liquidity_one_coin(lpToken.balanceOf(address(this)) - lpTokenBalanceBefore, 1, 0);
+            } else {
+                require(token == pool.coins(2), "SDCSO: INVALID_OUTPUT_TOKEN");
+                pool.remove_liquidity_one_coin(lpToken.balanceOf(address(this)) - lpTokenBalanceBefore, 2, 0);
+            }
         } else {
-            require(token == curvePool.coins(2), "SDCSO: INVALID_OUTPUT_TOKEN");
-            curvePool.remove_liquidity_one_coin(lpToken.balanceOf(address(this)) - lpTokenBalanceBefore, 2, 0);
+            // Curve 4pool
+            if (token == pool.coins(0)) {
+                pool.remove_liquidity_one_coin(lpToken.balanceOf(address(this)) - lpTokenBalanceBefore, 0, 0);
+            } else if (token == pool.coins(1)) {
+                pool.remove_liquidity_one_coin(lpToken.balanceOf(address(this)) - lpTokenBalanceBefore, 1, 0);
+            } else if (token == pool.coins(2)) {
+                pool.remove_liquidity_one_coin(lpToken.balanceOf(address(this)) - lpTokenBalanceBefore, 2, 0);
+            } else {
+                require(token == pool.coins(3), "SDCSO: INVALID_OUTPUT_TOKEN");
+                pool.remove_liquidity_one_coin(lpToken.balanceOf(address(this)) - lpTokenBalanceBefore, 3, 0);
+            }
         }
     }
 }

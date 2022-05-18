@@ -29,7 +29,10 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
     describe("addStrategy()", () => {
         it("Should revert if strategy is address zero", async () => {
             const strategyToAdd = ethers.constants.AddressZero;
-            const poolToAdd = Wallet.createRandom().address;
+            const poolToAdd = {
+                poolAddress: Wallet.createRandom().address,
+                coinAmount: 2
+            };
             await expect(
                 context.stakeDaoStrategyStorage.connect(context.masterDeployer).addStrategy(strategyToAdd, poolToAdd),
             ).to.be.revertedWith("SDSS: INVALID_STRATEGY_ADDRESS");
@@ -37,7 +40,10 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
 
         it("Should revert if pool is address zero", async () => {
             const strategyToAdd = Wallet.createRandom().address;
-            const poolToAdd = ethers.constants.AddressZero;
+            const poolToAdd = {
+                poolAddress: ethers.constants.AddressZero,
+                coinAmount: 2
+            };
             await expect(
                 context.stakeDaoStrategyStorage.connect(context.masterDeployer).addStrategy(strategyToAdd, poolToAdd),
             ).to.be.revertedWith("SDSS: INVALID_POOL_ADDRESS");
@@ -45,7 +51,10 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
 
         it("Should revert if already existent strategy", async () => {
             const strategyToAdd = Wallet.createRandom().address;
-            const poolToAdd = Wallet.createRandom().address;
+            const poolToAdd = {
+                poolAddress: Wallet.createRandom().address,
+                coinAmount: 2
+            };
             await context.stakeDaoStrategyStorage.connect(context.masterDeployer).addStrategy(strategyToAdd, poolToAdd);
 
             await expect(
@@ -55,10 +64,14 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
 
         it("Should add new strategy", async () => {
             const strategyToAdd = Wallet.createRandom().address;
-            const poolToAdd = Wallet.createRandom().address;
+            const poolToAdd = {
+                poolAddress: Wallet.createRandom().address,
+                coinAmount: 2
+            };
             await context.stakeDaoStrategyStorage.connect(context.masterDeployer).addStrategy(strategyToAdd, poolToAdd);
 
-            expect(await context.stakeDaoStrategyStorage.strategies(strategyToAdd)).to.equal(poolToAdd);
+            expect(await (await context.stakeDaoStrategyStorage.strategies(strategyToAdd)).poolAddress).to.equal(poolToAdd.poolAddress);
+            expect(await (await context.stakeDaoStrategyStorage.strategies(strategyToAdd)).coinAmount).to.equal(poolToAdd.coinAmount);
         });
     });
 
@@ -73,13 +86,17 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
 
         it("Should remove strategy", async () => {
             const strategyToAdd = Wallet.createRandom().address;
-            const poolToAdd = Wallet.createRandom().address;
-
+            const poolToAdd = {
+                poolAddress: Wallet.createRandom().address,
+                coinAmount: 2
+            };
             await context.stakeDaoStrategyStorage.connect(context.masterDeployer).addStrategy(strategyToAdd, poolToAdd);
-            expect(await context.stakeDaoStrategyStorage.strategies(strategyToAdd)).to.equal(poolToAdd);
+
+            expect(await (await context.stakeDaoStrategyStorage.strategies(strategyToAdd)).poolAddress).to.equal(poolToAdd.poolAddress);
+            expect(await (await context.stakeDaoStrategyStorage.strategies(strategyToAdd)).coinAmount).to.equal(poolToAdd.coinAmount);
 
             await context.stakeDaoStrategyStorage.connect(context.masterDeployer).removeStrategy(strategyToAdd);
-            expect(await context.stakeDaoStrategyStorage.strategies(strategyToAdd)).to.equal(ethers.constants.AddressZero);
+            expect(await (await context.stakeDaoStrategyStorage.strategies(strategyToAdd)).poolAddress).to.equal(ethers.constants.AddressZero);
         });
     });
 
