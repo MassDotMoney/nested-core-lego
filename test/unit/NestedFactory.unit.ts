@@ -236,21 +236,21 @@ describeWithoutFork("NestedFactory", () => {
 
     describe("setEntryFees()", () => {
         it("cant be invoked by a user", async () => {
-            await expect(
-                context.nestedFactory.connect(context.user1).setEntryFees(100),
-            ).to.be.revertedWith("OPD: NOT_OWNER");
+            await expect(context.nestedFactory.connect(context.user1).setEntryFees(100)).to.be.revertedWith(
+                "OPD: NOT_OWNER",
+            );
         });
 
         it("cant set zero", async () => {
-            await expect(
-                context.nestedFactory.connect(context.masterDeployer).setEntryFees(0),
-            ).to.be.revertedWith("NF: ZERO_FEES");
+            await expect(context.nestedFactory.connect(context.masterDeployer).setEntryFees(0)).to.be.revertedWith(
+                "NF: ZERO_FEES",
+            );
         });
 
         it("cant set more than 10,000", async () => {
-            await expect(
-                context.nestedFactory.connect(context.masterDeployer).setEntryFees(10001),
-            ).to.be.revertedWith("NF: FEES_OVERFLOW");
+            await expect(context.nestedFactory.connect(context.masterDeployer).setEntryFees(10001)).to.be.revertedWith(
+                "NF: FEES_OVERFLOW",
+            );
         });
 
         it("set value", async () => {
@@ -267,21 +267,21 @@ describeWithoutFork("NestedFactory", () => {
 
     describe("setExitFees()", () => {
         it("cant be invoked by a user", async () => {
-            await expect(
-                context.nestedFactory.connect(context.user1).setExitFees(100),
-            ).to.be.revertedWith("OPD: NOT_OWNER");
+            await expect(context.nestedFactory.connect(context.user1).setExitFees(100)).to.be.revertedWith(
+                "OPD: NOT_OWNER",
+            );
         });
 
         it("cant set zero", async () => {
-            await expect(
-                context.nestedFactory.connect(context.masterDeployer).setExitFees(0),
-            ).to.be.revertedWith("NF: ZERO_FEES");
+            await expect(context.nestedFactory.connect(context.masterDeployer).setExitFees(0)).to.be.revertedWith(
+                "NF: ZERO_FEES",
+            );
         });
 
         it("cant set more than 10,000", async () => {
-            await expect(
-                context.nestedFactory.connect(context.masterDeployer).setExitFees(10001),
-            ).to.be.revertedWith("NF: FEES_OVERFLOW");
+            await expect(context.nestedFactory.connect(context.masterDeployer).setExitFees(10001)).to.be.revertedWith(
+                "NF: FEES_OVERFLOW",
+            );
         });
 
         it("set value", async () => {

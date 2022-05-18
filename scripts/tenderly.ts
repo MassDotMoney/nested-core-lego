@@ -3,9 +3,10 @@ import hre from "hardhat";
 async function main(): Promise<void> {
     const contracts = [
         {
-            name: 'contract_name',
-            address: 'contract_address'
-        }]
+            name: "contract_name",
+            address: "contract_address",
+        },
+    ];
     await hre.tenderly.verify(...contracts);
 }
 
