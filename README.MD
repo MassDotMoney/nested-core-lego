@@ -1,6 +1,7 @@
 
-<div align="center"><img width="600" src="https://user-images.githubusercontent.com/22816913/169259395-a7386302-2d32-4159-bc53-11ce9da2ca87.png"></div>
+<div align="center"><img width="400" src="https://user-images.githubusercontent.com/32484870/169264834-35b0831e-c6fd-417e-9675-477424488c60.jpeg"></div>
 <br/>
+
 <div align="center"><a href="https://nested.fi" > https://nested.fi </a></div>
 
 # Introduction
