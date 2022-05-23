@@ -4,7 +4,7 @@ import { createFixtureLoader, describeWithoutFork, expect, provider } from "../s
 import { BigNumber, Wallet } from "ethers";
 import { appendDecimals, BIG_NUMBER_ZERO, getExpectedFees, toBytes32 } from "../helpers";
 import { ethers, network } from "hardhat";
-import { AddOperator, OwnerProxy, RemoveOperator, UpdateFees } from "../../typechain";
+import { AddOperator, DeployAddOperator, FlatOperator__factory, OwnerProxy, RemoveOperator, UpdateFees } from "../../typechain";
 import * as utils from "../../scripts/utils";
 
 let loadFixture: LoadFixtureFunction;
@@ -24,6 +24,9 @@ describeWithoutFork("OwnerProxy", () => {
     let scriptAddOperatorCalldata: string;
     let scriptRemoveOperator: RemoveOperator;
     let scriptRemoveOperatorCalldata: string;
+    let scriptDeployAddOperator: DeployAddOperator;
+    let scriptDeployAddOperatorCalldata: string;
+    let flatOperatorFactory: FlatOperator__factory;
 
     before("loader", async () => {
         loadFixture = createFixtureLoader(provider.getWallets(), provider);
@@ -78,6 +81,26 @@ describeWithoutFork("OwnerProxy", () => {
         scriptRemoveOperatorCalldata = await scriptRemoveOperator.interface.encodeFunctionData("removeOperator", [
             context.nestedFactory.address,
             toBytes32("flatTest")
+        ]);
+
+        // Deploy DeployAddOperator Script
+        const scriptDeployAddOperatorFactory = await ethers.getContractFactory("DeployAddOperator");
+        scriptDeployAddOperator = await scriptDeployAddOperatorFactory.connect(context.masterDeployer).deploy();
+        await scriptDeployAddOperator.deployed();
+
+        
+        // Create "deployAddOperator" calldata (to call OwnerProxy)
+        // We are deploying/adding the FlatOperator a second time
+        flatOperatorFactory = await ethers.getContractFactory("FlatOperator");
+        scriptDeployAddOperatorCalldata = await scriptDeployAddOperator.interface.encodeFunctionData("deployAddOperator", [
+            context.nestedFactory.address,
+            flatOperatorFactory.bytecode,
+            [
+                {
+                    name: toBytes32("flatTest"),
+                    selector: context.flatOperator.interface.getSighash("transfer(address,uint)"),
+                }
+            ],
         ]);
     });
 
@@ -257,6 +280,95 @@ describeWithoutFork("OwnerProxy", () => {
                 ]),
             )
                 .to.be.revertedWith("MOR: MISSING_OPERATOR: flatTest");
+        });
+    });
+
+    describe("Deploy and add operator", () => {
+        it("Cant add operator if nested factory address is zero", async () => {
+            let wrongScriptCalldata = await scriptDeployAddOperator.interface.encodeFunctionData("deployAddOperator", [
+                ethers.constants.AddressZero,
+                flatOperatorFactory.bytecode,
+                [
+                    {
+                        name: toBytes32("flatTest"),
+                        selector: context.flatOperator.interface.getSighash("transfer(address,uint)"),
+                    }
+                ],
+            ]);
+
+            await expect(
+                ownerProxy.connect(context.masterDeployer).execute(scriptDeployAddOperator.address, wrongScriptCalldata),
+            ).to.be.revertedWith("DAO-SCRIPT: INVALID_FACTORY_ADDRESS");
+        });
+
+        it("Cant add operator if bytecode is zero", async () => {
+            let wrongScriptCalldata = await scriptDeployAddOperator.interface.encodeFunctionData("deployAddOperator", [
+                context.nestedFactory.address,
+                [],
+                [
+                    {
+                        name: toBytes32("flatTest"),
+                        selector: context.flatOperator.interface.getSighash("transfer(address,uint)"),
+                    }
+                ],
+            ]);
+
+            await expect(
+                ownerProxy.connect(context.masterDeployer).execute(scriptDeployAddOperator.address, wrongScriptCalldata),
+            ).to.be.revertedWith("DAO-SCRIPT: BYTECODE_ZERO");
+        });
+
+        it("Cant add operator if bad bytecode", async () => {
+            const failedDeployFactory = await ethers.getContractFactory("FailedDeploy");
+            let wrongScriptCalldata = await scriptDeployAddOperator.interface.encodeFunctionData("deployAddOperator", [
+                context.nestedFactory.address,
+                failedDeployFactory.bytecode,
+                [
+                    {
+                        name: toBytes32("flatTest"),
+                        selector: context.flatOperator.interface.getSighash("transfer(address,uint)"),
+                    }
+                ],
+            ]);
+
+            await expect(
+                ownerProxy.connect(context.masterDeployer).execute(scriptDeployAddOperator.address, wrongScriptCalldata),
+            ).to.be.revertedWith("DAO-SCRIPT: FAILED_DEPLOY");
+        });
+
+        it("Can add operator and call operator", async () => {
+            await ownerProxy
+                .connect(context.masterDeployer)
+                .execute(scriptDeployAddOperator.address, scriptDeployAddOperatorCalldata);
+
+            // The user add 10 UNI to the portfolio
+            const uniBought = appendDecimals(10);
+            const totalToBought = uniBought;
+            const expectedFee = getExpectedFees(totalToBought);
+            const totalToSpend = totalToBought.add(expectedFee);
+
+            // Add 10 UNI with new FlatOperator
+            let orders: Order[] = [
+                {
+                    operator: toBytes32("flatTest"),
+                    token: context.mockUNI.address,
+                    callData: utils.abiCoder.encode(["address", "uint256"], [context.mockUNI.address, totalToBought]),
+                },
+            ];
+
+            // User1 creates the portfolio/NFT and emit event NftCreated
+            await expect(
+                context.nestedFactory.connect(context.user1).create(0, [
+                    {
+                        inputToken: context.mockUNI.address,
+                        amount: totalToSpend,
+                        orders,
+                        fromReserve: false,
+                    },
+                ]),
+            )
+                .to.emit(context.nestedFactory, "NftCreated")
+                .withArgs(1, 0);
         });
     });
 });
