@@ -27,7 +27,7 @@ describeWithoutFork("FlatOperator", () => {
         expect(context.flatOperator.address).to.be.a.string;
     });
 
-    it("Cant use amount zero", async () => {
+    it("Can't use amount zero", async () => {
         // The user add 10 UNI to the portfolio
         const totalToBought = appendDecimals(10);
         const expectedFee = getExpectedFees(totalToBought);
@@ -54,7 +54,7 @@ describeWithoutFork("FlatOperator", () => {
         ).to.revertedWith("NF: OPERATOR_CALL_FAILED");
     });
 
-    it("Cant use with different input", async () => {
+    it("Can't use with different input", async () => {
         // The user add 10 UNI to the portfolio
         const totalToBought = appendDecimals(10);
         const expectedFee = getExpectedFees(totalToBought);

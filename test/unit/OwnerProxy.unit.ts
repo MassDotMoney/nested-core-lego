@@ -105,13 +105,13 @@ describeWithoutFork("OwnerProxy", () => {
     });
 
     describe("Common", () => {
-        it("Cant update fees if not owner", async () => {
+        it("Can't update fees if not owner", async () => {
             await expect(
                 ownerProxy.connect(context.user1).execute(scriptUpdateFees.address, scriptUpdateFeesCalldata),
             ).to.be.revertedWith("Ownable: caller is not the owner");
         });
 
-        it("Cant update fees if empty target", async () => {
+        it("Can't update fees if empty target", async () => {
             await expect(
                 ownerProxy
                     .connect(context.masterDeployer)
@@ -121,7 +121,7 @@ describeWithoutFork("OwnerProxy", () => {
     });
 
     describe("Update fees", () => {
-        it("Cant update fees if entry fees are zero", async () => {
+        it("Can't update fees if entry fees are zero", async () => {
             // set fees to zero is not allowed
             let wrongScriptCalldata = await scriptUpdateFees.interface.encodeFunctionData("updateFees", [
                 context.nestedFactory.address,
@@ -134,7 +134,7 @@ describeWithoutFork("OwnerProxy", () => {
             ).to.be.revertedWith("NF: ZERO_FEES");
         });
 
-        it("Cant update fees if exit fees are zero", async () => {
+        it("Can't update fees if exit fees are zero", async () => {
             // set fees to zero is not allowed
             let wrongScriptCalldata = await scriptUpdateFees.interface.encodeFunctionData("updateFees", [
                 context.nestedFactory.address,
@@ -147,7 +147,7 @@ describeWithoutFork("OwnerProxy", () => {
             ).to.be.revertedWith("NF: ZERO_FEES");
         });
 
-        it("Cant update fees by calling script", async () => {
+        it("Can't update fees by calling script", async () => {
             await expect(
                 scriptUpdateFees.connect(context.masterDeployer).updateFees(context.nestedFactory.address, 30, 80),
             ).to.be.revertedWith("OPD: NOT_OWNER");
@@ -164,7 +164,7 @@ describeWithoutFork("OwnerProxy", () => {
     });
 
     describe("Add operator", () => {
-        it("Cant add operator if nested factory address is zero", async () => {
+        it("Can't add operator if nested factory address is zero", async () => {
             let wrongScriptCalldata = await scriptAddOperator.interface.encodeFunctionData("addOperator", [
                 ethers.constants.AddressZero,
                 {
@@ -179,7 +179,7 @@ describeWithoutFork("OwnerProxy", () => {
             ).to.be.revertedWith("AO-SCRIPT: INVALID_FACTORY_ADDRESS");
         });
 
-        it("Cant add operator if operator address is zero", async () => {
+        it("Can't add operator if operator address is zero", async () => {
             let wrongScriptCalldata = await scriptAddOperator.interface.encodeFunctionData("addOperator", [
                 context.nestedFactory.address,
                 {
@@ -237,7 +237,7 @@ describeWithoutFork("OwnerProxy", () => {
                 .execute(scriptAddOperator.address, scriptAddOperatorCalldata);
         });
         
-        it("Cant remove operator if nested factory address is zero", async () => {
+        it("Can't remove operator if nested factory address is zero", async () => {
             let wrongScriptCalldata = await scriptRemoveOperator.interface.encodeFunctionData("removeOperator", [
                 ethers.constants.AddressZero,
                 toBytes32("flatTest"),
@@ -284,7 +284,7 @@ describeWithoutFork("OwnerProxy", () => {
     });
 
     describe("Deploy and add operator", () => {
-        it("Cant add operator if nested factory address is zero", async () => {
+        it("Can't add operator if nested factory address is zero", async () => {
             let wrongScriptCalldata = await scriptDeployAddOperator.interface.encodeFunctionData("deployAddOperator", [
                 ethers.constants.AddressZero,
                 flatOperatorFactory.bytecode,
@@ -301,7 +301,7 @@ describeWithoutFork("OwnerProxy", () => {
             ).to.be.revertedWith("DAO-SCRIPT: INVALID_FACTORY_ADDRESS");
         });
 
-        it("Cant add operator if bytecode is zero", async () => {
+        it("Can't add operator if bytecode is zero", async () => {
             let wrongScriptCalldata = await scriptDeployAddOperator.interface.encodeFunctionData("deployAddOperator", [
                 context.nestedFactory.address,
                 [],
@@ -318,7 +318,7 @@ describeWithoutFork("OwnerProxy", () => {
             ).to.be.revertedWith("DAO-SCRIPT: BYTECODE_ZERO");
         });
 
-        it("Cant add operator if bad bytecode", async () => {
+        it("Can't add operator if bad bytecode", async () => {
             const failedDeployFactory = await ethers.getContractFactory("FailedDeploy");
             let wrongScriptCalldata = await scriptDeployAddOperator.interface.encodeFunctionData("deployAddOperator", [
                 context.nestedFactory.address,
