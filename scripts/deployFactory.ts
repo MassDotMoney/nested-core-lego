@@ -44,13 +44,14 @@ async function main(): Promise<void> {
     await nestedFactory.deployed();
 
     console.log("NestedFactory deployed : ", nestedFactory.address);
-    
+
     // verify Tenderly
     const contracts = [
         {
-            name: 'NestedFactory',
-            address: nestedFactory.address
-        }]
+            name: "NestedFactory",
+            address: nestedFactory.address,
+        },
+    ];
     await hre.tenderly.verify(...contracts);
 
     // verify etherscan
@@ -60,15 +61,17 @@ async function main(): Promise<void> {
 
         await hre.run("verify:verify", {
             address: nestedFactory.address,
-            constructorArguments: [nestedAsset.address,
+            constructorArguments: [
+                nestedAsset.address,
                 nestedRecords.address,
                 nestedReserve.address,
                 feeSplitter.address,
                 WETH,
                 operatorResolver.address,
-                withdrawer.address,]
+                withdrawer.address,
+            ],
         });
-    } 
+    }
 }
 
 main()

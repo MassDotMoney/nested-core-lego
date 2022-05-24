@@ -22,7 +22,7 @@ async function main(): Promise<void> {
     // Deploy FlatOperator
     const flatOperator = await flatOperatorFactory.deploy();
     await flatOperator.deployed();
-    
+
     if (etherscan) {
         // wait 1 minute (recommended)
         await delay(60000);

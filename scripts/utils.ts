@@ -1,5 +1,7 @@
 import {
     BeefyVaultOperator,
+    BeefyZapBiswapLPVaultOperator,
+    BeefyZapUniswapLPVaultOperator,
     FlatOperator,
     NestedFactory,
     OperatorResolver,
@@ -164,6 +166,38 @@ export function registerBeefyWithdraw(operator: BeefyVaultOperator): Op {
     };
 }
 
+export function registerBeefyZapBiswapLPDeposit(operator: BeefyZapBiswapLPVaultOperator): Op {
+    return {
+        name: "BeefyZapBiswapLPDeposit",
+        contract: operator.address,
+        signature: "function deposit(address vault, address token, uint256 amount, uint256 minVaultAmount)",
+    };
+}
+
+export function registerBeefyZapBiswapLPWithdraw(operator: BeefyZapBiswapLPVaultOperator): Op {
+    return {
+        name: "BeefyZapBiswapLPWithdraw",
+        contract: operator.address,
+        signature: "function withdraw(address vault, uint256 amount, address token, uint256 minTokenAmount)",
+    };
+}
+
+export function registerBeefyZapUniswapLPDeposit(operator: BeefyZapUniswapLPVaultOperator): Op {
+    return {
+        name: "BeefyZapUniswapLPDeposit",
+        contract: operator.address,
+        signature: "function deposit(address vault, address token, uint256 amount, uint256 minVaultAmount)",
+    };
+}
+
+export function registerBeefyZapUniswapLPWithdraw(operator: BeefyZapBiswapLPVaultOperator): Op {
+    return {
+        name: "BeefyZapUniswapLPWithdraw",
+        contract: operator.address,
+        signature: "function withdraw(address vault, uint256 amount, address token, uint256 minTokenAmount)",
+    };
+}
+
 export function toBytes32(key: string) {
     return w3utils.rightPad(w3utils.asciiToHex(key), 64);
 }
@@ -272,6 +306,78 @@ export function getBeefyBnbVenusWithdrawOrder(context: FactoryAndOperatorsForkin
         buildOrderStruct(context.beefyVaultWithdrawOperatorNameBytes32, context.beefyVenusBNBVaultAddress, [
             ["address", context.beefyVenusBNBVaultAddress],
             ["uint256", mooToWithdraw],
+        ]),
+    ];
+}
+
+// Create a Deposit order in Beefy
+export function getBeefyUniswapDepositOrder(
+    context: FactoryAndOperatorsForkingBSCFixture,
+    depositTokenAddress: string,
+    tokenToDeposit: BigNumber,
+    vaultAddress: string,
+    minOutputToken?: BigNumber
+) {
+    return [
+        buildOrderStruct(context.beefyZapUniswapLPVaultDepositOperatorNameBytes32, vaultAddress, [
+            ["address", vaultAddress],
+            ["address", depositTokenAddress],
+            ["uint256", tokenToDeposit],
+            ["uint256", minOutputToken != null ? minOutputToken : 0], // 100% slippage if the provided slippage is null
+        ]),
+    ];
+}
+
+// Create a Withdraw order in Beefy
+export function getBeefyUniswapWithdrawOrder(
+    context: FactoryAndOperatorsForkingBSCFixture,
+    withdrawTokenAddress: string,
+    mooToWithdraw: BigNumber,
+    vaultAddress: string,
+    minOutputToken?: BigNumber
+) {
+    return [
+        buildOrderStruct(context.beefyZapUniswapLPVaultWithdrawOperatorNameBytes32, vaultAddress, [
+            ["address", vaultAddress],
+            ["uint256", mooToWithdraw],
+            ["address", withdrawTokenAddress],
+            ["uint256", minOutputToken != null ? minOutputToken : 0], // 100% slippage if the provided slippage is null
+        ]),
+    ];
+}
+
+// Create a Deposit order in Beefy (Biswap USDT-BNB on Bsc)
+export function getBeefyBiswapDepositOrder(
+    context: FactoryAndOperatorsForkingBSCFixture,
+    depositTokenAddress: string,
+    tokenToDeposit: BigNumber,
+    vaultAddress: string,
+    minOutputToken?: BigNumber
+) {
+    return [
+        buildOrderStruct(context.beefyZapBiswapLPVaultDepositOperatorNameBytes32, vaultAddress, [
+            ["address", vaultAddress],
+            ["address", depositTokenAddress],
+            ["uint256", tokenToDeposit],
+            ["uint256", minOutputToken != null ? minOutputToken : 0], // 100% slippage if the provided slippage is null
+        ]),
+    ];
+}
+
+// Create a Withdraw order in Beefy (Biswap USDT-BNB on Bsc)
+export function getBeefyBiswapWithdrawOrder(
+    context: FactoryAndOperatorsForkingBSCFixture,
+    withdrawTokenAddress: string,
+    mooToWithdraw: BigNumber,
+    vaultAddress: string,
+    minOutputToken?: BigNumber
+) {
+    return [
+        buildOrderStruct(context.beefyZapBiswapLPVaultWithdrawOperatorNameBytes32, vaultAddress, [
+            ["address", vaultAddress],
+            ["uint256", mooToWithdraw],
+            ["address", withdrawTokenAddress],
+            ["uint256", minOutputToken != null ? minOutputToken : 0], // 100% slippage if the provided slippage is null
         ]),
     ];
 }

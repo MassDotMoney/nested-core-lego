@@ -38,7 +38,7 @@ describeOnBscFork("BeefyVaultOperator", () => {
             const tokenToAdd = ethers.constants.AddressZero;
             await expect(
                 context.beefyVaultStorage.connect(context.masterDeployer).addVault(vaultToAdd, tokenToAdd),
-            ).to.be.revertedWith("BVS: INVALID_TOKEN_ADDRESS");
+            ).to.be.revertedWith("BVS: INVALID_UNDERLYING_ADDRESS");
         });
 
         it("Should revert if already existent vault", async () => {

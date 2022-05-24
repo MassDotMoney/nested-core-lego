@@ -15,24 +15,25 @@ async function main(): Promise<void> {
     const paraswapOperatorFactory = await ethers.getContractFactory("ParaswapOperator");
     const operatorResolverFactory = await ethers.getContractFactory("OperatorResolver");
     const nestedFactoryFactory = await ethers.getContractFactory("NestedFactory");
-    
+
     const operatorResolver = await operatorResolverFactory.attach(context[chainId].OperatorResolver);
     const nestedFactory = await nestedFactoryFactory.attach(context[chainId].NestedFactory);
 
     const tokenTransferProxy = "0x216B4B4Ba9F3e719726886d34a177484278Bfcae";
     const augustusSwapper = "0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57";
- 
+
     // Deploy ParaswapOperator
     const paraswapOperator = await paraswapOperatorFactory.deploy(tokenTransferProxy, augustusSwapper);
     await paraswapOperator.deployed();
-    console.log
+    console.log("ParaswapOperator deployed : ", paraswapOperator.address);
 
     // Verify on tenderly
     const contracts = [
         {
-            name: 'ParaswapOperator',
-            address: paraswapOperator.address
-        }]
+            name: "ParaswapOperator",
+            address: paraswapOperator.address,
+        },
+    ];
     await hre.tenderly.verify(...contracts);
 
     if (etherscan) {
@@ -40,7 +41,7 @@ async function main(): Promise<void> {
         await delay(60000);
         await hre.run("verify:verify", {
             address: paraswapOperator.address,
-            constructorArguments: [tokenTransferProxy, augustusSwapper]
+            constructorArguments: [tokenTransferProxy, augustusSwapper],
         });
     }
 
