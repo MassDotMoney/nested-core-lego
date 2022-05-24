@@ -5,7 +5,7 @@ import "../../interfaces/INestedFactory.sol";
 import "../../interfaces/IOperatorResolver.sol";
 import "../../abstracts/MixinOperatorResolver.sol";
 
-contract DeployAddOperator {
+contract DeployAddOperators {
     struct tupleOperator {
         bytes32 name;
         bytes4 selector;
@@ -16,12 +16,15 @@ contract DeployAddOperator {
     /// @param nestedFactory The NestedFactory address
     /// @param bytecode Operator implementation bytecode
     /// @param operators Array of tuples => bytes32/bytes4 (name and selector)
-    function deployAddOperator(
+    function deployAddOperators(
         address nestedFactory,
         bytes memory bytecode,
         tupleOperator[] memory operators
     ) external {
-        require(nestedFactory != address(0), "DAO-SCRIPT: INVALID_FACTORY_ADDRESS");
+        uint256 operatorLength = operators.length;
+
+        require(operatorLength != 0, "DAO-SCRIPT: INVALID_OPERATOR_LEN");
+        require(nestedFactory != address(0), "DAO-SCRIPT: INVALID_ADDRESS");
         require(bytecode.length != 0, "DAO-SCRIPT: BYTECODE_ZERO");
 
         address deployedAddress;
@@ -33,17 +36,12 @@ contract DeployAddOperator {
         IOperatorResolver resolver = IOperatorResolver(MixinOperatorResolver(nestedFactory).resolver());
 
         // Init arrays
-        uint256 operatorLength = operators.length;
         bytes32[] memory names = new bytes32[](operatorLength);
         IOperatorResolver.Operator[] memory operatorsToImport = new IOperatorResolver.Operator[](operatorLength);
 
         for (uint256 i; i < operatorLength; i++) {
-            IOperatorResolver.Operator memory operator = IOperatorResolver.Operator(
-                deployedAddress,
-                operators[i].selector
-            );
             names[i] = operators[i].name;
-            operatorsToImport[i] = operator;
+            operatorsToImport[i] = IOperatorResolver.Operator(deployedAddress, operators[i].selector);
         }
 
         // Only the NestedFactory as destination

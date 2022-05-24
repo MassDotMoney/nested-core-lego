@@ -16,7 +16,7 @@ contract AddOperator {
         bytes32 name
     ) external {
         require(nestedFactory != address(0), "AO-SCRIPT: INVALID_FACTORY_ADDRESS");
-        require(operator.implementation != address(0), "AO-SCRIPT: INVALID_OPERATOR_ADDRESS");
+        require(operator.implementation != address(0), "AO-SCRIPT: INVALID_IMPL_ADDRESS");
 
         IOperatorResolver resolver = IOperatorResolver(MixinOperatorResolver(nestedFactory).resolver());
 

@@ -4,7 +4,7 @@ import { createFixtureLoader, describeWithoutFork, expect, provider } from "../s
 import { BigNumber, Wallet } from "ethers";
 import { appendDecimals, BIG_NUMBER_ZERO, getExpectedFees, toBytes32 } from "../helpers";
 import { ethers, network } from "hardhat";
-import { AddOperator, DeployAddOperator, FlatOperator__factory, OwnerProxy, RemoveOperator, UpdateFees } from "../../typechain";
+import { AddOperator, DeployAddOperators, FlatOperator__factory, OwnerProxy, RemoveOperator, UpdateFees } from "../../typechain";
 import * as utils from "../../scripts/utils";
 
 let loadFixture: LoadFixtureFunction;
@@ -24,8 +24,8 @@ describeWithoutFork("OwnerProxy", () => {
     let scriptAddOperatorCalldata: string;
     let scriptRemoveOperator: RemoveOperator;
     let scriptRemoveOperatorCalldata: string;
-    let scriptDeployAddOperator: DeployAddOperator;
-    let scriptDeployAddOperatorCalldata: string;
+    let scriptDeployAddOperators: DeployAddOperators;
+    let scriptDeployAddOperatorsCalldata: string;
     let flatOperatorFactory: FlatOperator__factory;
 
     before("loader", async () => {
@@ -83,16 +83,16 @@ describeWithoutFork("OwnerProxy", () => {
             toBytes32("flatTest")
         ]);
 
-        // Deploy DeployAddOperator Script
-        const scriptDeployAddOperatorFactory = await ethers.getContractFactory("DeployAddOperator");
-        scriptDeployAddOperator = await scriptDeployAddOperatorFactory.connect(context.masterDeployer).deploy();
-        await scriptDeployAddOperator.deployed();
+        // Deploy DeployAddOperators Script
+        const scriptDeployAddOperatorsFactory = await ethers.getContractFactory("DeployAddOperators");
+        scriptDeployAddOperators = await scriptDeployAddOperatorsFactory.connect(context.masterDeployer).deploy();
+        await scriptDeployAddOperators.deployed();
 
         
-        // Create "deployAddOperator" calldata (to call OwnerProxy)
+        // Create "deployAddOperators" calldata (to call OwnerProxy)
         // We are deploying/adding the FlatOperator a second time
         flatOperatorFactory = await ethers.getContractFactory("FlatOperator");
-        scriptDeployAddOperatorCalldata = await scriptDeployAddOperator.interface.encodeFunctionData("deployAddOperator", [
+        scriptDeployAddOperatorsCalldata = await scriptDeployAddOperators.interface.encodeFunctionData("deployAddOperators", [
             context.nestedFactory.address,
             flatOperatorFactory.bytecode,
             [
@@ -191,7 +191,7 @@ describeWithoutFork("OwnerProxy", () => {
 
             await expect(
                 ownerProxy.connect(context.masterDeployer).execute(scriptAddOperator.address, wrongScriptCalldata),
-            ).to.be.revertedWith("AO-SCRIPT: INVALID_OPERATOR_ADDRESS");
+            ).to.be.revertedWith("AO-SCRIPT: INVALID_IMPL_ADDRESS");
         });
 
         it("Can add operator and call operator", async () => {
@@ -285,7 +285,7 @@ describeWithoutFork("OwnerProxy", () => {
 
     describe("Deploy and add operator", () => {
         it("Can't add operator if nested factory address is zero", async () => {
-            let wrongScriptCalldata = await scriptDeployAddOperator.interface.encodeFunctionData("deployAddOperator", [
+            let wrongScriptCalldata = await scriptDeployAddOperators.interface.encodeFunctionData("deployAddOperators", [
                 ethers.constants.AddressZero,
                 flatOperatorFactory.bytecode,
                 [
@@ -297,12 +297,12 @@ describeWithoutFork("OwnerProxy", () => {
             ]);
 
             await expect(
-                ownerProxy.connect(context.masterDeployer).execute(scriptDeployAddOperator.address, wrongScriptCalldata),
-            ).to.be.revertedWith("DAO-SCRIPT: INVALID_FACTORY_ADDRESS");
+                ownerProxy.connect(context.masterDeployer).execute(scriptDeployAddOperators.address, wrongScriptCalldata),
+            ).to.be.revertedWith("DAO-SCRIPT: INVALID_ADDRESS");
         });
 
         it("Can't add operator if bytecode is zero", async () => {
-            let wrongScriptCalldata = await scriptDeployAddOperator.interface.encodeFunctionData("deployAddOperator", [
+            let wrongScriptCalldata = await scriptDeployAddOperators.interface.encodeFunctionData("deployAddOperators", [
                 context.nestedFactory.address,
                 [],
                 [
@@ -314,13 +314,13 @@ describeWithoutFork("OwnerProxy", () => {
             ]);
 
             await expect(
-                ownerProxy.connect(context.masterDeployer).execute(scriptDeployAddOperator.address, wrongScriptCalldata),
+                ownerProxy.connect(context.masterDeployer).execute(scriptDeployAddOperators.address, wrongScriptCalldata),
             ).to.be.revertedWith("DAO-SCRIPT: BYTECODE_ZERO");
         });
 
         it("Can't add operator if bad bytecode", async () => {
             const failedDeployFactory = await ethers.getContractFactory("FailedDeploy");
-            let wrongScriptCalldata = await scriptDeployAddOperator.interface.encodeFunctionData("deployAddOperator", [
+            let wrongScriptCalldata = await scriptDeployAddOperators.interface.encodeFunctionData("deployAddOperators", [
                 context.nestedFactory.address,
                 failedDeployFactory.bytecode,
                 [
@@ -332,14 +332,14 @@ describeWithoutFork("OwnerProxy", () => {
             ]);
 
             await expect(
-                ownerProxy.connect(context.masterDeployer).execute(scriptDeployAddOperator.address, wrongScriptCalldata),
+                ownerProxy.connect(context.masterDeployer).execute(scriptDeployAddOperators.address, wrongScriptCalldata),
             ).to.be.revertedWith("DAO-SCRIPT: FAILED_DEPLOY");
         });
 
         it("Can add operator and call operator", async () => {
             await ownerProxy
                 .connect(context.masterDeployer)
-                .execute(scriptDeployAddOperator.address, scriptDeployAddOperatorCalldata);
+                .execute(scriptDeployAddOperators.address, scriptDeployAddOperatorsCalldata);
 
             // The user add 10 UNI to the portfolio
             const uniBought = appendDecimals(10);
