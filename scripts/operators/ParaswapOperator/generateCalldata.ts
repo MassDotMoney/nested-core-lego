@@ -11,7 +11,7 @@ async function main(): Promise<void> {
     const scriptDeployAddOperatorsFactory = await ethers.getContractFactory("DeployAddOperators");
 
     // Addresses
-    const nestedFactoryAddr = context[chainId].NestedFactory;
+    const nestedFactoryAddr = context[chainId].NestedFactoryProxy;
     const tokenTransferProxy = "0x216B4B4Ba9F3e719726886d34a177484278Bfcae";
     const augustusSwapper = "0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57";
 
@@ -28,7 +28,7 @@ async function main(): Promise<void> {
         [
             {
                 name: toBytes32("Paraswap"),
-                selector: paraswapOperatorFactory.interface.getSighash("performSwap(address, address, bytes)"),
+                selector: paraswapOperatorFactory.interface.getSighash("performSwap(address,address,bytes)"),
             },
         ],
     ]);
