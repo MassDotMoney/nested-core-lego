@@ -1,9 +1,4 @@
-import hre, { ethers, network } from "hardhat";
-import addresses from "../../../addresses.json";
-import { abiCoder, toBytes32 } from "../../utils";
-
-const chainId: string = network.config.chainId.toString();
-const context = JSON.parse(JSON.stringify(addresses));
+import hre from "hardhat";
 
 async function main(): Promise<void> {
     // Factories

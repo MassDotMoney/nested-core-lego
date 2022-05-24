@@ -9,6 +9,7 @@ async function main(): Promise<void> {
     // Factories
     const paraswapOperatorFactory = await ethers.getContractFactory("ParaswapOperator");
     const scriptDeployAddOperatorsFactory = await ethers.getContractFactory("DeployAddOperators");
+    const ownerProxyFactory = await ethers.getContractFactory("OwnerProxy");
 
     // Addresses
     const nestedFactoryAddr = context[chainId].NestedFactoryProxy;
@@ -33,7 +34,8 @@ async function main(): Promise<void> {
         ],
     ]);
 
-    console.log("Calldata for OwnerProxy => ", calldata);
+    const finalCalldata = ownerProxyFactory.interface.encodeFunctionData("execute", [context[chainId].scripts.DeployAddOperators, calldata]);
+    console.log("Calldata for OwnerProxy => ", finalCalldata);
 }
 
 main()
