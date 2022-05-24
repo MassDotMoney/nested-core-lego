@@ -42,6 +42,9 @@
         "FlatOperator": "0x6bDc58D3287176b40ad2243eC0CF35f33F2119DA",
         "Timelock": "0x1734A5eAB695d9B7C678adaa9a479DBB88897660",
         "NestedAssetBatcher": "0xae5fAB55C6AA6Bba24eef3fb98c48a0B616b163d",
+        "scripts": {
+            "DeployAddOperators": "0xd87c56d1698E52F6e3363b9ffD09b0AfD46DDA8E"
+        },
         "config": {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xDEF1ABE32c034e558Cdd535791643C58a13aCC10",
