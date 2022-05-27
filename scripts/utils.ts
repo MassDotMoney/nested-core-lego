@@ -6,9 +6,10 @@ import {
     NestedFactory,
     OperatorResolver,
     ParaswapOperator,
+    YearnCurveVaultOperator,
     ZeroExOperator,
 } from "../typechain";
-import { FactoryAndOperatorsFixture, FactoryAndOperatorsForkingBSCFixture } from "../test/shared/fixtures";
+import { FactoryAndOperatorsFixture, FactoryAndOperatorsForkingBSCFixture, FactoryAndOperatorsForkingETHFixture } from "../test/shared/fixtures";
 import * as ethers from "ethers";
 
 import { BigNumber, BigNumberish, BytesLike } from "ethers";
@@ -47,14 +48,14 @@ export const dummyRouterSelector = "0x76ab33a6";
 
 export const abiCoder = new ethers.utils.AbiCoder();
 
-export function buildOrderStruct(operator: string, outToken: string, data: [RawDataType, any][]): OrderStruct {
+export function buildOrderStruct(operator: string, token: string, data: [RawDataType, any][]): OrderStruct {
     const abiCoder = new ethers.utils.AbiCoder();
     const coded = abiCoder.encode([...data.map(x => x[0])], [...data.map(x => x[1])]);
     return {
         // specify which operator?
         operator: operator,
-        // specify the token that this order will output
-        token: outToken,
+        // specify the token that this order will retrieve from Reserve or Wallet
+        token: token,
         // encode the given data
         callData: coded, // remove the leading 32 bytes (one address) and the leading 0x
         // callData,
@@ -147,6 +148,46 @@ export function registerFlat(operator: FlatOperator): Op {
         name: "Flat",
         contract: operator.address,
         signature: "function transfer(address token, uint256 amount)",
+    };
+}
+
+export function registerYearnDeposit(operator: YearnCurveVaultOperator): Op {
+    return {
+        name: "YearnVaultDepositOperator",
+        contract: operator.address,
+        signature: "function deposit(address vault, address token, uint256 amount, uint256 minVaultAmount)",
+    };
+}
+
+export function registerYearnDepositETH(operator: YearnCurveVaultOperator): Op {
+    return {
+        name: "YearnVaultDepositETHOperator",
+        contract: operator.address,
+        signature: "function depositETH(address vault, uint256 amount, uint256 minVaultAmount)",
+    };
+}
+
+export function registerYearnWithdraw128(operator: YearnCurveVaultOperator): Op {
+    return {
+        name: "YearnVaultWithdraw128Operator",
+        contract: operator.address,
+        signature: "function withdraw128(address vault, uint256 amount, address outputToken, uint256 minAmountOut)",
+    };
+}
+
+export function registerYearnWithdraw256(operator: YearnCurveVaultOperator): Op {
+    return {
+        name: "YearnVaultWithdraw256Operator",
+        contract: operator.address,
+        signature: "function withdraw256(address vault, uint256 amount, address outputToken, uint256 minAmountOut)",
+    };
+}
+
+export function registerYearnWithdrawETH(operator: YearnCurveVaultOperator): Op {
+    return {
+        name: "YearnVaultWithdrawETHOperator",
+        contract: operator.address,
+        signature: "function withdrawETH(address vault, uint256 amount, uint256 minAmountOut)",
     };
 }
 
@@ -285,6 +326,64 @@ export function getUniAndKncWithETHOrders(
                     ),
                 ]),
             ],
+        ]),
+    ];
+}
+
+// Create a Deposit order in yearn
+export function getYearnCurveDepositOrder(context: FactoryAndOperatorsForkingETHFixture, yearnVaultAddress: string, tokenToDeposit: string, amountToDeposit: BigNumber, minVaultAmount?: BigNumber) {
+    return [
+        buildOrderStruct(context.yearnVaultDepositOperatorNameBytes32, yearnVaultAddress, [
+            ["address", yearnVaultAddress],
+            ["address", tokenToDeposit],
+            ["uint256", amountToDeposit],
+            ["uint256", minVaultAmount ? minVaultAmount : 0], // 100% slippage
+        ]),
+    ];
+}
+
+// Create a Deposit order in yearn
+export function getYearnCurveDepositETHOrder(context: FactoryAndOperatorsForkingETHFixture, yearnVaultAddress: string, amountToDeposit: BigNumber, minVaultAmount?: BigNumber) {
+    return [
+        buildOrderStruct(context.yearnVaultDepositETHOperatorNameBytes32, yearnVaultAddress, [
+            ["address", yearnVaultAddress],
+            ["uint256", amountToDeposit],
+            ["uint256", minVaultAmount ? minVaultAmount : 0], // 100% slippage
+        ]),
+    ];
+}
+
+// Create a Withdraw order in yearn
+export function getYearnCurveWithdraw256Order(context: FactoryAndOperatorsForkingETHFixture, yearnVaultAddress: string, amountToWithdraw: BigNumber, outputToken: string, minAmountOut?: BigNumber) {
+    return [
+        buildOrderStruct(context.yearnVaultWithdraw256OperatorNameBytes32, yearnVaultAddress, [
+            ["address", yearnVaultAddress],
+            ["uint256", amountToWithdraw],
+            ["address", outputToken],
+            ["uint256", minAmountOut ? minAmountOut : 0], // 100% slippage
+        ]),
+    ];
+}
+
+// Create a Withdraw order in yearn
+export function getYearnCurveWithdraw128Order(context: FactoryAndOperatorsForkingETHFixture, yearnVaultAddress: string, amountToWithdraw: BigNumber, outputToken: string, minAmountOut?: BigNumber) {
+    return [
+        buildOrderStruct(context.yearnVaultWithdraw128OperatorNameBytes32, yearnVaultAddress, [
+            ["address", yearnVaultAddress],
+            ["uint256", amountToWithdraw],
+            ["address", outputToken],
+            ["uint256", minAmountOut ? minAmountOut : 0], // 100% slippage
+        ]),
+    ];
+}
+
+// Create a WithdrawETH order in yearn
+export function getYearnCurveWithdrawETHOrder(context: FactoryAndOperatorsForkingETHFixture, yearnVaultAddress: string, amountToWithdraw: BigNumber, minAmountOut?: BigNumber) {
+    return [
+        buildOrderStruct(context.yearnVaultWithdrawETHOperatorNameBytes32, yearnVaultAddress, [
+            ["address", yearnVaultAddress],
+            ["uint256", amountToWithdraw],
+            ["uint256", minAmountOut ? minAmountOut : 0], // 100% slippage
         ]),
     ];
 }
