@@ -12,5 +12,7 @@ export const expect = chai.expect;
 export const assert = chai.assert;
 
 export const describeOnBscFork =
-    !config.networks.hardhat.forking.enabled && process.env.FORK_CHAINID === "56" ? describe.skip : describe;
+    config.networks.hardhat.forking.enabled && process.env.FORK_CHAINID === "56" ? describe : describe.skip;
+export const describeOnEthFork =
+    config.networks.hardhat.forking.enabled && process.env.FORK_CHAINID === "1" ? describe : describe.skip;
 export const describeWithoutFork = config.networks.hardhat.forking.enabled ? describe.skip : describe;

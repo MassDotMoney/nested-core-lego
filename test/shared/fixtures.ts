@@ -1,6 +1,7 @@
 import { Fixture } from "ethereum-waffle";
 import { ethers, network } from "hardhat";
 import { ActorFixture } from "./actors";
+import { addEurtBalanceToETH } from "./impersonnate"
 
 import {
     AugustusSwapper,
@@ -21,11 +22,13 @@ import {
     TestableOperatorCaller,
     WETH9,
     Withdrawer,
+    YearnCurveVaultOperator,
+    YearnVaultStorage,
     ZeroExOperator,
 } from "../../typechain";
 import { BigNumber, Wallet } from "ethers";
 import { Interface } from "ethers/lib/utils";
-import { appendDecimals, toBytes32 } from "../helpers";
+import { append6Decimals, appendDecimals, getExpectedFees, setAllowance, toBytes32, UINT256_MAX } from "../helpers";
 import {
     importOperatorsWithSigner,
     registerFlat,
@@ -37,10 +40,17 @@ import {
     registerBeefyZapBiswapLPWithdraw,
     registerBeefyZapUniswapLPDeposit,
     registerBeefyZapUniswapLPWithdraw,
+    registerYearnDeposit,
+    registerYearnWithdraw128,
+    registerYearnWithdraw256,
+    registerYearnDepositETH,
+    registerYearnWithdrawETH
 } from "../../scripts/utils";
 import { BeefyZapBiswapLPVaultOperator } from "../../typechain/BeefyZapBiswapLPVaultOperator";
 
 export type OperatorResolverFixture = { operatorResolver: OperatorResolver };
+export const USDCEth = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+export const EURT = "0xC581b735A1688071A1746c968e0798D642EDE491"
 
 export const operatorResolverFixture: Fixture<OperatorResolverFixture> = async (wallets, provider) => {
     const signer = new ActorFixture(wallets as Wallet[], provider).addressResolverOwner();
@@ -52,7 +62,6 @@ export const operatorResolverFixture: Fixture<OperatorResolverFixture> = async (
     const operatorResolverFactory = await ethers.getContractFactory("OperatorResolver");
     const operatorResolver = await operatorResolverFactory.connect(signer).deploy();
 
-    return { operatorResolver };
     return { operatorResolver };
 };
 
@@ -683,6 +692,280 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
         beefyZapUniswapLPVaultWithdrawOperatorNameBytes32: toBytes32("BeefyZapUniswapLPWithdraw"),
         withdrawer,
         zeroExOperator,
+        nestedFactory,
+        nestedReserve,
+        masterDeployer,
+        user1,
+        proxyAdmin,
+        baseAmount,
+        nestedAssetBatcher,
+    };
+};
+
+export type FactoryAndOperatorsForkingETHFixture = {
+    WETH: WETH9;
+    shareholder1: Wallet;
+    shareholder2: Wallet;
+    feeSplitter: FeeSplitter;
+    royaltieWeigth: BigNumber;
+    nestedAsset: NestedAsset;
+    nestedRecords: NestedRecords;
+    maxHoldingsCount: BigNumber;
+    operatorResolver: OperatorResolver;
+    yearnCurveVaultOperator: YearnCurveVaultOperator;
+    yearnVaultStorage: YearnVaultStorage;
+    yearnVaultDepositOperatorNameBytes32: string;
+    yearnVaultDepositETHOperatorNameBytes32: string;
+    yearnVaultWithdraw128OperatorNameBytes32: string;
+    yearnVaultWithdraw256OperatorNameBytes32: string;
+    yearnVaultWithdrawETHOperatorNameBytes32: string;
+    yearnVaultAddresses: {
+        triCryptoVault: string;
+        alEthVault: string;
+        threeEurVault: string;
+        nonWhitelistedVault: string;
+    };
+    withdrawer: Withdrawer;
+    nestedFactory: NestedFactory;
+    nestedReserve: NestedReserve;
+    masterDeployer: Wallet;
+    user1: Wallet;
+    proxyAdmin: Wallet;
+    baseAmount: BigNumber;
+    nestedAssetBatcher: NestedAssetBatcher;
+};
+
+export const factoryAndOperatorsForkingETHFixture: Fixture<FactoryAndOperatorsForkingETHFixture> = async (
+    wallets,
+    provider,
+) => {
+    const masterDeployer = new ActorFixture(wallets as Wallet[], provider).masterDeployer();
+
+    const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+    const WETHFactory = await ethers.getContractFactory("WETH9");
+    const WETH = await WETHFactory.attach("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
+
+    // Get the Fee shareholders (two actors)
+    const shareholder1 = new ActorFixture(wallets as Wallet[], provider).shareHolder1();
+    const shareholder2 = new ActorFixture(wallets as Wallet[], provider).shareHolder2();
+
+    // Define the royaltie weight value (used in FeeSplitter)
+    const royaltieWeigth = BigNumber.from(300);
+
+    // Deploy the FeeSplitter
+    const feeSplitterFactory = await ethers.getContractFactory("FeeSplitter");
+    const feeSplitter = await feeSplitterFactory
+        .connect(masterDeployer)
+        .deploy([shareholder1.address, shareholder2.address], [150, 150], royaltieWeigth, WETH.address);
+    await feeSplitter.deployed();
+
+    // Deploy NestedAsset
+    const nestedAssetFactory = await ethers.getContractFactory("NestedAsset");
+    const nestedAsset = await nestedAssetFactory.connect(masterDeployer).deploy();
+    await nestedAsset.deployed();
+
+    // Define maxHoldingsCount value (used in NestedRecords)
+    const maxHoldingsCount = BigNumber.from(15);
+
+    // Deploy NestedRecords
+    const nestedRecordsFactory = await ethers.getContractFactory("NestedRecords");
+    const nestedRecords = await nestedRecordsFactory.connect(masterDeployer).deploy(maxHoldingsCount);
+    await nestedRecords.deployed();
+
+    // Deploy Reserve
+    const nestedReserveFactory = await ethers.getContractFactory("NestedReserve");
+    const nestedReserve = await nestedReserveFactory.connect(masterDeployer).deploy();
+    await nestedReserve.deployed();
+
+    // Deploy OperatorResolver
+    const operatorResolverFactory = await ethers.getContractFactory("OperatorResolver");
+    const operatorResolver = await operatorResolverFactory.connect(masterDeployer).deploy();
+    await operatorResolver.deployed();
+
+    // Deploy Withdrawer
+    const withdrawerFactory = await ethers.getContractFactory("Withdrawer");
+    const withdrawer = await withdrawerFactory.connect(masterDeployer).deploy(WETH.address);
+    await withdrawer.deployed();
+
+    // Deploy Yearn Curve operator (Curve 3crypto)
+    const triCryptoVault = "0xE537B5cc158EB71037D4125BDD7538421981E6AA";
+    const curveTriCryptoPoolAddress = "0xD51a44d3FaE010294C616388b506AcdA1bfAAE46";
+    const curveTriCryptoLpTokenAddress = "0xc4AD29ba4B3c580e6D59105FFf484999997675Ff";
+
+    const alEthVault = "0x718AbE90777F5B778B52D553a5aBaa148DD0dc5D";
+    const curveAlEthFactoryPoolAddress = "0xC4C319E2D4d66CcA4464C0c2B32c9Bd23ebe784e";
+    const curveAlEthFactoryLpTokenAddress = "0xC4C319E2D4d66CcA4464C0c2B32c9Bd23ebe784e";
+
+    const threeEurVault = "0x5AB64C599FcC59f0f2726A300b03166A395578Da";
+    const curveThreeEurPoolAddress = "0xb9446c4Ef5EBE66268dA6700D26f96273DE3d571";
+    const curveThreeEurLpTokenAddress = "0xb9446c4Ef5EBE66268dA6700D26f96273DE3d571";
+
+    const nonWhitelistedVault = "0x3B96d491f067912D18563d56858Ba7d6EC67a6fa"
+
+    const yearnCurveVaultOperatorFactory = await ethers.getContractFactory("YearnCurveVaultOperator");
+    const yearnCurveVaultOperator = await yearnCurveVaultOperatorFactory
+        .connect(masterDeployer)
+        .deploy(
+            [
+                triCryptoVault,
+                alEthVault,
+                threeEurVault
+            ],
+            [
+                {
+                    poolAddress: curveTriCryptoPoolAddress,
+                    poolCoinAmount: 3,
+                    lpToken: curveTriCryptoLpTokenAddress
+                },
+                {
+                    poolAddress: curveAlEthFactoryPoolAddress,
+                    poolCoinAmount: 2,
+                    lpToken: curveAlEthFactoryLpTokenAddress
+                },
+                {
+                    poolAddress: curveThreeEurPoolAddress,
+                    poolCoinAmount: 3,
+                    lpToken: curveThreeEurLpTokenAddress
+                }
+
+            ],
+            withdrawer.address,
+            ETH,
+            WETH.address
+        );
+    await yearnCurveVaultOperator.deployed();
+
+    const yearnVaultStorageFactory = await ethers.getContractFactory("YearnVaultStorage");
+    const yearnVaultStorage = yearnVaultStorageFactory.attach(await yearnCurveVaultOperator.operatorStorage());
+
+    // Deploy NestedFactory
+    const nestedFactoryFactory = await ethers.getContractFactory("NestedFactory");
+    const nestedFactoryImpl = await nestedFactoryFactory
+        .connect(masterDeployer)
+        .deploy(
+            nestedAsset.address,
+            nestedRecords.address,
+            nestedReserve.address,
+            feeSplitter.address,
+            WETH.address,
+            operatorResolver.address,
+            withdrawer.address,
+        );
+    await nestedFactoryImpl.deployed();
+
+    // Get the user1 actor
+    const user1 = new ActorFixture(wallets as Wallet[], provider).user1();
+
+    // add ether to wallets
+    await network.provider.send("hardhat_setBalance", [
+        masterDeployer.address,
+        appendDecimals(100000000000000000).toHexString(),
+    ]);
+    await network.provider.send("hardhat_setBalance", [
+        user1.address,
+        appendDecimals(100000000000000000).toHexString(),
+    ]);
+
+    // Deploy FactoryProxy
+    const transparentUpgradeableProxyFactory = await ethers.getContractFactory("TransparentUpgradeableProxy");
+    const factoryProxy = await transparentUpgradeableProxyFactory.deploy(
+        nestedFactoryImpl.address,
+        masterDeployer.address,
+        [],
+    );
+
+    // Set factory to asset, records and reserve
+    let tx = await nestedAsset.addFactory(factoryProxy.address);
+    await tx.wait();
+    tx = await nestedRecords.addFactory(factoryProxy.address);
+    await tx.wait();
+    tx = await nestedReserve.addFactory(factoryProxy.address);
+    await tx.wait();
+
+    // Initialize the owner in proxy storage by calling upgradeToAndCall
+    // It will upgrade with the same address (no side effects)
+    const initData = await nestedFactoryImpl.interface.encodeFunctionData("initialize", [masterDeployer.address]);
+    tx = await factoryProxy.connect(masterDeployer).upgradeToAndCall(nestedFactoryImpl.address, initData);
+    await tx.wait();
+
+    // Set multisig as admin of proxy, so we can call the implementation as owner
+    const proxyAdmin = new ActorFixture(wallets as Wallet[], provider).proxyAdmin();
+    tx = await factoryProxy.connect(masterDeployer).changeAdmin(proxyAdmin.address);
+    await tx.wait();
+
+    // Attach factory impl to proxy address
+    const nestedFactory = await nestedFactoryFactory.attach(factoryProxy.address);
+
+    // Reset feeSplitter in proxy storage
+    tx = await nestedFactory.connect(masterDeployer).setFeeSplitter(feeSplitter.address);
+    await tx.wait();
+
+    // Set entry fees in proxy storage
+    tx = await nestedFactory.connect(masterDeployer).setEntryFees(100);
+    await tx.wait();
+
+    // Set exit fees in proxy storage
+    tx = await nestedFactory.connect(masterDeployer).setExitFees(100);
+    await tx.wait();
+
+    await importOperatorsWithSigner(
+        operatorResolver,
+        [
+            registerYearnDeposit(yearnCurveVaultOperator),
+            registerYearnDepositETH(yearnCurveVaultOperator),
+            registerYearnWithdraw128(yearnCurveVaultOperator),
+            registerYearnWithdraw256(yearnCurveVaultOperator),
+            registerYearnWithdrawETH(yearnCurveVaultOperator)
+        ],
+        nestedFactory,
+        masterDeployer,
+    );
+
+    // Set factory to asset, records and reserve
+    await nestedAsset.connect(masterDeployer).addFactory(nestedFactory.address);
+    await nestedRecords.connect(masterDeployer).addFactory(nestedFactory.address);
+    await nestedReserve.connect(masterDeployer).addFactory(nestedFactory.address);
+
+    // Deploy NestedAssetBatcher
+    const nestedAssetBatcherFactory = await ethers.getContractFactory("NestedAssetBatcher");
+    const nestedAssetBatcher = await nestedAssetBatcherFactory
+        .connect(masterDeployer)
+        .deploy(nestedAsset.address, nestedRecords.address);
+    await nestedAssetBatcher.deployed();
+
+    // Define the base amount
+    const baseAmount = appendDecimals(1000);
+
+    const eurtToAddToBalance = append6Decimals(1000);
+    const eurtToAddToBalanceAndFees = eurtToAddToBalance.add(getExpectedFees(eurtToAddToBalance));
+    // Add fund ThreeEur to balance
+    await addEurtBalanceToETH(user1, eurtToAddToBalanceAndFees);
+    await setAllowance(user1, EURT, nestedFactory.address, UINT256_MAX);
+
+    return {
+        WETH,
+        shareholder1,
+        shareholder2,
+        feeSplitter,
+        royaltieWeigth,
+        nestedAsset,
+        nestedRecords,
+        maxHoldingsCount,
+        operatorResolver,
+        yearnCurveVaultOperator,
+        yearnVaultStorage,
+        yearnVaultDepositOperatorNameBytes32: toBytes32("YearnVaultDepositOperator"),
+        yearnVaultDepositETHOperatorNameBytes32: toBytes32("YearnVaultDepositETHOperator"),
+        yearnVaultWithdraw128OperatorNameBytes32: toBytes32("YearnVaultWithdraw128Operator"),
+        yearnVaultWithdraw256OperatorNameBytes32: toBytes32("YearnVaultWithdraw256Operator"),
+        yearnVaultWithdrawETHOperatorNameBytes32: toBytes32("YearnVaultWithdrawETHOperator"),
+        yearnVaultAddresses: {
+            triCryptoVault,
+            alEthVault,
+            threeEurVault,
+            nonWhitelistedVault,
+        },
+        withdrawer,
         nestedFactory,
         nestedReserve,
         masterDeployer,
