@@ -5,10 +5,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @dev A Curve pool with its number of coins
 /// @param poolAddress The address of the curve pool
-/// @param coinAmount The number of coins inside
+/// @param poolCoinAmount The number of coins inside
+/// @param lpToken The corresponding pool LP token address
 struct CurvePool {
     address poolAddress;
-    uint96 coinAmount;
+    uint96 poolCoinAmount;
+    address lpToken;
 }
 
 /// @title StakeDAO strategy operator's storage contract
@@ -32,6 +34,7 @@ contract StakeDaoStrategyStorage is Ownable {
         require(strategy != address(0), "SDSS: INVALID_STRATEGY_ADDRESS");
         require(curvePool.poolAddress != address(0), "SDSS: INVALID_POOL_ADDRESS");
         require(strategies[strategy].poolAddress == address(0), "SDSS: ALREADY_EXISTENT_STRATEGY");
+        require(strategies[strategy].lpToken == address(0), "SDSS: ALREADY_EXISTENT_STRATEGY");
         strategies[strategy] = curvePool;
         emit StrategyAdded(strategy, curvePool);
     }

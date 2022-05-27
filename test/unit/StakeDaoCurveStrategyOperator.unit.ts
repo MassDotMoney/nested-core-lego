@@ -2,15 +2,15 @@ import { expect } from "chai";
 import { createFixtureLoader } from "ethereum-waffle";
 import { BigNumber, utils, Wallet } from "ethers";
 import { ethers } from "hardhat";
-import { cleanResult, getStakeDao3EpsDepositOrder, getStakeDao3EpsWithdrawOrder, OrderStruct } from "../../scripts/utils";
+import { cleanResult, getStakeDaoDepositETHOrder, getStakeDaoDepositOrder, getStakeDaoWithdraw128Order, getStakeDaoWithdrawETHOrder, OrderStruct } from "../../scripts/utils";
 import { appendDecimals, BIG_NUMBER_ZERO, getExpectedFees, UINT256_MAX } from "../helpers";
-import { factoryAndOperatorsForkingBSCFixture, FactoryAndOperatorsForkingBSCFixture, USDC } from "../shared/fixtures";
-import { describeOnBscFork, provider } from "../shared/provider";
+import { factoryAndOperatorsForkingBSCFixture, FactoryAndOperatorsForkingBSCFixture, factoryAndOperatorsForkingETHFixture, FactoryAndOperatorsForkingETHFixture, USDC } from "../shared/fixtures";
+import { describeOnBscFork, describeOnEthFork, provider } from "../shared/provider";
 import { LoadFixtureFunction } from "../types";
 
 let loadFixture: LoadFixtureFunction;
 
-describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
+describeOnBscFork("StakeDaoCurveStrategyOperator BSC fork", () => {
     let context: FactoryAndOperatorsForkingBSCFixture;
     const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
@@ -31,7 +31,8 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
             const strategyToAdd = ethers.constants.AddressZero;
             const poolToAdd = {
                 poolAddress: Wallet.createRandom().address,
-                coinAmount: 2
+                poolCoinAmount: 2,
+                lpToken: Wallet.createRandom().address
             };
             await expect(
                 context.stakeDaoStrategyStorage.connect(context.masterDeployer).addStrategy(strategyToAdd, poolToAdd),
@@ -42,7 +43,8 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
             const strategyToAdd = Wallet.createRandom().address;
             const poolToAdd = {
                 poolAddress: ethers.constants.AddressZero,
-                coinAmount: 2
+                poolCoinAmount: 2,
+                lpToken: Wallet.createRandom().address
             };
             await expect(
                 context.stakeDaoStrategyStorage.connect(context.masterDeployer).addStrategy(strategyToAdd, poolToAdd),
@@ -53,7 +55,8 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
             const strategyToAdd = Wallet.createRandom().address;
             const poolToAdd = {
                 poolAddress: Wallet.createRandom().address,
-                coinAmount: 2
+                poolCoinAmount: 2,
+                lpToken: Wallet.createRandom().address
             };
             await context.stakeDaoStrategyStorage.connect(context.masterDeployer).addStrategy(strategyToAdd, poolToAdd);
 
@@ -66,12 +69,13 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
             const strategyToAdd = Wallet.createRandom().address;
             const poolToAdd = {
                 poolAddress: Wallet.createRandom().address,
-                coinAmount: 2
+                poolCoinAmount: 2,
+                lpToken: Wallet.createRandom().address
             };
             await context.stakeDaoStrategyStorage.connect(context.masterDeployer).addStrategy(strategyToAdd, poolToAdd);
 
             expect(await (await context.stakeDaoStrategyStorage.strategies(strategyToAdd)).poolAddress).to.equal(poolToAdd.poolAddress);
-            expect(await (await context.stakeDaoStrategyStorage.strategies(strategyToAdd)).coinAmount).to.equal(poolToAdd.coinAmount);
+            expect(await (await context.stakeDaoStrategyStorage.strategies(strategyToAdd)).poolCoinAmount).to.equal(poolToAdd.poolCoinAmount);
         });
     });
 
@@ -88,12 +92,13 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
             const strategyToAdd = Wallet.createRandom().address;
             const poolToAdd = {
                 poolAddress: Wallet.createRandom().address,
-                coinAmount: 2
+                poolCoinAmount: 2,
+                lpToken: Wallet.createRandom().address
             };
             await context.stakeDaoStrategyStorage.connect(context.masterDeployer).addStrategy(strategyToAdd, poolToAdd);
 
             expect(await (await context.stakeDaoStrategyStorage.strategies(strategyToAdd)).poolAddress).to.equal(poolToAdd.poolAddress);
-            expect(await (await context.stakeDaoStrategyStorage.strategies(strategyToAdd)).coinAmount).to.equal(poolToAdd.coinAmount);
+            expect(await (await context.stakeDaoStrategyStorage.strategies(strategyToAdd)).poolCoinAmount).to.equal(poolToAdd.poolCoinAmount);
 
             await context.stakeDaoStrategyStorage.connect(context.masterDeployer).removeStrategy(strategyToAdd);
             expect(await (await context.stakeDaoStrategyStorage.strategies(strategyToAdd)).poolAddress).to.equal(ethers.constants.AddressZero);
@@ -107,7 +112,7 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
             const bnbToDepositAndFees = bnbToDeposit.add(getExpectedFees(bnbToDeposit));
 
             // Orders to deposit in StakeDAO with amount 0
-            let orders: OrderStruct[] = getStakeDao3EpsDepositOrder(context, context.stakeDaoUsdStrategyAddress, context.WBNB.address, BIG_NUMBER_ZERO);
+            let orders: OrderStruct[] = getStakeDaoDepositOrder(context, context.stakeDaoUsdStrategyAddress, context.WBNB.address, BIG_NUMBER_ZERO);
 
             // User1 creates the portfolio/NFT
             await expect(
@@ -125,7 +130,7 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
             let usdcToDepositWithFees: BigNumber = usdcToDeposit.add(getExpectedFees(usdcToDeposit));
             let unwhitelistedStrategy: string = Wallet.createRandom().address;
 
-            let orders: OrderStruct[] = getStakeDao3EpsDepositOrder(context, unwhitelistedStrategy, USDC, usdcToDeposit);
+            let orders: OrderStruct[] = getStakeDaoDepositOrder(context, unwhitelistedStrategy, USDC, usdcToDeposit);
 
             // // User1 creates the portfolio / NFT and submit stakeDAO deposit order
             await expect(
@@ -140,7 +145,7 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
         it("Should revert if amount to deposit is greater than available", async () => {
             let usdcToDeposit: BigNumber = appendDecimals(1000);
 
-            let orders: OrderStruct[] = getStakeDao3EpsDepositOrder(context, context.stakeDaoUsdStrategyAddress, USDC, usdcToDeposit.mul(2));
+            let orders: OrderStruct[] = getStakeDaoDepositOrder(context, context.stakeDaoUsdStrategyAddress, USDC, usdcToDeposit.mul(2));
 
             // User1 creates the portfolio / NFT
             await expect(
@@ -158,7 +163,7 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
             const bnbToDepositAndFees = bnbToDeposit.add(getExpectedFees(bnbToDeposit));
 
             // Orders to deposit in beefy with amount 0
-            let orders: OrderStruct[] = getStakeDao3EpsDepositOrder(context, context.stakeDaoUsdStrategyAddress, context.WBNB.address, bnbToDeposit);
+            let orders: OrderStruct[] = getStakeDaoDepositOrder(context, context.stakeDaoUsdStrategyAddress, context.WBNB.address, bnbToDeposit);
 
             // User1 creates the portfolio/NFT
             await expect(
@@ -175,7 +180,7 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
             let usdcToDeposit: BigNumber = appendDecimals(1000);
             let usdcToDepositWithFees: BigNumber = usdcToDeposit.add(getExpectedFees(usdcToDeposit));
 
-            let orders: OrderStruct[] = getStakeDao3EpsDepositOrder(context, context.stakeDaoUsdStrategyAddress, USDC, usdcToDeposit, UINT256_MAX);
+            let orders: OrderStruct[] = getStakeDaoDepositOrder(context, context.stakeDaoUsdStrategyAddress, USDC, usdcToDeposit, UINT256_MAX);
 
             // // User1 creates the portfolio / NFT and submit stakeDAO deposit order
             await expect(
@@ -195,7 +200,7 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
             const usdc = mockERC20Factory.attach(USDC);
 
-            let orders: OrderStruct[] = getStakeDao3EpsDepositOrder(context, context.stakeDaoUsdStrategyAddress, USDC, usdcToDeposit);
+            let orders: OrderStruct[] = getStakeDaoDepositOrder(context, context.stakeDaoUsdStrategyAddress, USDC, usdcToDeposit);
 
             const usdcBalanceBefore = await usdc.balanceOf(context.user1.address);
 
@@ -236,13 +241,13 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
         });
     });
 
-    describe("withdraw()", () => {
+    describe("withdraw128()", () => {
         beforeEach("Create NFT (id 1) with USDC deposited", async () => {
             // All the amounts for this test
             let usdcToDeposit: BigNumber = appendDecimals(1000);
             let usdcToDepositWithFees: BigNumber = usdcToDeposit.add(getExpectedFees(usdcToDeposit));
 
-            let orders: OrderStruct[] = getStakeDao3EpsDepositOrder(context, context.stakeDaoUsdStrategyAddress, USDC, usdcToDeposit);
+            let orders: OrderStruct[] = getStakeDaoDepositOrder(context, context.stakeDaoUsdStrategyAddress, USDC, usdcToDeposit);
 
             // // User1 creates the portfolio / NFT and submit stakeDAO deposit order
             await context.nestedFactory
@@ -259,7 +264,7 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
             const strategyTokenBalance = await strategy.balanceOf(context.nestedReserve.address);
 
             // Orders to withdraw from stakeDAO
-            let orders: OrderStruct[] = getStakeDao3EpsWithdrawOrder(context, context.stakeDaoUsdStrategyAddress, BIG_NUMBER_ZERO, USDC);
+            let orders: OrderStruct[] = getStakeDaoWithdraw128Order(context, context.stakeDaoUsdStrategyAddress, BIG_NUMBER_ZERO, USDC);
 
             await expect(
                 context.nestedFactory
@@ -278,7 +283,7 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
             const unknownStrategyAddress = Wallet.createRandom().address;
 
             // Orders to withdraw from stakeDAO
-            let orders: OrderStruct[] = getStakeDao3EpsWithdrawOrder(context, unknownStrategyAddress, strategyTokenBalance, USDC);
+            let orders: OrderStruct[] = getStakeDaoWithdraw128Order(context, unknownStrategyAddress, strategyTokenBalance, USDC);
 
             await expect(
                 context.nestedFactory
@@ -295,7 +300,7 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
             const strategyTokenBalance = await strategy.balanceOf(context.nestedReserve.address);
 
             // Orders to withdraw from stakeDAO
-            let orders: OrderStruct[] = getStakeDao3EpsWithdrawOrder(context, context.stakeDaoUsdStrategyAddress, strategyTokenBalance.mul(2), USDC);
+            let orders: OrderStruct[] = getStakeDaoWithdraw128Order(context, context.stakeDaoUsdStrategyAddress, strategyTokenBalance.mul(2), USDC);
 
             await expect(
                 context.nestedFactory
@@ -312,7 +317,7 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
             const strategyTokenBalance = await strategy.balanceOf(context.nestedReserve.address);
 
             // Orders to withdraw from stakeDAO
-            let orders: OrderStruct[] = getStakeDao3EpsWithdrawOrder(context, context.stakeDaoUsdStrategyAddress, strategyTokenBalance, context.WBNB.address);
+            let orders: OrderStruct[] = getStakeDaoWithdraw128Order(context, context.stakeDaoUsdStrategyAddress, strategyTokenBalance, context.WBNB.address);
 
             await expect(
                 context.nestedFactory
@@ -329,7 +334,7 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
             const strategyTokenBalance = await strategy.balanceOf(context.nestedReserve.address);
 
             // Orders to withdraw from stakeDAO
-            let orders: OrderStruct[] = getStakeDao3EpsWithdrawOrder(context, context.stakeDaoUsdStrategyAddress, strategyTokenBalance, USDC, UINT256_MAX);
+            let orders: OrderStruct[] = getStakeDaoWithdraw128Order(context, context.stakeDaoUsdStrategyAddress, strategyTokenBalance, USDC, UINT256_MAX);
 
             await expect(
                 context.nestedFactory
@@ -347,13 +352,9 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
             const strategyTokenBalance = await strategy.balanceOf(context.nestedReserve.address);
 
             // Orders to withdraw from stakeDAO
-            let orders: OrderStruct[] = getStakeDao3EpsWithdrawOrder(context, context.stakeDaoUsdStrategyAddress, strategyTokenBalance, USDC);
+            let orders: OrderStruct[] = getStakeDaoWithdraw128Order(context, context.stakeDaoUsdStrategyAddress, strategyTokenBalance, USDC);
 
-            await context.nestedFactory
-                .connect(context.user1)
-                .processOutputOrders(1, [
-                    { outputToken: USDC, amounts: [strategyTokenBalance], orders, toReserve: true },
-                ]);
+            await context.nestedFactory.connect(context.user1).destroy(1, USDC, orders);
 
             // All strategy token removed from reserve
             expect(await strategy.balanceOf(context.nestedReserve.address)).to.be.equal(BIG_NUMBER_ZERO);
@@ -364,6 +365,252 @@ describeOnBscFork("StakeDaoCurveStrategyOperator", () => {
              */
             expect(await usdcContract.balanceOf(context.feeSplitter.address)).to.be.gt(
                 getExpectedFees(appendDecimals(2)).sub(getExpectedFees(appendDecimals(2)).div(100)),
+            );
+        });
+    });
+});
+
+describeOnEthFork("StakeDaoCurveStrategyOperator ETH fork", () => {
+    let context: FactoryAndOperatorsForkingETHFixture;
+    const ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+
+    before("loader", async () => {
+        loadFixture = createFixtureLoader(provider.getWallets(), provider);
+    });
+
+    beforeEach("create fixture loader", async () => {
+        context = await loadFixture(factoryAndOperatorsForkingETHFixture);
+    });
+
+    it("deploys and has an address", async () => {
+        expect(context.stakeDaoCurveStrategyOperator.address).to.be.a.string;
+    });
+
+
+    describe("depositETH()", async () => {
+        it("Should revert if amount to deposit is zero", async () => { // Done
+            // All the amounts for this test
+            const ethToDeposit = appendDecimals(1);
+            const ethToDepositAndFees = ethToDeposit.add(getExpectedFees(ethToDeposit));
+
+            // Orders to deposit in stakeDAO with amount 0
+            let orders: OrderStruct[] = getStakeDaoDepositETHOrder(context, context.stakeDaoStEthStrategyAddress, BIG_NUMBER_ZERO);
+
+            // User1 creates the portfolio/NFT
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .create(0, [{ inputToken: ETH, amount: ethToDepositAndFees, orders, fromReserve: false }], {
+                        value: ethToDepositAndFees,
+                    }),
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
+        });
+
+        it("Should revert if deposit more than available", async () => { // Done, fail at withdrawer
+            // All the amounts for this test
+            const ethToDeposit = appendDecimals(1);
+            const ethToDepositAndFees = ethToDeposit.add(getExpectedFees(ethToDeposit));
+
+            // Orders to deposit in stakeDAO with "initial amount x 2" (more than msg.value)
+            let orders: OrderStruct[] = getStakeDaoDepositETHOrder(context, context.stakeDaoStEthStrategyAddress, ethToDepositAndFees.mul(2));
+
+            // User1 creates the portfolio/NFT
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .create(0, [{ inputToken: ETH, amount: ethToDepositAndFees, orders, fromReserve: false }], {
+                        value: ethToDepositAndFees,
+                    }),
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
+        });
+
+        it("Should revert if strategy is not added in Operator Storage", async () => { // Done
+            // All the amounts for this test
+            const ethToDeposit = appendDecimals(1);
+            const ethToDepositAndFees = ethToDeposit.add(getExpectedFees(ethToDeposit));
+
+            const notWhitelistedstrategy = Wallet.createRandom().address;
+
+            // Orders to Deposit in stakeDAO
+            let orders: OrderStruct[] = getStakeDaoDepositETHOrder(context, notWhitelistedstrategy, ethToDeposit);
+
+            // User1 creates the portfolio/NFT
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .create(0, [{ inputToken: ETH, amount: ethToDepositAndFees, orders, fromReserve: false }], {
+                        value: ethToDepositAndFees,
+                    }),
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
+        });
+
+        it("Should revert if minstrategyAmount is not respected", async () => { // Done
+            // All the amounts for this test
+            const ethToDeposit = appendDecimals(1);
+            const ethToDepositAndFees = ethToDeposit.add(getExpectedFees(ethToDeposit));
+
+            // Orders to Deposit in stakeDAO
+            let orders: OrderStruct[] = getStakeDaoDepositETHOrder(context, context.stakeDaoStEthStrategyAddress, ethToDeposit, UINT256_MAX);
+
+            // User1 creates the portfolio/NFT
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .create(0, [{ inputToken: ETH, amount: ethToDepositAndFees, orders, fromReserve: false }], {
+                        value: ethToDepositAndFees,
+                    }),
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
+        });
+
+        it("Create/Deposit in stakeDAO stETH with ETH", async () => {
+            // All the amounts for this test
+            const ethToDeposit = appendDecimals(1);
+            const ethToDepositAndFees = ethToDeposit.add(getExpectedFees(ethToDeposit));
+
+            const ethBalanceBefore = await context.user1.getBalance();
+
+            // Orders to Deposit in stakeDAO
+            let orders: OrderStruct[] = getStakeDaoDepositETHOrder(context, context.stakeDaoStEthStrategyAddress, ethToDeposit);
+
+            // User1 creates the portfolio/NFT
+            const tx = await context.nestedFactory
+                .connect(context.user1)
+                .create(0, [{ inputToken: ETH, amount: ethToDepositAndFees, orders, fromReserve: false }], {
+                    value: ethToDepositAndFees,
+                });
+
+            // Get the transaction fees
+            const txFees = await tx.wait().then(value => value.gasUsed.mul(value.effectiveGasPrice));
+
+            // User1 must be the owner of NFT n°1
+            expect(await context.nestedAsset.ownerOf(1)).to.be.equal(context.user1.address);
+
+            const mockERC20Factory = await ethers.getContractFactory("MockERC20");
+            const strategy = mockERC20Factory.attach(context.stakeDaoStEthStrategyAddress);
+
+            //  Tokens in strategy
+            const strategyBalanceReserve = await strategy.balanceOf(context.nestedReserve.address);
+            expect(strategyBalanceReserve).to.not.be.equal(BIG_NUMBER_ZERO);
+
+            expect(await context.user1.getBalance()).to.be.equal(ethBalanceBefore.sub(ethToDepositAndFees).sub(txFees));
+
+            // The FeeSplitter must receive the right fee amount
+            expect(await context.WETH.balanceOf(context.feeSplitter.address)).to.be.equal(
+                getExpectedFees(ethToDeposit),
+            );
+
+            const expectedNfts = [
+                {
+                    id: BigNumber.from(1),
+                    assets: [{ token: context.stakeDaoStEthStrategyAddress, qty: strategyBalanceReserve }],
+                },
+            ];
+
+            const nfts = await context.nestedAssetBatcher.getNfts(context.user1.address);
+
+            expect(JSON.stringify(cleanResult(nfts))).to.equal(JSON.stringify(cleanResult(expectedNfts)));
+        });
+    })
+
+    describe("withdrawETH()", () => {
+        beforeEach("Create NFT (id 1) with ETH deposited", async () => {
+            // All the amounts for this test
+            const ethToDeposit = appendDecimals(1);
+            const ethToDepositAndFees = ethToDeposit.add(getExpectedFees(ethToDeposit));
+
+            // Orders to Deposit in stakeDAO
+            let orders: OrderStruct[] = getStakeDaoDepositETHOrder(context, context.stakeDaoStEthStrategyAddress, ethToDeposit);
+
+            // User1 creates the portfolio/NFT
+            const tx = await context.nestedFactory
+                .connect(context.user1)
+                .create(0, [{ inputToken: ETH, amount: ethToDepositAndFees, orders, fromReserve: false }], {
+                    value: ethToDepositAndFees,
+                });
+        });
+        it("Should revert if amount to withdraw is zero", async () => { // Done
+            // Orders to withdraw from StakeDAO curve strategy
+            let orders: OrderStruct[] = getStakeDaoWithdrawETHOrder(context, context.stakeDaoStEthStrategyAddress, BIG_NUMBER_ZERO);
+
+            // User1 creates the portfolio/NFT
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .processOutputOrders(1, [
+                        { outputToken: context.WETH.address, amounts: [BIG_NUMBER_ZERO], orders, toReserve: true },
+                    ]),
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
+        });
+        it("Should revert if withdraw more than available", async () => { // Done
+            const mockERC20Factory = await ethers.getContractFactory("MockERC20");
+            const strategy = mockERC20Factory.attach(context.stakeDaoStEthStrategyAddress);
+
+            const strategyBalance = await strategy.balanceOf(context.nestedReserve.address);
+
+            // Orders to withdraw from StakeDAO curve strategy
+            let orders: OrderStruct[] = getStakeDaoWithdrawETHOrder(context, context.stakeDaoStEthStrategyAddress, strategyBalance.mul(2));
+
+            // User1 creates the portfolio/NFT
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .processOutputOrders(1, [
+                        { outputToken: context.WETH.address, amounts: [strategyBalance], orders, toReserve: true },
+                    ]),
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
+        });
+        it("Should revert if strategy is not added in Operator Storage", async () => { // Done
+            // Orders to withdraw from StakeDAO curve strategy
+            let orders: OrderStruct[] = getStakeDaoWithdrawETHOrder(context, context.stakeDaoNonWhitelistedStrategy, BigNumber.from(100));
+
+            // User1 creates the portfolio/NFT
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .processOutputOrders(1, [
+                        { outputToken: context.WETH.address, amounts: [BIG_NUMBER_ZERO], orders, toReserve: true },
+                    ]),
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
+        });
+        it("Should revert if minAmountOut is not respected", async () => { // Done
+            const mockERC20Factory = await ethers.getContractFactory("MockERC20");
+            const strategy = mockERC20Factory.attach(context.stakeDaoStEthStrategyAddress);
+
+            const strategyBalance = await strategy.balanceOf(context.nestedReserve.address);
+
+            // Orders to withdraw from StakeDAO strategy and remove liquidity from curve pool
+            let orders: OrderStruct[] = getStakeDaoWithdrawETHOrder(context, context.stakeDaoStEthStrategyAddress, strategyBalance, UINT256_MAX);
+
+            // User1 creates the portfolio/NFT
+            await expect(
+                context.nestedFactory
+                    .connect(context.user1)
+                    .processOutputOrders(1, [
+                        { outputToken: context.WETH.address, amounts: [strategyBalance], orders, toReserve: true },
+                    ]),
+            ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
+        });
+        it("Destroy/Withdraw from StakeDAO", async () => {
+            const mockERC20Factory = await ethers.getContractFactory("MockERC20");
+            const strategy = mockERC20Factory.attach(context.stakeDaoStEthStrategyAddress);
+
+            const strategyBalance = await strategy.balanceOf(context.nestedReserve.address);
+
+            // Orders to withdraw from StakeDAO curve strategy
+            let orders: OrderStruct[] = getStakeDaoWithdrawETHOrder(context, context.stakeDaoStEthStrategyAddress, strategyBalance);
+
+            await context.nestedFactory.connect(context.user1).destroy(1, context.WETH.address, orders);
+
+            // All StakeDAO strategy token removed from reserve
+            expect(await strategy.balanceOf(context.nestedReserve.address)).to.be.equal(BIG_NUMBER_ZERO);
+            expect(await strategy.balanceOf(context.nestedFactory.address)).to.be.equal(BIG_NUMBER_ZERO);
+
+            /*
+             * I can't predict the WETH received in the FeeSplitter.
+             * It should be greater than 0.01 WETH, but sub 1% to allow a margin of error
+             */
+            expect(await context.WETH.balanceOf(context.feeSplitter.address)).to.be.gt(
+                getExpectedFees(appendDecimals(1)).sub(getExpectedFees(appendDecimals(1)).div(100)),
             );
         });
     });

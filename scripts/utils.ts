@@ -7,7 +7,7 @@ import {
     StakeDaoCurveStrategyOperator,
     ZeroExOperator,
 } from "../typechain";
-import { FactoryAndOperatorsFixture, FactoryAndOperatorsForkingBSCFixture } from "../test/shared/fixtures";
+import { FactoryAndOperatorsFixture, FactoryAndOperatorsForkingBSCFixture, FactoryAndOperatorsForkingETHFixture } from "../test/shared/fixtures";
 import * as ethers from "ethers"
 import { BigNumber, BigNumberish, BytesLike, Wallet } from "ethers";
 import * as w3utils from "web3-utils";
@@ -165,6 +165,14 @@ export function registerBeefyWithdraw(operator: BeefyVaultOperator): Op {
     };
 }
 
+export function registerStakeDaoDepositETH(operator: StakeDaoCurveStrategyOperator): Op {
+    return {
+        name: "stakeDaoCurveStrategyDepositETH",
+        contract: operator.address,
+        signature: "function depositETH(address strategy, uint256 amount, uint256 minAmountOut)"
+    };
+}
+
 export function registerStakeDaoDeposit(operator: StakeDaoCurveStrategyOperator): Op {
     return {
         name: "stakeDaoCurveStrategyDeposit",
@@ -173,11 +181,27 @@ export function registerStakeDaoDeposit(operator: StakeDaoCurveStrategyOperator)
     };
 }
 
-export function registerStakeDaoWithdraw(operator: StakeDaoCurveStrategyOperator): Op {
+export function registerStakeDaoWithdrawETH(operator: StakeDaoCurveStrategyOperator): Op {
     return {
-        name: "stakeDaoCurveStrategyWithdraw",
+        name: "stakeDaoCurveStrategyWithdrawETH",
         contract: operator.address,
-        signature: "function withdraw(address strategy, uint256 amount, address outputToken, uint256 minAmountOut)"
+        signature: "function withdrawETH(address strategy, uint256 amount, uint256 minAmountOut)"
+    };
+}
+
+export function registerStakeDaoWithdraw128(operator: StakeDaoCurveStrategyOperator): Op {
+    return {
+        name: "stakeDaoCurveStrategyWithdraw128",
+        contract: operator.address,
+        signature: "function withdraw128(address strategy, uint256 amount, address outputToken, uint256 minAmountOut)"
+    };
+}
+
+export function registerStakeDaoWithdraw256(operator: StakeDaoCurveStrategyOperator): Op {
+    return {
+        name: "stakeDaoCurveStrategyWithdraw256",
+        contract: operator.address,
+        signature: "function withdraw256(address strategy, uint256 amount, address outputToken, uint256 minAmountOut)"
     };
 }
 
@@ -293,8 +317,19 @@ export function getBeefyBnbVenusWithdrawOrder(context: FactoryAndOperatorsForkin
     ];
 }
 
-// Create a Deposit order in StakeDAO (stake dao Ellipsis.finance BUSD/USDC/USDT)
-export function getStakeDao3EpsDepositOrder(context: FactoryAndOperatorsForkingBSCFixture, strategyAddress: string, tokenToDeposit: string, amountToDeposit: BigNumber, minStrategyToken?: BigNumber) {
+// Create a Deposit order in StakeDAO
+export function getStakeDaoDepositETHOrder(context: FactoryAndOperatorsForkingETHFixture, strategyAddress: string, amountToDeposit: BigNumber, minStrategyToken?: BigNumber) {
+    return [
+        buildOrderStruct(context.stakeDaoCurveStrategyDepositETHOperatorNameBytes32, strategyAddress, [
+            ["address", strategyAddress],
+            ["uint256", amountToDeposit],
+            ["uint256", minStrategyToken != null ? minStrategyToken : 0], // 100% slippage if minAmountOut is null
+        ]),
+    ];
+}
+
+// Create a Deposit order in StakeDAO
+export function getStakeDaoDepositOrder(context: FactoryAndOperatorsForkingBSCFixture, strategyAddress: string, tokenToDeposit: string, amountToDeposit: BigNumber, minStrategyToken?: BigNumber) {
     return [
         buildOrderStruct(context.stakeDaoCurveStrategyDepositOperatorNameBytes32, context.stakeDaoUsdStrategyAddress, [
             ["address", strategyAddress],
@@ -305,9 +340,21 @@ export function getStakeDao3EpsDepositOrder(context: FactoryAndOperatorsForkingB
     ];
 }
 
-export function getStakeDao3EpsWithdrawOrder(context: FactoryAndOperatorsForkingBSCFixture, strategyAddress: string, amountToWithdraw: BigNumber, outputToken: string, minAmountOut?: BigNumber) {
+// Create a Withdraw128 order in StakeDAO
+export function getStakeDaoWithdrawETHOrder(context: FactoryAndOperatorsForkingETHFixture, strategyAddress: string, amountToWithdraw: BigNumber, minAmountOut?: BigNumber) {
     return [
-        buildOrderStruct(context.stakeDaoCurveStrategyWithdrawOperatorNameBytes32, context.stakeDaoUsdStrategyAddress, [
+        buildOrderStruct(context.stakeDaoCurveStrategyWithdrawETHOperatorNameBytes32, strategyAddress, [
+            ["address", strategyAddress],
+            ["uint256", amountToWithdraw],
+            ["uint256", minAmountOut != null ? minAmountOut : 0], // 100% slippage if minAmountOut is null
+        ]),
+    ];
+}
+
+// Create a Withdraw128 order in StakeDAO
+export function getStakeDaoWithdraw128Order(context: FactoryAndOperatorsForkingBSCFixture, strategyAddress: string, amountToWithdraw: BigNumber, outputToken: string, minAmountOut?: BigNumber) {
+    return [
+        buildOrderStruct(context.stakeDaoCurveStrategyWithdraw128OperatorNameBytes32, context.stakeDaoUsdStrategyAddress, [
             ["address", strategyAddress],
             ["uint256", amountToWithdraw],
             ["address", outputToken],
@@ -315,6 +362,20 @@ export function getStakeDao3EpsWithdrawOrder(context: FactoryAndOperatorsForking
         ]),
     ];
 }
+
+// Create a Withdraw128 order in StakeDAO
+export function getStakeDaoWithdraw256Order(context: FactoryAndOperatorsForkingBSCFixture, strategyAddress: string, amountToWithdraw: BigNumber, outputToken: string, minAmountOut?: BigNumber) {
+    return [
+        buildOrderStruct(context.stakeDaoCurveStrategyWithdraw256OperatorNameBytes32, context.stakeDaoUsdStrategyAddress, [
+            ["address", strategyAddress],
+            ["uint256", amountToWithdraw],
+            ["address", outputToken],
+            ["uint256", minAmountOut != null ? minAmountOut : 0], // 100% slippage if minAmountOut is null
+        ]),
+    ];
+}
+
+
 // Generic function to create a 1:1 Order
 export function getTokenBWithTokenAOrders(
     context: FactoryAndOperatorsFixture,
