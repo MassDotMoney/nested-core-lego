@@ -1,33 +1,23 @@
 import { ethers, network } from "hardhat";
 import addresses from "../../../addresses.json";
-import { abiCoder, toBytes32 } from "../../utils";
+import { toBytes32 } from "../../utils";
 
 const chainId: string = network.config.chainId.toString();
 const context = JSON.parse(JSON.stringify(addresses));
 
 async function main(): Promise<void> {
     // Factories
-    const paraswapOperatorFactory = await ethers.getContractFactory("ParaswapOperator");
+    const flatOperatorFactory = await ethers.getContractFactory("FlatOperator");
     const operatorScriptsFactory = await ethers.getContractFactory("OperatorScripts");
     const ownerProxyFactory = await ethers.getContractFactory("OwnerProxy");
 
-    // Addresses
-    const tokenTransferProxy = "";
-    const augustusSwapper = "";
-
-    // Concat deploy bytecode + args
-    const deployCalldata = abiCoder.encode(
-        ["bytes", "address", "address"],
-        [paraswapOperatorFactory.bytecode, tokenTransferProxy, augustusSwapper],
-    );
-
     // Generate OperatorScripts script calldata
     const calldata = operatorScriptsFactory.interface.encodeFunctionData("deployAddOperators", [
-        deployCalldata,
+        flatOperatorFactory.bytecode,
         [
             {
-                name: toBytes32("Paraswap"),
-                selector: paraswapOperatorFactory.interface.getSighash("performSwap(address,address,bytes)"),
+                name: toBytes32("Flat"),
+                selector: flatOperatorFactory.interface.getSighash("transfer(address,uint256)"),
             },
         ],
     ]);
