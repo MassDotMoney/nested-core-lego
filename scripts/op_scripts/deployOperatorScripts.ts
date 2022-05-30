@@ -4,7 +4,7 @@ import hre, { ethers } from "hardhat";
 const delay = async (ms: number) => new Promise(res => setTimeout(res, ms));
 
 async function main(): Promise<void> {
-    console.log("Deploy DeployAddOperators : ");
+    console.log("Deploy OperatorScripts : ");
 
     const nestedFactoryAddr = "";
     const operatorResolverAddr = "";
@@ -20,7 +20,7 @@ async function main(): Promise<void> {
 
     await hre.run("verify:verify", {
         address: operatorScripts.address,
-        constructorArguments: [],
+        constructorArguments: [nestedFactoryAddr, operatorResolverAddr],
     });
 }
 
