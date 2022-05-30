@@ -8,13 +8,12 @@ const context = JSON.parse(JSON.stringify(addresses));
 async function main(): Promise<void> {
     // Factories
     const paraswapOperatorFactory = await ethers.getContractFactory("ParaswapOperator");
-    const scriptDeployAddOperatorsFactory = await ethers.getContractFactory("DeployAddOperators");
+    const operatorScriptsFactory = await ethers.getContractFactory("OperatorScripts");
     const ownerProxyFactory = await ethers.getContractFactory("OwnerProxy");
 
     // Addresses
-    const nestedFactoryAddr = context[chainId].NestedFactoryProxy;
-    const tokenTransferProxy = "0x216B4B4Ba9F3e719726886d34a177484278Bfcae";
-    const augustusSwapper = "0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57";
+    const tokenTransferProxy = "";
+    const augustusSwapper = "";
 
     // Concat deploy bytecode + args
     const deployCalldata = abiCoder.encode(
@@ -23,8 +22,7 @@ async function main(): Promise<void> {
     );
 
     // Generate DeployAddOperators script calldata
-    const calldata = scriptDeployAddOperatorsFactory.interface.encodeFunctionData("deployAddOperators", [
-        nestedFactoryAddr,
+    const calldata = operatorScriptsFactory.interface.encodeFunctionData("deployAddOperators", [
         deployCalldata,
         [
             {

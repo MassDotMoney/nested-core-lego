@@ -2,6 +2,7 @@
 pragma solidity 0.8.11;
 
 import "../../interfaces/INestedFactory.sol";
+import "../../interfaces/external/ITransparentUpgradeableProxy.sol";
 
 contract UpdateFees {
     /// @notice Update atomically the entryFees and exitFees
@@ -10,11 +11,18 @@ contract UpdateFees {
     /// @param exitFees The exit fees
     /// @dev Called using delegatecall by the NestedFactory owner
     function updateFees(
-        INestedFactory nestedFactory,
+        ITransparentUpgradeableProxy nestedFactory,
         uint256 entryFees,
         uint256 exitFees
     ) external {
-        nestedFactory.setEntryFees(entryFees);
-        nestedFactory.setExitFees(exitFees);
+        nestedFactory.upgradeToAndCall(
+            nestedFactory.implementation(),
+            abi.encodeWithSelector(INestedFactory.setEntryFees.selector, entryFees)
+        );
+
+        nestedFactory.upgradeToAndCall(
+            nestedFactory.implementation(),
+            abi.encodeWithSelector(INestedFactory.setExitFees.selector, exitFees)
+        );
     }
 }

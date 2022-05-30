@@ -5,18 +5,21 @@ const delay = async (ms: number) => new Promise(res => setTimeout(res, ms));
 
 async function main(): Promise<void> {
     console.log("Deploy DeployAddOperators : ");
+
+    const nestedFactoryAddr = "";
+    const operatorResolverAddr = "";
     
     // Get Factories
-    const scriptDeployAddOperatorsFactory = await ethers.getContractFactory("DeployAddOperators");
-    const scriptDeployAddOperators = await scriptDeployAddOperatorsFactory.deploy();
-    await scriptDeployAddOperators.deployed();
+    const operatorScriptsFactory = await ethers.getContractFactory("OperatorScripts");
+    const operatorScripts = await operatorScriptsFactory.deploy(nestedFactoryAddr, operatorResolverAddr);
+    await operatorScripts.deployed();
 
-    console.log("DeployAddOperators Deployed : ", scriptDeployAddOperators.address);
+    console.log("OperatorScripts Deployed : ", operatorScripts.address);
 
     await delay(60000);
 
     await hre.run("verify:verify", {
-        address: scriptDeployAddOperators.address,
+        address: operatorScripts.address,
         constructorArguments: [],
     });
 }
