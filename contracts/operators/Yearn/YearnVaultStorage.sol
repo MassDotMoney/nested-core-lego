@@ -23,7 +23,7 @@ contract YearnVaultStorage is Ownable {
     /// @dev Map of vault address with underlying CurvePool
     mapping(address => CurvePool) public vaults;
 
-    /// @notice Add a Yearn single asset vault
+    /// @notice Add a Yearn Curve vault
     /// @param vault The vault address
     /// @param pool The underlying CurvePool (used to add liquidity)
     function addVault(address vault, CurvePool calldata pool) external onlyOwner {

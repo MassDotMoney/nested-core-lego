@@ -96,7 +96,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
     });
 
     describe("deposit()", () => {
-        it("Should revert if amount to deposit is zero", async () => { // Done
+        it("Should revert if amount to deposit is zero", async () => {
             // All the amounts for this test
             const ethToDeposit = appendDecimals(1);
             const ethToDepositAndFees = ethToDeposit.add(getExpectedFees(ethToDeposit));
@@ -114,7 +114,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
-        it("Should revert if deposit more than available", async () => { // Done, fail at add_liquidity
+        it("Should revert if deposit more than available", async () => {
             // All the amounts for this test
             const ethToDeposit = appendDecimals(1);
             const ethToDepositAndFees = ethToDeposit.add(getExpectedFees(ethToDeposit));
@@ -132,7 +132,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
-        it("Should revert if vault is not added in Operator Storage", async () => { // Done
+        it("Should revert if vault is not added in Operator Storage", async () => {
             // All the amounts for this test
             const ethToDeposit = appendDecimals(1);
             const ethToDepositAndFees = ethToDeposit.add(getExpectedFees(ethToDeposit));
@@ -152,7 +152,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
-        it("Should revert if token is not in Curve pool", async () => { // Done
+        it("Should revert if token is not in Curve pool", async () => {
             // All the amounts for this test
             const ethToDeposit = appendDecimals(1);
             const ethToDepositAndFees = ethToDeposit.add(getExpectedFees(ethToDeposit));
@@ -170,7 +170,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
-        it("Should revert if minVaultAmount is not respected", async () => { // Done
+        it("Should revert if minVaultAmount is not respected", async () => {
             // All the amounts for this test
             const ethToDeposit = appendDecimals(1);
             const ethToDepositAndFees = ethToDeposit.add(getExpectedFees(ethToDeposit));
@@ -188,56 +188,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
-        it("Create with ETH and Deposit (uint256) in yearn 3crypto with WETH", async () => {
-            // All the amounts for this test
-            const ethToDeposit = appendDecimals(1);
-            const ethToDepositAndFees = ethToDeposit.add(getExpectedFees(ethToDeposit));
-
-            const ethBalanceBefore = await context.user1.getBalance();
-
-            // Orders to Deposit in yearn
-            let orders: utils.OrderStruct[] = utils.getYearnCurveDepositOrder(context, context.yearnVaultAddresses.triCryptoVault, context.WETH.address, ethToDeposit);
-
-            // User1 creates the portfolio/NFT
-            const tx = await context.nestedFactory
-                .connect(context.user1)
-                .create(0, [{ inputToken: ETH, amount: ethToDepositAndFees, orders, fromReserve: false }], {
-                    value: ethToDepositAndFees,
-                });
-
-            // Get the transaction fees
-            const txFees = await tx.wait().then(value => value.gasUsed.mul(value.effectiveGasPrice));
-
-            // User1 must be the owner of NFT n°1
-            expect(await context.nestedAsset.ownerOf(1)).to.be.equal(context.user1.address);
-
-            const mockERC20Factory = await ethers.getContractFactory("MockERC20");
-            const vault = mockERC20Factory.attach(context.yearnVaultAddresses.triCryptoVault);
-
-            //  Tokens in vault
-            const vaultBalanceReserve = await vault.balanceOf(context.nestedReserve.address);
-            expect(vaultBalanceReserve).to.not.be.equal(BIG_NUMBER_ZERO);
-
-            expect(await context.user1.getBalance()).to.be.equal(ethBalanceBefore.sub(ethToDepositAndFees).sub(txFees));
-
-            // The FeeSplitter must receive the right fee amount
-            expect(await context.WETH.balanceOf(context.feeSplitter.address)).to.be.equal(
-                getExpectedFees(ethToDeposit),
-            );
-
-            const expectedNfts = [
-                {
-                    id: BigNumber.from(1),
-                    assets: [{ token: context.yearnVaultAddresses.triCryptoVault, qty: vaultBalanceReserve }],
-                },
-            ];
-
-            const nfts = await context.nestedAssetBatcher.getNfts(context.user1.address);
-
-            expect(JSON.stringify(utils.cleanResult(nfts))).to.equal(JSON.stringify(utils.cleanResult(expectedNfts)));
-        });
-
-        it("Create with ETH and Deposit (int128) in yearn 3crypto with WETH", async () => {
+        it("Create with ETH and Deposit in yearn 3crypto with WETH", async () => {
             // All the amounts for this test
             const ethToDeposit = appendDecimals(1);
             const ethToDepositAndFees = ethToDeposit.add(getExpectedFees(ethToDeposit));
@@ -288,7 +239,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
     });
 
     describe("depositETH()", async () => {
-        it("Should revert if amount to deposit is zero", async () => { // Done
+        it("Should revert if amount to deposit is zero", async () => {
             // All the amounts for this test
             const ethToDeposit = appendDecimals(1);
             const ethToDepositAndFees = ethToDeposit.add(getExpectedFees(ethToDeposit));
@@ -305,7 +256,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
                     }),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
-        it("Should revert if deposit more than available", async () => { // Done, fail at withdrawer
+        it("Should revert if deposit more than available", async () => {
             // All the amounts for this test
             const ethToDeposit = appendDecimals(1);
             const ethToDepositAndFees = ethToDeposit.add(getExpectedFees(ethToDeposit));
@@ -322,7 +273,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
                     }),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
-        it("Should revert if vault is not added in Operator Storage", async () => { // Done
+        it("Should revert if vault is not added in Operator Storage", async () => {
             // All the amounts for this test
             const ethToDeposit = appendDecimals(1);
             const ethToDepositAndFees = ethToDeposit.add(getExpectedFees(ethToDeposit));
@@ -341,7 +292,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
                     }),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
-        it("Should revert if minVaultAmount is not respected", async () => { // Done
+        it("Should revert if minVaultAmount is not respected", async () => {
             // All the amounts for this test
             const ethToDeposit = appendDecimals(1);
             const ethToDepositAndFees = ethToDeposit.add(getExpectedFees(ethToDeposit));
@@ -425,7 +376,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
                 });
 
         });
-        it("Should revert if amount to withdraw is zero", async () => { // Done
+        it("Should revert if amount to withdraw is zero", async () => {
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
             const vault = mockERC20Factory.attach(context.yearnVaultAddresses.triCryptoVault);
 
@@ -443,7 +394,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
                     ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
-        it("Should revert if withdraw more than available", async () => { // Done, fail at withdraw
+        it("Should revert if withdraw more than available", async () => {
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
             const vault = mockERC20Factory.attach(context.yearnVaultAddresses.triCryptoVault);
 
@@ -461,7 +412,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
                     ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
-        it("Should revert if vault is not added in Operator Storage", async () => { // Done
+        it("Should revert if vault is not added in Operator Storage", async () => {
             // Orders to withdraw from yearn curve vault
             let orders: utils.OrderStruct[] = utils.getYearnCurveWithdraw256Order(context, context.yearnVaultAddresses.nonWhitelistedVault, BigNumber.from(100), context.WETH.address);
 
@@ -474,7 +425,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
                     ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
-        it("Should revert if token is not in Curve pool", async () => { // Done
+        it("Should revert if token is not in Curve pool", async () => {
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
             const vault = mockERC20Factory.attach(context.yearnVaultAddresses.triCryptoVault);
 
@@ -492,7 +443,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
                     ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
-        it("Should revert if minAmountOut is not respected", async () => { // Done
+        it("Should revert if minAmountOut is not respected", async () => {
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
             const vault = mockERC20Factory.attach(context.yearnVaultAddresses.triCryptoVault);
 
@@ -526,7 +477,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
             expect(await vault.balanceOf(context.nestedFactory.address)).to.be.equal(BIG_NUMBER_ZERO);
 
             /*
-             * I can't predict the WETH received in the FeeSplitter.
+             * WETH received by the FeeSplitter cannot be predicted.
              * It should be greater than 0.01 WETH, but sub 1% to allow a margin of error
              */
             expect(await context.WETH.balanceOf(context.feeSplitter.address)).to.be.gt(
@@ -551,7 +502,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
                     value: 0,
                 });
         });
-        it("Should revert if amount to withdraw is zero", async () => { // Done
+        it("Should revert if amount to withdraw is zero", async () => {
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
             const vault = mockERC20Factory.attach(context.yearnVaultAddresses.threeEurVault);
 
@@ -569,7 +520,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
                     ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
-        it("Should revert if withdraw more than available", async () => { // Done, fail at withdraw
+        it("Should revert if withdraw more than available", async () => {
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
             const vault = mockERC20Factory.attach(context.yearnVaultAddresses.threeEurVault);
 
@@ -600,7 +551,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
                     ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
-        it("Should revert if token is not in Curve pool", async () => { // Done
+        it("Should revert if token is not in Curve pool", async () => {
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
             const vault = mockERC20Factory.attach(context.yearnVaultAddresses.threeEurVault);
 
@@ -618,7 +569,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
                     ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
-        it("Should revert if minAmountOut is not respected", async () => { // Done
+        it("Should revert if minAmountOut is not respected", async () => {
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
             const vault = mockERC20Factory.attach(context.yearnVaultAddresses.threeEurVault);
 
@@ -654,7 +605,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
             expect(await vault.balanceOf(context.nestedFactory.address)).to.be.equal(BIG_NUMBER_ZERO);
 
             /*
-             * I can't predict the WETH received in the FeeSplitter.
+             * WETH received by the FeeSplitter cannot be predicted.
              * It should be greater than 0.01 WETH, but sub 1% to allow a margin of error
              */
             expect(await eurt.balanceOf(context.feeSplitter.address)).to.be.gt(
@@ -681,7 +632,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
                     value: ethToDepositAndFees,
                 });
         });
-        it("Should revert if amount to withdraw is zero", async () => { // Done
+        it("Should revert if amount to withdraw is zero", async () => {
             // Orders to withdraw from yearn curve vault
             let orders: utils.OrderStruct[] = utils.getYearnCurveWithdrawETHOrder(context, context.yearnVaultAddresses.alEthVault, BIG_NUMBER_ZERO);
 
@@ -694,7 +645,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
                     ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
-        it("Should revert if withdraw more than available", async () => { // Done
+        it("Should revert if withdraw more than available", async () => {
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
             const vault = mockERC20Factory.attach(context.yearnVaultAddresses.alEthVault);
 
@@ -712,7 +663,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
                     ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
-        it("Should revert if vault is not added in Operator Storage", async () => { // Done
+        it("Should revert if vault is not added in Operator Storage", async () => {
             // Orders to withdraw from yearn curve vault
             let orders: utils.OrderStruct[] = utils.getYearnCurveWithdrawETHOrder(context, context.yearnVaultAddresses.nonWhitelistedVault, BigNumber.from(100));
 
@@ -725,7 +676,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
                     ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
-        it("Should revert if minAmountOut is not respected", async () => { // Done
+        it("Should revert if minAmountOut is not respected", async () => {
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
             const vault = mockERC20Factory.attach(context.yearnVaultAddresses.alEthVault);
 
@@ -759,7 +710,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
             expect(await vault.balanceOf(context.nestedFactory.address)).to.be.equal(BIG_NUMBER_ZERO);
 
             /*
-             * I can't predict the WETH received in the FeeSplitter.
+             * WETH received by the FeeSplitter cannot be predicted.
              * It should be greater than 0.01 WETH, but sub 1% to allow a margin of error
              */
             expect(await context.WETH.balanceOf(context.feeSplitter.address)).to.be.gt(
