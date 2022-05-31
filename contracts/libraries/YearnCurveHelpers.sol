@@ -13,7 +13,7 @@ library YearnCurveHelpers {
     /// @param pool The curve 2pool
     /// @param token The token to remove from the pool
     /// @param amount The amount of token to remove from the pool
-    /// @return amounts Array of 2 token amounts sorted by Curve pool token indexes
+    /// @return Array of 2 token amounts sorted by Curve pool token indexes
     function getAmounts2Coins(
         ICurvePool pool,
         address token,

@@ -330,7 +330,7 @@ export function getUniAndKncWithETHOrders(
     ];
 }
 
-// Create a Deposit order in yearn
+// Create a non-ETH Deposit order in yearn
 export function getYearnCurveDepositOrder(context: FactoryAndOperatorsForkingETHFixture, yearnVaultAddress: string, tokenToDeposit: string, amountToDeposit: BigNumber, minVaultAmount?: BigNumber) {
     return [
         buildOrderStruct(context.yearnVaultDepositOperatorNameBytes32, yearnVaultAddress, [
@@ -342,7 +342,7 @@ export function getYearnCurveDepositOrder(context: FactoryAndOperatorsForkingETH
     ];
 }
 
-// Create a Deposit order in yearn
+// Create an ETH Deposit order in yearn
 export function getYearnCurveDepositETHOrder(context: FactoryAndOperatorsForkingETHFixture, yearnVaultAddress: string, amountToDeposit: BigNumber, minVaultAmount?: BigNumber) {
     return [
         buildOrderStruct(context.yearnVaultDepositETHOperatorNameBytes32, yearnVaultAddress, [
@@ -353,7 +353,7 @@ export function getYearnCurveDepositETHOrder(context: FactoryAndOperatorsForking
     ];
 }
 
-// Create a Withdraw order in yearn
+// Create a Withdraw256 order in yearn (for Curve pool that require a uint256 index param in the function remove_liquidity_one_coin)
 export function getYearnCurveWithdraw256Order(context: FactoryAndOperatorsForkingETHFixture, yearnVaultAddress: string, amountToWithdraw: BigNumber, outputToken: string, minAmountOut?: BigNumber) {
     return [
         buildOrderStruct(context.yearnVaultWithdraw256OperatorNameBytes32, yearnVaultAddress, [
@@ -365,7 +365,7 @@ export function getYearnCurveWithdraw256Order(context: FactoryAndOperatorsForkin
     ];
 }
 
-// Create a Withdraw order in yearn
+// Create a Withdraw128 order in yearn (for Curve pool that require a int128 index param in the function remove_liquidity_one_coin)
 export function getYearnCurveWithdraw128Order(context: FactoryAndOperatorsForkingETHFixture, yearnVaultAddress: string, amountToWithdraw: BigNumber, outputToken: string, minAmountOut?: BigNumber) {
     return [
         buildOrderStruct(context.yearnVaultWithdraw128OperatorNameBytes32, yearnVaultAddress, [
