@@ -277,13 +277,11 @@ describeOnBscFork("StakeDaoCurveStrategyOperator BSC fork", () => {
 
         it("Should revert if strategy is not whitelisted", async () => {
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
-            const strategy = mockERC20Factory.attach(context.stakeDaoUsdStrategyAddress);
+            const strategy = mockERC20Factory.attach(context.stakeDaoNonWhitelistedStrategy);
             const strategyTokenBalance = await strategy.balanceOf(context.nestedReserve.address);
 
-            const unknownStrategyAddress = Wallet.createRandom().address;
-
             // Orders to withdraw from stakeDAO
-            let orders: OrderStruct[] = getStakeDaoWithdraw128Order(context, unknownStrategyAddress, strategyTokenBalance, USDC);
+            let orders: OrderStruct[] = getStakeDaoWithdraw128Order(context, context.stakeDaoNonWhitelistedStrategy, strategyTokenBalance, USDC);
 
             await expect(
                 context.nestedFactory
@@ -606,7 +604,7 @@ describeOnEthFork("StakeDaoCurveStrategyOperator ETH fork", () => {
             expect(await strategy.balanceOf(context.nestedFactory.address)).to.be.equal(BIG_NUMBER_ZERO);
 
             /*
-             * I can't predict the WETH received in the FeeSplitter.
+             * WETH received by the FeeSplitter cannot be predicted.
              * It should be greater than 0.01 WETH, but sub 1% to allow a margin of error
              */
             expect(await context.WETH.balanceOf(context.feeSplitter.address)).to.be.gt(

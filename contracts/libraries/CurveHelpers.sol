@@ -13,7 +13,7 @@ library CurveHelpers {
     /// @param pool The curve 2pool
     /// @param token The token to remove from the pool
     /// @param amount The amount of token to remove from the pool
-    /// @return amounts Array of 2 token amounts sorted by Curve pool token indexes
+    /// @return Array of 2 token amounts sorted by Curve pool token indexes
     function getAmounts2Coins(
         ICurvePool pool,
         address token,
@@ -22,7 +22,7 @@ library CurveHelpers {
         if (token == pool.coins(0)) {
             return [amount, 0];
         } else {
-            require(token == pool.coins(1), "YCH: INVALID_INPUT_TOKEN");
+            require(token == pool.coins(1), "CH: INVALID_INPUT_TOKEN");
             return [0, amount];
         }
     }
@@ -32,7 +32,7 @@ library CurveHelpers {
     /// @param pool The curve 3pool
     /// @param token The token to remove from the pool
     /// @param amount The amount of token to remove from the pool
-    /// @return amounts Array of 3 token amounts sorted by Curve pool token indexes
+    /// @return Array of 3 token amounts sorted by Curve pool token indexes
     function getAmounts3Coins(
         ICurvePool pool,
         address token,
@@ -43,7 +43,7 @@ library CurveHelpers {
         } else if (token == pool.coins(1)) {
             return [0, amount, 0];
         } else {
-            require(token == pool.coins(2), "YCH: INVALID_INPUT_TOKEN");
+            require(token == pool.coins(2), "CH: INVALID_INPUT_TOKEN");
             return [0, 0, amount];
         }
     }
@@ -53,7 +53,7 @@ library CurveHelpers {
     /// @param pool The curve 4pool
     /// @param token The token to remove from the pool
     /// @param amount The amount of token to remove from the pool
-    /// @return amounts Array of 4 token amounts sorted by Curve pool token indexes
+    /// @return Array of 4 token amounts sorted by Curve pool token indexes
     function getAmounts4Coins(
         ICurvePool pool,
         address token,
@@ -91,7 +91,7 @@ library CurveHelpers {
             if (outputToken == pool.coins(0)) {
                 (success, ) = address(pool).call(abi.encodeWithSignature(signature, amount, 0, 0));
             } else {
-                require(outputToken == pool.coins(1), "YCVO: INVALID_OUTPUT_TOKEN");
+                require(outputToken == pool.coins(1), "CH: INVALID_OUTPUT_TOKEN");
                 (success, ) = address(pool).call(abi.encodeWithSignature(signature, amount, 1, 0));
             }
         } else if (poolCoinAmount == 3) {
@@ -101,7 +101,7 @@ library CurveHelpers {
             } else if (outputToken == pool.coins(1)) {
                 (success, ) = address(pool).call(abi.encodeWithSignature(signature, amount, 1, 0));
             } else {
-                require(outputToken == pool.coins(2), "YCVO: INVALID_OUTPUT_TOKEN");
+                require(outputToken == pool.coins(2), "CH: INVALID_OUTPUT_TOKEN");
                 (success, ) = address(pool).call(abi.encodeWithSignature(signature, amount, 2, 0));
             }
         } else {
@@ -113,7 +113,7 @@ library CurveHelpers {
             } else if (outputToken == pool.coins(2)) {
                 (success, ) = address(pool).call(abi.encodeWithSignature(signature, amount, 2, 0));
             } else {
-                require(outputToken == pool.coins(3), "YCVO: INVALID_OUTPUT_TOKEN");
+                require(outputToken == pool.coins(3), "CH: INVALID_OUTPUT_TOKEN");
                 (success, ) = address(pool).call(abi.encodeWithSignature(signature, amount, 3, 0));
             }
         }
@@ -135,11 +135,11 @@ library CurveHelpers {
         uint256 minAmountOut
     ) internal view returns (uint256[] memory amounts, address[] memory tokens) {
         uint256 vaultAmount = inputTokenBalanceBefore - inputToken.balanceOf(address(this));
-        require(vaultAmount == expectedInputAmount, "YCVO: INVALID_AMOUNT_WITHDRAWED");
+        require(vaultAmount == expectedInputAmount, "CH: INVALID_AMOUNT_WITHDRAWED");
 
         uint256 tokenAmount = outputToken.balanceOf(address(this)) - outputTokenBalanceBefore;
-        require(tokenAmount != 0, "YCVO: INVALID_AMOUNT_RECEIVED");
-        require(tokenAmount >= minAmountOut, "YCVO: INVALID_AMOUNT_RECEIVED");
+        require(tokenAmount != 0, "CH: INVALID_AMOUNT_RECEIVED");
+        require(tokenAmount >= minAmountOut, "CH: INVALID_AMOUNT_RECEIVED");
 
         amounts = new uint256[](2);
         tokens = new address[](2);

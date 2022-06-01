@@ -317,36 +317,36 @@ export function getBeefyBnbVenusWithdrawOrder(context: FactoryAndOperatorsForkin
     ];
 }
 
-// Create a Deposit order in StakeDAO
+// Create an ETH Deposit order in StakeDAO
 export function getStakeDaoDepositETHOrder(context: FactoryAndOperatorsForkingETHFixture, strategyAddress: string, amountToDeposit: BigNumber, minStrategyToken?: BigNumber) {
     return [
         buildOrderStruct(context.stakeDaoCurveStrategyDepositETHOperatorNameBytes32, strategyAddress, [
             ["address", strategyAddress],
             ["uint256", amountToDeposit],
-            ["uint256", minStrategyToken != null ? minStrategyToken : 0], // 100% slippage if minAmountOut is null
+            ["uint256", minStrategyToken ? minStrategyToken : 0], // 100% slippage if minAmountOut is null
         ]),
     ];
 }
 
-// Create a Deposit order in StakeDAO
+// Create a non-ETH Deposit order in StakeDAO
 export function getStakeDaoDepositOrder(context: FactoryAndOperatorsForkingBSCFixture, strategyAddress: string, tokenToDeposit: string, amountToDeposit: BigNumber, minStrategyToken?: BigNumber) {
     return [
-        buildOrderStruct(context.stakeDaoCurveStrategyDepositOperatorNameBytes32, context.stakeDaoUsdStrategyAddress, [
+        buildOrderStruct(context.stakeDaoCurveStrategyDepositOperatorNameBytes32, strategyAddress, [
             ["address", strategyAddress],
             ["address", tokenToDeposit],
             ["uint256", amountToDeposit],
-            ["uint256", minStrategyToken != null ? minStrategyToken : 0], // 100% slippage if minAmountOut is null
+            ["uint256", minStrategyToken ? minStrategyToken : 0], // 100% slippage if minAmountOut is null
         ]),
     ];
 }
 
-// Create a Withdraw128 order in StakeDAO
+// Create a WithdrawETH order in StakeDAO
 export function getStakeDaoWithdrawETHOrder(context: FactoryAndOperatorsForkingETHFixture, strategyAddress: string, amountToWithdraw: BigNumber, minAmountOut?: BigNumber) {
     return [
         buildOrderStruct(context.stakeDaoCurveStrategyWithdrawETHOperatorNameBytes32, strategyAddress, [
             ["address", strategyAddress],
             ["uint256", amountToWithdraw],
-            ["uint256", minAmountOut != null ? minAmountOut : 0], // 100% slippage if minAmountOut is null
+            ["uint256", minAmountOut ? minAmountOut : 0], // 100% slippage if minAmountOut is null
         ]),
     ];
 }
@@ -354,23 +354,23 @@ export function getStakeDaoWithdrawETHOrder(context: FactoryAndOperatorsForkingE
 // Create a Withdraw128 order in StakeDAO
 export function getStakeDaoWithdraw128Order(context: FactoryAndOperatorsForkingBSCFixture, strategyAddress: string, amountToWithdraw: BigNumber, outputToken: string, minAmountOut?: BigNumber) {
     return [
-        buildOrderStruct(context.stakeDaoCurveStrategyWithdraw128OperatorNameBytes32, context.stakeDaoUsdStrategyAddress, [
+        buildOrderStruct(context.stakeDaoCurveStrategyWithdraw128OperatorNameBytes32, strategyAddress, [
             ["address", strategyAddress],
             ["uint256", amountToWithdraw],
             ["address", outputToken],
-            ["uint256", minAmountOut != null ? minAmountOut : 0], // 100% slippage if minAmountOut is null
+            ["uint256", minAmountOut ? minAmountOut : 0], // 100% slippage if minAmountOut is null
         ]),
     ];
 }
 
-// Create a Withdraw128 order in StakeDAO
+// Create a Withdraw256 order in StakeDAO
 export function getStakeDaoWithdraw256Order(context: FactoryAndOperatorsForkingBSCFixture, strategyAddress: string, amountToWithdraw: BigNumber, outputToken: string, minAmountOut?: BigNumber) {
     return [
-        buildOrderStruct(context.stakeDaoCurveStrategyWithdraw256OperatorNameBytes32, context.stakeDaoUsdStrategyAddress, [
+        buildOrderStruct(context.stakeDaoCurveStrategyWithdraw256OperatorNameBytes32, strategyAddress, [
             ["address", strategyAddress],
             ["uint256", amountToWithdraw],
             ["address", outputToken],
-            ["uint256", minAmountOut != null ? minAmountOut : 0], // 100% slippage if minAmountOut is null
+            ["uint256", minAmountOut ? minAmountOut : 0], // 100% slippage if minAmountOut is null
         ]),
     ];
 }

@@ -430,6 +430,7 @@ export type FactoryAndOperatorsForkingBSCFixture = {
     beefyVaultDepositOperatorNameBytes32: string;
     beefyVaultWithdrawOperatorNameBytes32: string;
     stakeDaoUsdStrategyAddress: string;
+    stakeDaoNonWhitelistedStrategy: string;
     stakeDaoCurveStrategyOperator: StakeDaoCurveStrategyOperator;
     stakeDaoStrategyStorage: StakeDaoStrategyStorage;
     stakeDaoCurveStrategyDepositOperatorNameBytes32: string;
@@ -673,6 +674,7 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
         beefyVaultDepositOperatorNameBytes32: toBytes32("BeefyDeposit"),
         beefyVaultWithdrawOperatorNameBytes32: toBytes32("BeefyWithdraw"),
         stakeDaoUsdStrategyAddress,
+        stakeDaoNonWhitelistedStrategy: "0xf479e1252481360f67c2b308F998395cA056a77f",
         stakeDaoCurveStrategyOperator,
         stakeDaoStrategyStorage,
         stakeDaoCurveStrategyDepositOperatorNameBytes32: toBytes32("stakeDaoCurveStrategyDeposit"),
