@@ -15,6 +15,9 @@
         "FlatOperator": "0x9ca5249E3b889191980C4cB8ad6Ac55727d65a55",
         "Timelock": "0xc106C292dB0176Be602D4d9b340473FECc99edF6",
         "NestedAssetBatcher": "0xD9C7cd07f3435dF70B3204e1612Aebb1C374D1DE",
+        "scripts": {
+            "OperatorScripts": ""
+        },
         "config": {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
@@ -22,8 +25,7 @@
             "multisig": "0x2B93035B9f93E617aC468B220E7a1E5012Bd6E3d",
             "emergencyMultisig": "0xcA2927254adc08548191F8431ad603552209428c",
             "nestedTreasury": "0x2eeE8d38eA788A7260df8C4D32f39066DD80eF3B",
-            "OwnerProxy_admin": "",
-            "OwnerProxy_owner": ""
+            "OwnerProxy": ""
         }
     },
     "10": {
@@ -43,7 +45,7 @@
         "Timelock": "0x1734A5eAB695d9B7C678adaa9a479DBB88897660",
         "NestedAssetBatcher": "0xae5fAB55C6AA6Bba24eef3fb98c48a0B616b163d",
         "scripts": {
-            "OperatorScripts": "0xf8639f6D597e1AE2B697E026218ED9BF47AEfDd8"
+            "OperatorScripts": ""
         },
         "config": {
             "maxHoldingsCount": 12,
@@ -52,8 +54,7 @@
             "multisig": "0x37F560eaaa7e40fF9d575825eB03d5631BfB8d50",
             "emergencyMultisig": "0x75b8ac2a08eD803C7002134639C6CACaf0A6470D",
             "nestedTreasury": "0x0b928f82d2E3371420136DE930f2dCd7928b2e61",
-            "OwnerProxy_admin": "",
-            "OwnerProxy_owner": ""
+            "OwnerProxy": ""
         }
     },
     "56": {
@@ -72,6 +73,9 @@
         "FlatOperator": "0x6bDc58D3287176b40ad2243eC0CF35f33F2119DA",
         "Timelock": "0x42f93A591C2eF6Ce52426a027F2529Eef4738F5A",
         "NestedAssetBatcher": "0x9EE92a94A8Ace98F36F19b35091C34e9D9bccD54",
+        "scripts": {
+            "OperatorScripts": ""
+        },
         "config": {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
@@ -79,8 +83,7 @@
             "multisig": "0xD95c74A3041EEC4DC393F98A2180EE67903CcC4F",
             "emergencyMultisig": "0xF76119Ba666fe838431544cDBA513dE9b6d851C1",
             "nestedTreasury": "0xb8725Ed917e4F3f2B3c6eb0a7C356206235f4f6A",
-            "OwnerProxy_admin": "",
-            "OwnerProxy_owner": ""
+            "OwnerProxy": ""
         }
     },
     "137": {
@@ -99,6 +102,9 @@
         "FlatOperator": "0xD75aF988B2282C1B466C7640B01E4B89239a72D8",
         "Timelock": "0x42f93A591C2eF6Ce52426a027F2529Eef4738F5A",
         "NestedAssetBatcher": "0xD81b8221f57eB314AB9C6606F418653CCfC90eB5",
+        "scripts": {
+            "OperatorScripts": ""
+        },
         "config": {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
@@ -106,8 +112,7 @@
             "multisig": "0xf9B701cE5bc5E83C65301c733e1d91f18eF35d8E",
             "emergencyMultisig": "0x66E5393d0D780b84A26f166450F4778ccDFAfE07",
             "nestedTreasury": "0x44FE6e6513BBf4e19Bbf421f3AA8ef60e15006AB",
-            "OwnerProxy_admin": "",
-            "OwnerProxy_owner": ""
+            "OwnerProxy": ""
         }
     },
     "250": {
@@ -126,6 +131,9 @@
         "FlatOperator": "",
         "Timelock": "",
         "NestedAssetBatcher": "",
+        "scripts": {
+            "OperatorScripts": ""
+        },
         "config": {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef189deaef76e379df891899eb5a00a94cbc250",
@@ -133,8 +141,7 @@
             "multisig": "0xA30b05583365E56f4672FfBCeadE458818e5f0a1",
             "emergencyMultisig": "0x38ae60704579f44ADb3D7E60830AC2400A10BB7b",
             "nestedTreasury": "0x0d276a90Ce591844AEd5c8B93072cA5D59face06",
-            "OwnerProxy_admin": "",
-            "OwnerProxy_owner": ""
+            "OwnerProxy": ""
         }
     },
     "42220": {
@@ -153,6 +160,9 @@
         "FlatOperator": "",
         "Timelock": "",
         "NestedAssetBatcher": "",
+        "scripts": {
+            "OperatorScripts": ""
+        },
         "config": {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
@@ -160,8 +170,7 @@
             "multisig": "",
             "emergencyMultisig": "",
             "nestedTreasury": "0x4d32736631239B662D034724730375BBC5B8299d",
-            "OwnerProxy_admin": "",
-            "OwnerProxy_owner": ""
+            "OwnerProxy": ""
         }
     },
     "43114": {
@@ -180,6 +189,9 @@
         "FlatOperator": "0x6bDc58D3287176b40ad2243eC0CF35f33F2119DA",
         "Timelock": "0x42f93A591C2eF6Ce52426a027F2529Eef4738F5A",
         "NestedAssetBatcher": "0x9EE92a94A8Ace98F36F19b35091C34e9D9bccD54",
+        "scripts": {
+            "OperatorScripts": ""
+        },
         "config": {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
@@ -187,8 +199,7 @@
             "multisig": "0x4a9101F6266E912e99477D1557997bBe7054652a",
             "emergencyMultisig": "0x71d68D6dcA7C5D814c64b3b2052af5Cb11ACe8be",
             "nestedTreasury": "0x16019330CCf2e14E1C2A9562092415F6621b51BC",
-            "OwnerProxy_admin": "",
-            "OwnerProxy_owner": ""
+            "OwnerProxy": ""
         }
     }
 }
