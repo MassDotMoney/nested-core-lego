@@ -53,7 +53,7 @@ describeWithoutFork("OperatorResolver", () => {
             ).to.not.be.reverted;
         });
 
-        it("cant be invoked by a user", async () => {
+        it("Can't be invoked by a user", async () => {
             await expect(
                 context.operatorResolver
                     .connect(actors.user1())
