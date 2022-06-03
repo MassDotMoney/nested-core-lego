@@ -103,7 +103,7 @@ When deploying an operator, it will also deploy the storage contract and transfe
 | Name                  | Purpose                                                                                                                  |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | OperatorResolver      | Allows the factory to identify which operator to interact with.                                                          |
-| MixinOperatorResolver | Abstract contract to load authorized operators in cache (instead of calling `OperatorResolver`).                         |
+| MixinOperatorResolver | Abstract contract to load authorized operators in cache.                         |
 | ZeroExOperator        | Performs token swaps through 0x ([read more](contracts/operators/ZeroEx/README.md)).                                     |
 | ZeroExStorage         | ZeroExOperator storage contract. Must store the 0x `swapTarget`.                                                         |
 | FlatOperator          | Handles deposits and withdraws. No interaction with any third parties ([read more](contracts/operators/Flat/README.md)). |
