@@ -47,7 +47,7 @@ contract YearnCurveVaultOperator {
         withdrawer = _withdrawer;
     }
 
-    /// @notice Add liquidity in a Curve pool that inculdes ETH,
+    /// @notice Add liquidity in a Curve pool that includes ETH,
     ///         deposit the LP token in a Yearn vault and receive
     ///         the Yearn vault shares
     /// @param vault The Yearn vault address to deposit into
