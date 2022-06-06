@@ -461,6 +461,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         bool _toReserve
     ) private returns (uint256 amountSpent) {
         (bool success, uint256[] memory amounts) = callOperator(_order, _inputToken, _outputToken);
+        // We raise the following error in case the call to the operator failed
+        // We do not check the calldata to raise the specific error for now
         require(success, "NF: OPERATOR_CALL_FAILED");
 
         if (_toReserve) {
