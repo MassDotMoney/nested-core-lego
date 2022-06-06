@@ -330,7 +330,7 @@ contract YearnCurveVaultOperator {
         address outputToken
     ) private {
         uint256 lpTokenBalanceBefore = lpToken.balanceOf(address(this));
-        IYearnVault(vault).withdraw(amount, address(this), 10000);
+        IYearnVault(vault).withdraw(amount, address(this), 10000); // 10000 corresponds to a 100% slippage
 
         YearnCurveHelpers.removeLiquidityOneCoin(
             pool,
@@ -358,7 +358,7 @@ contract YearnCurveVaultOperator {
         address outputToken
     ) private {
         uint256 lpTokenBalanceBefore = lpToken.balanceOf(address(this));
-        IYearnVault(vault).withdraw(amount, address(this), 10000);
+        IYearnVault(vault).withdraw(amount, address(this), 10000); // 10000 corresponds to a 100% slippage
 
         YearnCurveHelpers.removeLiquidityOneCoin(
             pool,
