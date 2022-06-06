@@ -134,8 +134,10 @@ library CurveHelpers {
         uint256 outputTokenBalanceBefore,
         uint256 minAmountOut
     ) internal view returns (uint256[] memory amounts, address[] memory tokens) {
-        uint256 vaultAmount = inputTokenBalanceBefore - inputToken.balanceOf(address(this));
-        require(vaultAmount == expectedInputAmount, "CH: INVALID_AMOUNT_WITHDRAWED");
+        require(
+            inputTokenBalanceBefore - inputToken.balanceOf(address(this)) == expectedInputAmount,
+            "CH: INVALID_AMOUNT_WITHDRAWED"
+        );
 
         uint256 tokenAmount = outputToken.balanceOf(address(this)) - outputTokenBalanceBefore;
         require(tokenAmount != 0, "CH: INVALID_AMOUNT_RECEIVED");
