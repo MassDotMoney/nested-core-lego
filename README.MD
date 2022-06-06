@@ -99,13 +99,15 @@ When deploying an operator, it will also deploy the storage contract and transfe
 
 ### Contracts
 
-| Name                  | Purpose  |
-|-----------------------|----------|
-| OperatorResolver      | Allows the factory to identify which operator to interact with. |
-| MixinOperatorResolver | Abstract contract to load authorized operators in cache (instead of calling `OperatorResolver`). |
-| ZeroExOperator        | Performs token swaps through 0x ([read more](contracts/operators/ZeroEx/README.md)). |
-| ZeroExStorage         | ZeroExOperator storage contract. Must store the 0x `swapTarget`. |
-| FlatOperator          | Handles deposits and withdraws. No interaction with any third parties ([read more](contracts/operators/Flat/README.md)). |
+| Name                    | Purpose                                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| OperatorResolver        | Allows the factory to identify which operator to interact with.                                                          |
+| MixinOperatorResolver   | Abstract contract to load authorized operators in cache (instead of calling `OperatorResolver`).                         |
+| ZeroExOperator          | Performs token swaps through 0x ([read more](contracts/operators/ZeroEx/README.md)).                                     |
+| ZeroExStorage           | ZeroExOperator storage contract. Must store the 0x `swapTarget`.                                                         |
+| FlatOperator            | Handles deposits and withdraws. No interaction with any third parties ([read more](contracts/operators/Flat/README.md)). |
+| YearnCurveVaultOperator | Handles deposits and withdraws in a Yearn LP vault.                                                                      |
+| YearnVaultStorage       | Handles whitelisting of Yearn Vaults.                                                                                    |
 
 _More operators will be added. e.g. CurveOperator or SynthetixOperator_
 
