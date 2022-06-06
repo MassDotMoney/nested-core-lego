@@ -103,7 +103,7 @@ When deploying an operator, it will also deploy the storage contract and transfe
 | Name                  | Purpose                                                                                                                  |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | OperatorResolver      | Allows the factory to identify which operator to interact with.                                                          |
-| MixinOperatorResolver | Abstract contract to load authorized operators in cache.                         |
+| MixinOperatorResolver | Abstract contract to load authorized operators in cache.                                                                 |
 | ZeroExOperator        | Performs token swaps through 0x ([read more](contracts/operators/ZeroEx/README.md)).                                     |
 | ZeroExStorage         | ZeroExOperator storage contract. Must store the 0x `swapTarget`.                                                         |
 | FlatOperator          | Handles deposits and withdraws. No interaction with any third parties ([read more](contracts/operators/Flat/README.md)). |
@@ -168,21 +168,25 @@ struct BatchedOutputOrders {
 }
 ```
 
+#### Example `processInputOrders` flow
+
+<div align="center"><img src="./static/processInputOrders.png" width="1200"></div>
+
 ## ETH managment
 
 The Nested protocol only handles WETH when calling operators.  
-The sent ETH used to feed a portfolio is automatically converted to WETH when received. 
+The sent ETH used to feed a portfolio is automatically converted to WETH when received.
 
 ### WETH Conversion
 
-The conversion from ETH to WETH is done when submitting an order through `_submitInOrders` or `_submitOutOrders`.  
+The conversion from ETH to WETH is done when submitting an order through `_submitInOrders` or `_submitOutOrders`.
 
 Before submitting orders, the NestedFactory transfers the input tokens from the NestedReserve (or the msg.sender) to the factory and converts the sent ETH to WETH.
 
 ### Use of ETH in operators
 
 There are some operators who use ETH directly and not WETH.  
-In this case, the operator uses the Withdrawer to get the ETH back from the WETH contract before using it. 
+In this case, the operator uses the Withdrawer to get the ETH back from the WETH contract before using it.
 
 > Only the Withdrawer can send ETH to the NestedFactory without automatic WETH conversion.
 
