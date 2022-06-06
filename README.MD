@@ -134,10 +134,10 @@ It help us to make **one** interaction, but we want to make multiple interaction
 
 #### Batched Input Orders
 
-<div align="center"><img width="650" src="https://user-images.githubusercontent.com/22816913/152816454-467afbf1-62a1-4d81-9cc3-e86403ab2e8f.png"></div>
+<div align="center"><img src="./static/input-orders.png" width="650"></div>
 
 -   One same input for every orders but multiple outputs.
--   1% Fee on the input.
+-   0.3% fee on the input.
 -   The input (_source_) is from a wallet **or** a porfolio owned by the transactions signer.
 -   The ouput (_destination_) is the portfolio owned by the transactions signer (**only**).
 
@@ -152,10 +152,10 @@ struct BatchedInputOrders {
 
 #### Batched Output Orders
 
-<div align="center"><img width="650" src="https://user-images.githubusercontent.com/22816913/152816552-f48f1a68-e8c2-44d3-b709-5f2ef17e9fb1.png"></div>
+<div align="center"><img src="./static/output-orders.png" width="650"></div>
 
 -   Multiple inputs for every orders but one output.
--   1% Fee on the output.
+-   0.3% fee on the output if operation does not reduce TVL, 0.8% if it does
 -   The input (_source_) is the portfolio owned by the transactions signer (**only**).
 -   The ouput (_destination_) is from a wallet **or** a portfolio owned by the transactions signer.
 
