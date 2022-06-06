@@ -100,13 +100,18 @@ When deploying an operator, it will also deploy the storage contract and transfe
 
 ### Contracts
 
-| Name                  | Purpose                                                                                                                  |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| OperatorResolver      | Allows the factory to identify which operator to interact with.                                                          |
-| MixinOperatorResolver | Abstract contract to load authorized operators in cache.                                                                 |
-| ZeroExOperator        | Performs token swaps through 0x ([read more](contracts/operators/ZeroEx/README.md)).                                     |
-| ZeroExStorage         | ZeroExOperator storage contract. Must store the 0x `swapTarget`.                                                         |
-| FlatOperator          | Handles deposits and withdraws. No interaction with any third parties ([read more](contracts/operators/Flat/README.md)). |
+| Name                           | Purpose                                                                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| OperatorResolver               | Allows the factory to identify which operator to interact with.                                                          |
+| MixinOperatorResolver          | Abstract contract to load authorized operators in cache.                                                                 |
+| ZeroExOperator                 | Performs token swaps through 0x ([read more](contracts/operators/ZeroEx/README.md)).                                     |
+| ZeroExStorage                  | ZeroExOperator storage contract. Must store the 0x `swapTarget`.                                                         |
+| FlatOperator                   | Handles deposits and withdraws. No interaction with any third parties ([read more](contracts/operators/Flat/README.md)). |
+| BeefyVaultOperator             | Handles deposits and withdraws in a Beefy single vault (native or non-native).                                           |
+| BeefyZapBiswapLPVaultOperator  | Handles deposits and withdraws in a Beefy Biswap LP vault using zapper                                                   |
+| BeefyZapUniswapLPVaultOperator | Handles deposits and withdraws in a Beefy UniswapV2 LP vault using zapper                                                |
+| BeefyVaultStorage              | Handles whitelisting of Beefy Vault or Zapper                                                                            |
+| ParaswapOperator               | Performs token swaps through Paraswap.                                                                                   |
 
 _More operators will be added. e.g. CurveOperator or SynthetixOperator_
 
