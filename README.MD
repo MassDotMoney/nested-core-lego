@@ -168,6 +168,24 @@ struct BatchedOutputOrders {
 }
 ```
 
+## ETH managment
+
+The Nested protocol only handles WETH when calling operators.  
+The sent ETH used to feed a portfolio is automatically converted to WETH when received. 
+
+### WETH Conversion
+
+The conversion from ETH to WETH is done when submitting an order through `_submitInOrders` or `_submitOutOrders`.  
+
+Before submitting orders, the NestedFactory transfers the input tokens from the NestedReserve (or the msg.sender) to the factory and converts the sent ETH to WETH.
+
+### Use of ETH in operators
+
+There are some operators who use ETH directly and not WETH.  
+In this case, the operator uses the Withdrawer to get the ETH back from the WETH contract before using it. 
+
+> Only the Withdrawer can send ETH to the NestedFactory without automatic WETH conversion.
+
 # Ownership & Governance
 
 Some functions of the protocol require admin rights (`onlyOwner`).
