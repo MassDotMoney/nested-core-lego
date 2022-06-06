@@ -4,7 +4,7 @@ pragma solidity 0.8.11;
 import "./../interfaces/external/ICurvePool/ICurvePool.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-/// @notice Library for Yearn Curve deposit/withdraw
+/// @notice Library for Curve deposit/withdraw
 library CurveHelpers {
     using SafeERC20 for IERC20;
 
@@ -66,7 +66,7 @@ library CurveHelpers {
         } else if (token == pool.coins(2)) {
             return [0, 0, amount, 0];
         } else {
-            require(token == pool.coins(3), "YCH: INVALID_INPUT_TOKEN");
+            require(token == pool.coins(3), "CH: INVALID_INPUT_TOKEN");
             return [0, 0, 0, amount];
         }
     }
