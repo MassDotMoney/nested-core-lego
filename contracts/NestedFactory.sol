@@ -81,7 +81,10 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         withdrawer = _withdrawer;
     }
 
-    /// @dev Receive function
+    /// @dev Receive function that will wrap the ether if
+    ///      an address other than the withdrawer sends ether to
+    ///      to the contract. The factory cannot handle ether but
+    ///      has functions to withdraw ERC20 tokens if needed.
     receive() external payable {
         if (msg.sender != address(withdrawer)) {
             weth.deposit{ value: msg.value }();
