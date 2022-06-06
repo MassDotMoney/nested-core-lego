@@ -5,7 +5,7 @@ const w3utils = require("web3-utils");
 const abiCoder = new ethers.utils.AbiCoder();
 
 export const appendDecimals = (amount: number) => ethers.utils.parseEther(amount.toString());
-export const append6Decimals = (amount: number) => { return BigNumber.from(amount).mul(10 ** 6) };
+export const append6Decimals = (amount: number) => { return BigNumber.from(amount).mul(10 ** 6) }; // needed for EURT that has 6 decimals
 
 export const getETHSpentOnGas = async (tx: any) => {
     const receipt = await tx.wait();
