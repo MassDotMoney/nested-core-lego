@@ -168,7 +168,14 @@ contract StakeDaoCurveStrategyOperator {
         uint256 strategyBalanceBefore = IERC20(strategy).balanceOf(address(this));
         uint256 tokenBalanceBefore = weth.balanceOf(address(this));
 
-        _withdrawAndRemoveLiquidity128(strategy, amount, ICurvePool(pool), IERC20(lpToken), poolCoinAmount, eth);
+        StakingVaultHelpers._withdrawAndRemoveLiquidity128(
+            strategy,
+            amount,
+            ICurvePool(pool),
+            IERC20(lpToken),
+            poolCoinAmount,
+            eth
+        );
 
         (amounts, tokens) = CurveHelpers.getOutputAmounts(
             IERC20(strategy),
@@ -209,7 +216,7 @@ contract StakeDaoCurveStrategyOperator {
         uint256 strategyBalanceBefore = IERC20(strategy).balanceOf(address(this));
         uint256 tokenBalanceBefore = outputToken.balanceOf(address(this));
 
-        _withdrawAndRemoveLiquidity128(
+        StakingVaultHelpers._withdrawAndRemoveLiquidity128(
             strategy,
             amount,
             ICurvePool(pool),
@@ -257,7 +264,7 @@ contract StakeDaoCurveStrategyOperator {
         uint256 strategyBalanceBefore = IERC20(strategy).balanceOf(address(this));
         uint256 tokenBalanceBefore = outputToken.balanceOf(address(this));
 
-        _withdrawAndRemoveLiquidity256(
+        StakingVaultHelpers._withdrawAndRemoveLiquidity256(
             strategy,
             amount,
             ICurvePoolNonETH(pool),
@@ -273,62 +280,6 @@ contract StakeDaoCurveStrategyOperator {
             outputToken,
             tokenBalanceBefore,
             minAmountOut
-        );
-    }
-
-    /// @dev Withdraw the LP token from the StakeDAO strategy and
-    ///      remove the liquidity from the Curve pool
-    /// @param strategy The StakeDAO strategy address to withdraw from
-    /// @param amount The amount to withdraw
-    /// @param pool The Curve pool to remove liquitiy from
-    /// @param lpToken The Curve pool LP token
-    /// @param poolCoinAmount The number of token in the Curve pool
-    /// @param outputToken Output token to receive
-    function _withdrawAndRemoveLiquidity128(
-        address strategy,
-        uint256 amount,
-        ICurvePool pool,
-        IERC20 lpToken,
-        uint256 poolCoinAmount,
-        address outputToken
-    ) private {
-        uint256 lpTokenBalanceBefore = lpToken.balanceOf(address(this));
-        IStakeDaoStrategy(strategy).withdraw(amount);
-
-        CurveHelpers.removeLiquidityOneCoin(
-            pool,
-            lpToken.balanceOf(address(this)) - lpTokenBalanceBefore,
-            outputToken,
-            poolCoinAmount,
-            "remove_liquidity_one_coin(uint256,int128,uint256)"
-        );
-    }
-
-    /// @dev Withdraw the LP token from the StakeDAO strategy and
-    ///      remove the liquidity from the Curve pool
-    /// @param strategy The StakeDAO strategy address to withdraw from
-    /// @param amount The amount to withdraw
-    /// @param pool The Curve pool to remove liquitiy from
-    /// @param lpToken The Curve pool LP token
-    /// @param poolCoinAmount The number of token in the Curve pool
-    /// @param outputToken Output token to receive
-    function _withdrawAndRemoveLiquidity256(
-        address strategy,
-        uint256 amount,
-        ICurvePool pool,
-        IERC20 lpToken,
-        uint256 poolCoinAmount,
-        address outputToken
-    ) private {
-        uint256 lpTokenBalanceBefore = lpToken.balanceOf(address(this));
-        IStakeDaoStrategy(strategy).withdraw(amount);
-
-        CurveHelpers.removeLiquidityOneCoin(
-            pool,
-            lpToken.balanceOf(address(this)) - lpTokenBalanceBefore,
-            outputToken,
-            poolCoinAmount,
-            "remove_liquidity_one_coin(uint256,uint256,uint256)"
         );
     }
 }

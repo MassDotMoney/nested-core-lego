@@ -78,4 +78,64 @@ library StakingVaultHelpers {
         ExchangeHelpers.setMaxAllowance(lpToken, strategy);
         IStakeDaoStrategy(strategy).deposit(lpTokenToDeposit);
     }
+
+    /// @dev Withdraw the LP token from the staking vault and
+    ///      remove the liquidity from the Curve pool
+    /// @param strategy The staking vault address to withdraw from
+    /// @param amount The amount to withdraw
+    /// @param pool The Curve pool to remove liquitiy from
+    /// @param lpToken The Curve pool LP token
+    /// @param poolCoinAmount The number of token in the Curve pool
+    /// @param outputToken Output token to receive
+    function _withdrawAndRemoveLiquidity128(
+        address strategy,
+        uint256 amount,
+        ICurvePool pool,
+        IERC20 lpToken,
+        uint256 poolCoinAmount,
+        address outputToken
+    ) internal {
+        uint256 lpTokenBalanceBefore = lpToken.balanceOf(address(this));
+        IStakeDaoStrategy(strategy).withdraw(amount);
+
+        bool success = CurveHelpers.removeLiquidityOneCoin(
+            pool,
+            lpToken.balanceOf(address(this)) - lpTokenBalanceBefore,
+            outputToken,
+            poolCoinAmount,
+            "remove_liquidity_one_coin(uint256,int128,uint256)"
+        );
+
+        require(success, "SDCSO: CURVE_RM_LIQUIDITY_FAILED");
+    }
+
+    /// @dev Withdraw the LP token from the staking vault and
+    ///      remove the liquidity from the Curve pool
+    /// @param strategy The staking vault address to withdraw from
+    /// @param amount The amount to withdraw
+    /// @param pool The Curve pool to remove liquitiy from
+    /// @param lpToken The Curve pool LP token
+    /// @param poolCoinAmount The number of token in the Curve pool
+    /// @param outputToken Output token to receive
+    function _withdrawAndRemoveLiquidity256(
+        address strategy,
+        uint256 amount,
+        ICurvePool pool,
+        IERC20 lpToken,
+        uint256 poolCoinAmount,
+        address outputToken
+    ) internal {
+        uint256 lpTokenBalanceBefore = lpToken.balanceOf(address(this));
+        IStakeDaoStrategy(strategy).withdraw(amount);
+
+        bool success = CurveHelpers.removeLiquidityOneCoin(
+            pool,
+            lpToken.balanceOf(address(this)) - lpTokenBalanceBefore,
+            outputToken,
+            poolCoinAmount,
+            "remove_liquidity_one_coin(uint256,uint256,uint256)"
+        );
+
+        require(success, "SDCSO: CURVE_RM_LIQUIDITY_FAILED");
+    }
 }
