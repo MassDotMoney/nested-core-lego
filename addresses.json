@@ -45,7 +45,7 @@
         "Timelock": "0x1734A5eAB695d9B7C678adaa9a479DBB88897660",
         "NestedAssetBatcher": "0xae5fAB55C6AA6Bba24eef3fb98c48a0B616b163d",
         "scripts": {
-            "OperatorScripts": ""
+            "OperatorScripts": "0x3a506575bF5202EF846cE4C88eea8aDFBA63f760"
         },
         "config": {
             "maxHoldingsCount": 12,
@@ -54,7 +54,7 @@
             "multisig": "0x37F560eaaa7e40fF9d575825eB03d5631BfB8d50",
             "emergencyMultisig": "0x75b8ac2a08eD803C7002134639C6CACaf0A6470D",
             "nestedTreasury": "0x0b928f82d2E3371420136DE930f2dCd7928b2e61",
-            "OwnerProxy": ""
+            "OwnerProxy": "0x9ee92a94a8ace98f36f19b35091c34e9d9bccd54"
         }
     },
     "56": {
@@ -83,7 +83,7 @@
             "multisig": "0xD95c74A3041EEC4DC393F98A2180EE67903CcC4F",
             "emergencyMultisig": "0xF76119Ba666fe838431544cDBA513dE9b6d851C1",
             "nestedTreasury": "0xb8725Ed917e4F3f2B3c6eb0a7C356206235f4f6A",
-            "OwnerProxy": ""
+            "OwnerProxy": "0x47da55928d52FDD7584bb0FB80E5a0Cf8C2FcEDc"
         }
     },
     "137": {
