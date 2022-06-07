@@ -4,28 +4,28 @@ pragma solidity 0.8.11;
 import "./../Withdrawer.sol";
 import "../libraries/CurveHelpers.sol";
 import "./../libraries/ExchangeHelpers.sol";
-import "../interfaces/external/IStakeDaoStrategy.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./../interfaces/external/ICurvePool/ICurvePool.sol";
 import "./../interfaces/external/ICurvePool/ICurvePool.sol";
 import "./../interfaces/external/ICurvePool/ICurvePoolETH.sol";
+import "../interfaces/external/IStakingVault/IStakingVault.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./../interfaces/external/ICurvePool/ICurvePoolNonETH.sol";
 
 /// @notice Library for LP Staking Vaults deposit/withdraw
-library StakingVaultHelpers {
+library StakingLPVaultHelpers {
     using SafeERC20 for IERC20;
 
     /// @dev  Add liquidity in a Curve pool with ETH and deposit
     ///       the LP token in a staking vault
-    /// @param strategy The staking vault address to deposit into
+    /// @param vault The staking vault address to deposit into
     /// @param pool The Curve pool to add liquitiy in
     /// @param lpToken The Curve pool LP token
     /// @param poolCoinAmount The number of token in the Curve pool
     /// @param eth ETH address
     /// @param amount ETH amount to add in the Curve pool
     function _addLiquidityAndDepositETH(
-        address strategy,
+        address vault,
         ICurvePoolETH pool,
         IERC20 lpToken,
         uint256 poolCoinAmount,
@@ -43,20 +43,20 @@ library StakingVaultHelpers {
         }
 
         uint256 lpTokenToDeposit = lpToken.balanceOf(address(this)) - lpTokenBalanceBefore;
-        ExchangeHelpers.setMaxAllowance(lpToken, strategy);
-        IStakeDaoStrategy(strategy).deposit(lpTokenToDeposit);
+        ExchangeHelpers.setMaxAllowance(lpToken, vault);
+        IStakingVault(vault).deposit(lpTokenToDeposit);
     }
 
     /// @dev  Add liquidity in a Curve pool and deposit
     ///       the LP token in a staking vault
-    /// @param strategy The staking vault address to deposit into
+    /// @param vault The staking vault address to deposit into
     /// @param pool The Curve pool to add liquitiy in
     /// @param lpToken The Curve pool lpToken
     /// @param poolCoinAmount The number of token in the Curve pool
     /// @param token Token to add in the Curve pool liquidity
     /// @param amount Token amount to add in the Curve pool
     function _addLiquidityAndDeposit(
-        address strategy,
+        address vault,
         ICurvePoolNonETH pool,
         IERC20 lpToken,
         uint256 poolCoinAmount,
@@ -75,20 +75,20 @@ library StakingVaultHelpers {
         }
 
         uint256 lpTokenToDeposit = lpToken.balanceOf(address(this)) - lpTokenBalanceBefore;
-        ExchangeHelpers.setMaxAllowance(lpToken, strategy);
-        IStakeDaoStrategy(strategy).deposit(lpTokenToDeposit);
+        ExchangeHelpers.setMaxAllowance(lpToken, vault);
+        IStakingVault(vault).deposit(lpTokenToDeposit);
     }
 
     /// @dev Withdraw the LP token from the staking vault and
     ///      remove the liquidity from the Curve pool
-    /// @param strategy The staking vault address to withdraw from
+    /// @param vault The staking vault address to withdraw from
     /// @param amount The amount to withdraw
     /// @param pool The Curve pool to remove liquitiy from
     /// @param lpToken The Curve pool LP token
     /// @param poolCoinAmount The number of token in the Curve pool
     /// @param outputToken Output token to receive
     function _withdrawAndRemoveLiquidity128(
-        address strategy,
+        address vault,
         uint256 amount,
         ICurvePool pool,
         IERC20 lpToken,
@@ -96,7 +96,7 @@ library StakingVaultHelpers {
         address outputToken
     ) internal {
         uint256 lpTokenBalanceBefore = lpToken.balanceOf(address(this));
-        IStakeDaoStrategy(strategy).withdraw(amount);
+        IStakingVault(vault).withdraw(amount);
 
         bool success = CurveHelpers.removeLiquidityOneCoin(
             pool,
@@ -111,14 +111,14 @@ library StakingVaultHelpers {
 
     /// @dev Withdraw the LP token from the staking vault and
     ///      remove the liquidity from the Curve pool
-    /// @param strategy The staking vault address to withdraw from
+    /// @param vault The staking vault address to withdraw from
     /// @param amount The amount to withdraw
     /// @param pool The Curve pool to remove liquitiy from
     /// @param lpToken The Curve pool LP token
     /// @param poolCoinAmount The number of token in the Curve pool
     /// @param outputToken Output token to receive
     function _withdrawAndRemoveLiquidity256(
-        address strategy,
+        address vault,
         uint256 amount,
         ICurvePool pool,
         IERC20 lpToken,
@@ -126,7 +126,7 @@ library StakingVaultHelpers {
         address outputToken
     ) internal {
         uint256 lpTokenBalanceBefore = lpToken.balanceOf(address(this));
-        IStakeDaoStrategy(strategy).withdraw(amount);
+        IStakingVault(vault).withdraw(amount);
 
         bool success = CurveHelpers.removeLiquidityOneCoin(
             pool,

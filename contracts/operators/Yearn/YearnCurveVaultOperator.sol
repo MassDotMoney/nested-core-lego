@@ -2,21 +2,20 @@
 pragma solidity 0.8.11;
 
 import "./../../Withdrawer.sol";
-import "./StakeDaoStrategyStorage.sol";
-import "../../libraries/CurveHelpers.sol";
-import "./../../interfaces/external/IWETH.sol";
+import "./YearnVaultStorage.sol";
 import "./../../libraries/ExchangeHelpers.sol";
+import "./../../interfaces/external/IWETH.sol";
+import "./../../libraries/CurveHelpers.sol";
 import "../../libraries/StakingLPVaultHelpers.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../../interfaces/external/ICurvePool/ICurvePool.sol";
-import "../../interfaces/external/ICurvePool/ICurvePoolETH.sol";
-import "../../interfaces/external/ICurvePool/ICurvePoolNonETH.sol";
-import "../../interfaces/external/IStakingVault/IStakeDaoStrategy.sol";
+import "./../../interfaces/external/ICurvePool/ICurvePoolETH.sol";
+import "./../../interfaces/external/IStakingVault/IYearnVault.sol";
+import "./../../interfaces/external/ICurvePool/ICurvePoolNonETH.sol";
 
-/// @title StakeDAO Curve strategy operator
-/// @notice Deposit/Withdraw in a StakeDAO strategy
-contract StakeDaoCurveStrategyOperator {
-    StakeDaoStrategyStorage public immutable operatorStorage;
+/// @title Yearn Curve Vault Operator
+/// @notice Deposit/Withdraw in a Yearn Curve vault.
+contract YearnCurveVaultOperator {
+    YearnVaultStorage public immutable operatorStorage;
 
     /// @dev ETH address
     address public immutable eth;
@@ -28,18 +27,18 @@ contract StakeDaoCurveStrategyOperator {
     Withdrawer private immutable withdrawer;
 
     constructor(
-        address[] memory strategies,
+        address[] memory vaults,
         CurvePool[] memory pools,
         Withdrawer _withdrawer,
         address _eth,
         address _weth
     ) {
-        uint256 strategiesLength = strategies.length;
-        require(strategiesLength == pools.length, "SDCSO: INVALID_POOLS_LENGTH");
-        operatorStorage = new StakeDaoStrategyStorage();
+        uint256 vaultsLength = vaults.length;
+        require(vaultsLength == pools.length, "YCVO: INVALID_VAULTS_LENGTH");
+        operatorStorage = new YearnVaultStorage();
 
-        for (uint256 i; i < strategiesLength; i++) {
-            operatorStorage.addStrategy(strategies[i], pools[i]);
+        for (uint256 i; i < vaultsLength; i++) {
+            operatorStorage.addVault(vaults[i], pools[i]);
         }
 
         operatorStorage.transferOwnership(msg.sender);
@@ -50,28 +49,28 @@ contract StakeDaoCurveStrategyOperator {
     }
 
     /// @notice Add liquidity in a Curve pool that includes ETH,
-    ///         deposit the LP token in a StakeDAO strategy and receive
-    ///         the StakeDAO strategy token
-    /// @param strategy The StakeDAO strategy address to deposit into
+    ///         deposit the LP token in a Yearn vault and receive
+    ///         the Yearn vault shares
+    /// @param vault The Yearn vault address to deposit into
     /// @param amount The amount of token to add liquidity
-    /// @param minStrategyAmount The minimum of StakeDAO strategy token expected
+    /// @param minVaultAmount The minimum of Yearn vault shares expected
     /// @return amounts Array of amounts :
-    ///         - [0] : The strategy token received amount
+    ///         - [0] : The vault token received amount
     ///         - [1] : The token deposited amount
     /// @return tokens Array of token addresses
-    ///         - [0] : The strategy token received address
+    ///         - [0] : The vault token received address
     ///         - [1] : The token deposited address
     function depositETH(
-        address strategy,
+        address vault,
         uint256 amount,
-        uint256 minStrategyAmount
-    ) public payable returns (uint256[] memory amounts, address[] memory tokens) {
-        require(amount != 0, "SDCSO: INVALID_AMOUNT");
+        uint256 minVaultAmount
+    ) external payable returns (uint256[] memory amounts, address[] memory tokens) {
+        require(amount != 0, "YCVO: INVALID_AMOUNT");
 
-        (address pool, uint96 poolCoinAmount, address lpToken) = operatorStorage.strategies(strategy);
-        require(pool != address(0), "SDCSO: INVALID_STRATEGY");
+        (address pool, uint96 poolCoinAmount, address lpToken) = operatorStorage.vaults(vault);
+        require(pool != address(0), "YCVO: INVALID_VAULT");
 
-        uint256 strategyBalanceBefore = IERC20(strategy).balanceOf(address(this));
+        uint256 vaultBalanceBefore = IERC20(vault).balanceOf(address(this));
         uint256 ethBalanceBefore = weth.balanceOf(address(this));
 
         ExchangeHelpers.setMaxAllowance(IERC20(address(weth)), address(withdrawer));
@@ -80,7 +79,7 @@ contract StakeDaoCurveStrategyOperator {
         withdrawer.withdraw(amount);
 
         StakingLPVaultHelpers._addLiquidityAndDepositETH(
-            strategy,
+            vault,
             ICurvePoolETH(pool),
             IERC20(lpToken),
             poolCoinAmount,
@@ -92,40 +91,40 @@ contract StakeDaoCurveStrategyOperator {
             IERC20(address(weth)),
             ethBalanceBefore,
             amount,
-            IERC20(strategy),
-            strategyBalanceBefore,
-            minStrategyAmount
+            IERC20(vault),
+            vaultBalanceBefore,
+            minVaultAmount
         );
     }
 
-    /// @notice Add liquidity to a Curve pool using the input token,
-    ///         deposit the LP token in a StakeDAO strategy and receive
-    ///         the strategy token
-    /// @param strategy The StakeDAO strategy address in wich to deposit the LP token
-    /// @param token The input token to use for adding liquidity
-    /// @param amount The input token amount to use for adding liquidity
-    /// @param minStrategyToken The minimum strategy token expected
+    /// @notice Add liquidity in a Curve pool, deposit
+    ///         the LP token in a Yearn vault and receive
+    ///         the Yearn vault shares
+    /// @param vault The Yearn vault address to deposit into
+    /// @param token The token to add liquidity
+    /// @param amount The amount of token to add liquidity
+    /// @param minVaultAmount The minimum of Yearn vault shares expected
     /// @return amounts Array of amounts :
-    ///         - [0] : The received strategy token amount
-    ///         - [1] : The deposited token amount
+    ///         - [0] : The vault token received amount
+    ///         - [1] : The token deposited amount
     /// @return tokens Array of token addresses
-    ///         - [0] : The received strategy token address
-    ///         - [1] : The deposited token address
+    ///         - [0] : The vault token received address
+    ///         - [1] : The token deposited address
     function deposit(
-        address strategy,
+        address vault,
         address token,
         uint256 amount,
-        uint256 minStrategyToken
+        uint256 minVaultAmount
     ) external payable returns (uint256[] memory amounts, address[] memory tokens) {
-        require(amount != 0, "SDCSO: INVALID_AMOUNT");
-        (address pool, uint96 poolCoinAmount, address lpToken) = operatorStorage.strategies(strategy);
-        require(pool != address(0), "SDCSO: INVALID_STRATEGY");
+        require(amount != 0, "YCVO: INVALID_AMOUNT");
+        (address pool, uint96 poolCoinAmount, address lpToken) = operatorStorage.vaults(vault);
+        require(pool != address(0), "YCVO: INVALID_VAULT");
 
-        uint256 strategyBalanceBefore = IERC20(strategy).balanceOf(address(this));
+        uint256 vaultBalanceBefore = IERC20(vault).balanceOf(address(this));
         uint256 tokenBalanceBefore = IERC20(token).balanceOf(address(this));
 
         StakingLPVaultHelpers._addLiquidityAndDeposit(
-            strategy,
+            vault,
             ICurvePoolNonETH(pool),
             IERC20(lpToken),
             poolCoinAmount,
@@ -137,39 +136,39 @@ contract StakeDaoCurveStrategyOperator {
             IERC20(token),
             tokenBalanceBefore,
             amount,
-            IERC20(strategy),
-            strategyBalanceBefore,
-            minStrategyToken
+            IERC20(vault),
+            vaultBalanceBefore,
+            minVaultAmount
         );
     }
 
-    /// @notice Withdraw the LP token from the StakeDAO strategy,
+    /// @notice Withdraw the LP token from the Yearn vault,
     ///         remove ETH liquidity from the Curve pool
-    ///         and receive one of the Curve pool token
-    /// @param strategy The StakeDAO strategy address to withdraw from
+    ///         and receive one of the curve pool token
+    /// @param vault The Yearn vault address to withdraw from
     /// @param amount The amount to withdraw
     /// @param minAmountOut The minimum of output token expected
     /// @return amounts Array of amounts :
     ///         - [0] : The token received amount
-    ///         - [1] : The strategy token deposited amount
+    ///         - [1] : The vault token deposited amount
     /// @return tokens Array of token addresses
     ///         - [0] : The token received address
-    ///         - [1] : The strategy token deposited address
+    ///         - [1] : The vault token deposited address
     function withdrawETH(
-        address strategy,
+        address vault,
         uint256 amount,
         uint256 minAmountOut
     ) external payable returns (uint256[] memory amounts, address[] memory tokens) {
-        require(amount != 0, "SDCSO: INVALID_AMOUNT");
+        require(amount != 0, "YCVO: INVALID_AMOUNT");
 
-        (address pool, uint96 poolCoinAmount, address lpToken) = operatorStorage.strategies(strategy);
-        require(pool != address(0), "SDCSO: INVALID_STRATEGY");
+        (address pool, uint96 poolCoinAmount, address lpToken) = operatorStorage.vaults(vault);
+        require(pool != address(0), "YCVO: INVALID_VAULT");
 
-        uint256 strategyBalanceBefore = IERC20(strategy).balanceOf(address(this));
+        uint256 vaultBalanceBefore = IERC20(vault).balanceOf(address(this));
         uint256 tokenBalanceBefore = weth.balanceOf(address(this));
 
         StakingLPVaultHelpers._withdrawAndRemoveLiquidity128(
-            strategy,
+            vault,
             amount,
             ICurvePool(pool),
             IERC20(lpToken),
@@ -178,8 +177,8 @@ contract StakeDaoCurveStrategyOperator {
         );
 
         (amounts, tokens) = CurveHelpers.getOutputAmounts(
-            IERC20(strategy),
-            strategyBalanceBefore,
+            IERC20(vault),
+            vaultBalanceBefore,
             amount,
             IERC20(address(weth)),
             tokenBalanceBefore,
@@ -187,37 +186,37 @@ contract StakeDaoCurveStrategyOperator {
         );
     }
 
-    /// @notice Withdraw the LP token from the StakeDAO strategy,
+    /// @notice Withdraw the LP token from the Yearn vault,
     ///         remove the liquidity from the Curve pool
     ///         (using int128 for the curvePool.remove_liquidity_one_coin
     ///         coin index parameter) and receive one of the
-    ///         Curve pool token
-    /// @param strategy The StakeDAO strategy address to withdraw from
+    ///         curve pool token
+    /// @param vault The Yearn vault address to withdraw from
     /// @param amount The amount to withdraw
     /// @param outputToken Output token to receive
     /// @param minAmountOut The minimum of output token expected
     /// @return amounts Array of amounts :
     ///         - [0] : The token received amount
-    ///         - [1] : The strategy token deposited amount
+    ///         - [1] : The vault token deposited amount
     /// @return tokens Array of token addresses
     ///         - [0] : The token received address
-    ///         - [1] : The strategy token deposited address
+    ///         - [1] : The vault token deposited address
     function withdraw128(
-        address strategy,
+        address vault,
         uint256 amount,
         IERC20 outputToken,
         uint256 minAmountOut
     ) external payable returns (uint256[] memory amounts, address[] memory tokens) {
-        require(amount != 0, "SDCSO: INVALID_AMOUNT");
+        require(amount != 0, "YCVO: INVALID_AMOUNT");
 
-        (address pool, uint96 poolCoinAmount, address lpToken) = operatorStorage.strategies(strategy);
-        require(pool != address(0), "SDCSO: INVALID_STRATEGY");
+        (address pool, uint96 poolCoinAmount, address lpToken) = operatorStorage.vaults(vault);
+        require(pool != address(0), "YCVO: INVALID_VAULT");
 
-        uint256 strategyBalanceBefore = IERC20(strategy).balanceOf(address(this));
+        uint256 vaultBalanceBefore = IERC20(vault).balanceOf(address(this));
         uint256 tokenBalanceBefore = outputToken.balanceOf(address(this));
 
         StakingLPVaultHelpers._withdrawAndRemoveLiquidity128(
-            strategy,
+            vault,
             amount,
             ICurvePool(pool),
             IERC20(lpToken),
@@ -226,8 +225,8 @@ contract StakeDaoCurveStrategyOperator {
         );
 
         (amounts, tokens) = CurveHelpers.getOutputAmounts(
-            IERC20(strategy),
-            strategyBalanceBefore,
+            IERC20(vault),
+            vaultBalanceBefore,
             amount,
             outputToken,
             tokenBalanceBefore,
@@ -235,37 +234,37 @@ contract StakeDaoCurveStrategyOperator {
         );
     }
 
-    /// @notice Withdraw the LP token from the StakeDAO strategy,
+    /// @notice Withdraw the LP token from the Yearn vault,
     ///         remove the liquidity from the Curve pool
     ///         (using uint256 for the curvePool.remove_liquidity_one_coin
     ///         coin index parameter) and receive one of the
-    ///         Curve pool token
-    /// @param strategy The StakeDAO strategy address to withdraw from
+    ///         curve pool token
+    /// @param vault The Yearn vault address to withdraw from
     /// @param amount The amount to withdraw
     /// @param outputToken Output token to receive
     /// @param minAmountOut The minimum of output token expected
     /// @return amounts Array of amounts :
     ///         - [0] : The token received amount
-    ///         - [1] : The strategy token deposited amount
+    ///         - [1] : The vault token deposited amount
     /// @return tokens Array of token addresses
     ///         - [0] : The token received address
-    ///         - [1] : The strategy token deposited address
+    ///         - [1] : The vault token deposited address
     function withdraw256(
-        address strategy,
+        address vault,
         uint256 amount,
         IERC20 outputToken,
         uint256 minAmountOut
     ) external payable returns (uint256[] memory amounts, address[] memory tokens) {
-        require(amount != 0, "SDCSO: INVALID_AMOUNT");
+        require(amount != 0, "YCVO: INVALID_AMOUNT");
 
-        (address pool, uint96 poolCoinAmount, address lpToken) = operatorStorage.strategies(strategy);
-        require(pool != address(0), "SDCSO: INVALID_STRATEGY");
+        (address pool, uint96 poolCoinAmount, address lpToken) = operatorStorage.vaults(vault);
+        require(pool != address(0), "YCVO: INVALID_VAULT");
 
-        uint256 strategyBalanceBefore = IERC20(strategy).balanceOf(address(this));
+        uint256 vaultBalanceBefore = IERC20(vault).balanceOf(address(this));
         uint256 tokenBalanceBefore = outputToken.balanceOf(address(this));
 
         StakingLPVaultHelpers._withdrawAndRemoveLiquidity256(
-            strategy,
+            vault,
             amount,
             ICurvePoolNonETH(pool),
             IERC20(lpToken),
@@ -274,8 +273,8 @@ contract StakeDaoCurveStrategyOperator {
         );
 
         (amounts, tokens) = CurveHelpers.getOutputAmounts(
-            IERC20(strategy),
-            strategyBalanceBefore,
+            IERC20(vault),
+            vaultBalanceBefore,
             amount,
             outputToken,
             tokenBalanceBefore,

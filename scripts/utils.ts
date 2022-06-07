@@ -12,6 +12,9 @@ import * as ethers from "ethers"
 import { BigNumber, BigNumberish, BytesLike, Wallet } from "ethers";
 import * as w3utils from "web3-utils";
 import { UINT256_MAX } from "../test/helpers";
+import { YearnCurveVaultOperator } from "../typechain/YearnCurveVaultOperator";
+import { BeefyZapUniswapLPVaultOperator } from "../typechain/BeefyZapUniswapLPVaultOperator";
+import { BeefyZapBiswapLPVaultOperator } from "../typechain/BeefyZapBiswapLPVaultOperator";
 
 type RawDataType = "address" | "bytes4" | "bytes" | "uint256";
 interface Op {
@@ -46,14 +49,14 @@ export const dummyRouterSelector = "0x76ab33a6";
 
 export const abiCoder = new ethers.utils.AbiCoder();
 
-export function buildOrderStruct(operator: string, outToken: string, data: [RawDataType, any][]): OrderStruct {
+export function buildOrderStruct(operator: string, token: string, data: [RawDataType, any][]): OrderStruct {
     const abiCoder = new ethers.utils.AbiCoder();
     const coded = abiCoder.encode([...data.map(x => x[0])], [...data.map(x => x[1])]);
     return {
         // specify which operator?
         operator: operator,
-        // specify the token that this order will output
-        token: outToken,
+        // specify the token that this order will retrieve from Reserve or Wallet
+        token: token,
         // encode the given data
         callData: coded, // remove the leading 32 bytes (one address) and the leading 0x
         // callData,
@@ -149,6 +152,46 @@ export function registerFlat(operator: FlatOperator): Op {
     };
 }
 
+export function registerYearnDeposit(operator: YearnCurveVaultOperator): Op {
+    return {
+        name: "YearnVaultDepositOperator",
+        contract: operator.address,
+        signature: "function deposit(address vault, address token, uint256 amount, uint256 minVaultAmount)",
+    };
+}
+
+export function registerYearnDepositETH(operator: YearnCurveVaultOperator): Op {
+    return {
+        name: "YearnVaultDepositETHOperator",
+        contract: operator.address,
+        signature: "function depositETH(address vault, uint256 amount, uint256 minVaultAmount)",
+    };
+}
+
+export function registerYearnWithdraw128(operator: YearnCurveVaultOperator): Op {
+    return {
+        name: "YearnVaultWithdraw128Operator",
+        contract: operator.address,
+        signature: "function withdraw128(address vault, uint256 amount, address outputToken, uint256 minAmountOut)",
+    };
+}
+
+export function registerYearnWithdraw256(operator: YearnCurveVaultOperator): Op {
+    return {
+        name: "YearnVaultWithdraw256Operator",
+        contract: operator.address,
+        signature: "function withdraw256(address vault, uint256 amount, address outputToken, uint256 minAmountOut)",
+    };
+}
+
+export function registerYearnWithdrawETH(operator: YearnCurveVaultOperator): Op {
+    return {
+        name: "YearnVaultWithdrawETHOperator",
+        contract: operator.address,
+        signature: "function withdrawETH(address vault, uint256 amount, uint256 minAmountOut)",
+    };
+}
+
 export function registerBeefyDeposit(operator: BeefyVaultOperator): Op {
     return {
         name: "BeefyDeposit",
@@ -202,6 +245,38 @@ export function registerStakeDaoWithdraw256(operator: StakeDaoCurveStrategyOpera
         name: "stakeDaoCurveStrategyWithdraw256",
         contract: operator.address,
         signature: "function withdraw256(address strategy, uint256 amount, address outputToken, uint256 minAmountOut)"
+    }
+}
+
+export function registerBeefyZapBiswapLPDeposit(operator: BeefyZapBiswapLPVaultOperator): Op {
+    return {
+        name: "BeefyZapBiswapLPDeposit",
+        contract: operator.address,
+        signature: "function deposit(address vault, address token, uint256 amount, uint256 minVaultAmount)",
+    };
+}
+
+export function registerBeefyZapBiswapLPWithdraw(operator: BeefyZapBiswapLPVaultOperator): Op {
+    return {
+        name: "BeefyZapBiswapLPWithdraw",
+        contract: operator.address,
+        signature: "function withdraw(address vault, uint256 amount, address token, uint256 minTokenAmount)",
+    };
+}
+
+export function registerBeefyZapUniswapLPDeposit(operator: BeefyZapUniswapLPVaultOperator): Op {
+    return {
+        name: "BeefyZapUniswapLPDeposit",
+        contract: operator.address,
+        signature: "function deposit(address vault, address token, uint256 amount, uint256 minVaultAmount)",
+    };
+}
+
+export function registerBeefyZapUniswapLPWithdraw(operator: BeefyZapBiswapLPVaultOperator): Op {
+    return {
+        name: "BeefyZapUniswapLPWithdraw",
+        contract: operator.address,
+        signature: "function withdraw(address vault, uint256 amount, address token, uint256 minTokenAmount)",
     };
 }
 
@@ -296,6 +371,128 @@ export function getUniAndKncWithETHOrders(
     ];
 }
 
+// Create a non-ETH Deposit order in yearn
+export function getYearnCurveDepositOrder(context: FactoryAndOperatorsForkingETHFixture, yearnVaultAddress: string, tokenToDeposit: string, amountToDeposit: BigNumber, minVaultAmount?: BigNumber) {
+    return [
+        buildOrderStruct(context.yearnVaultDepositOperatorNameBytes32, yearnVaultAddress, [
+            ["address", yearnVaultAddress],
+            ["address", tokenToDeposit],
+            ["uint256", amountToDeposit],
+            ["uint256", minVaultAmount ? minVaultAmount : 0], // 100% slippage
+        ]),
+    ];
+}
+
+// Create an ETH Deposit order in yearn
+export function getYearnCurveDepositETHOrder(context: FactoryAndOperatorsForkingETHFixture, yearnVaultAddress: string, amountToDeposit: BigNumber, minVaultAmount?: BigNumber) {
+    return [
+        buildOrderStruct(context.yearnVaultDepositETHOperatorNameBytes32, yearnVaultAddress, [
+            ["address", yearnVaultAddress],
+            ["uint256", amountToDeposit],
+            ["uint256", minVaultAmount ? minVaultAmount : 0], // 100% slippage
+        ]),
+    ];
+}
+
+// Create a Withdraw256 order in yearn (for Curve pool that require a uint256 index param in the function remove_liquidity_one_coin)
+export function getYearnCurveWithdraw256Order(context: FactoryAndOperatorsForkingETHFixture, yearnVaultAddress: string, amountToWithdraw: BigNumber, outputToken: string, minAmountOut?: BigNumber) {
+    return [
+        buildOrderStruct(context.yearnVaultWithdraw256OperatorNameBytes32, yearnVaultAddress, [
+            ["address", yearnVaultAddress],
+            ["uint256", amountToWithdraw],
+            ["address", outputToken],
+            ["uint256", minAmountOut ? minAmountOut : 0], // 100% slippage
+        ]),
+    ];
+}
+
+// Create a Withdraw128 order in yearn (for Curve pool that require a int128 index param in the function remove_liquidity_one_coin)
+export function getYearnCurveWithdraw128Order(context: FactoryAndOperatorsForkingETHFixture, yearnVaultAddress: string, amountToWithdraw: BigNumber, outputToken: string, minAmountOut?: BigNumber) {
+    return [
+        buildOrderStruct(context.yearnVaultWithdraw128OperatorNameBytes32, yearnVaultAddress, [
+            ["address", yearnVaultAddress],
+            ["uint256", amountToWithdraw],
+            ["address", outputToken],
+            ["uint256", minAmountOut ? minAmountOut : 0], // 100% slippage
+        ]),
+    ];
+}
+
+// Create a WithdrawETH order in yearn
+export function getYearnCurveWithdrawETHOrder(context: FactoryAndOperatorsForkingETHFixture, yearnVaultAddress: string, amountToWithdraw: BigNumber, minAmountOut?: BigNumber) {
+    return [
+        buildOrderStruct(context.yearnVaultWithdrawETHOperatorNameBytes32, yearnVaultAddress, [
+            ["address", yearnVaultAddress],
+            ["uint256", amountToWithdraw],
+            ["uint256", minAmountOut ? minAmountOut : 0], // 100% slippage
+        ]),
+    ];
+}
+
+
+
+// Create an ETH Deposit order in StakeDAO
+export function getStakeDaoDepositETHOrder(context: FactoryAndOperatorsForkingETHFixture, strategyAddress: string, amountToDeposit: BigNumber, minStrategyToken?: BigNumber) {
+    return [
+        buildOrderStruct(context.stakeDaoCurveStrategyDepositETHOperatorNameBytes32, strategyAddress, [
+            ["address", strategyAddress],
+            ["uint256", amountToDeposit],
+            ["uint256", minStrategyToken ? minStrategyToken : 0], // 100% slippage if minAmountOut is null
+        ]),
+    ];
+}
+
+
+// Create a non-ETH Deposit order in StakeDAO
+export function getStakeDaoDepositOrder(context: FactoryAndOperatorsForkingBSCFixture, strategyAddress: string, tokenToDeposit: string, amountToDeposit: BigNumber, minStrategyToken?: BigNumber) {
+    return [
+        buildOrderStruct(context.stakeDaoCurveStrategyDepositOperatorNameBytes32, strategyAddress, [
+            ["address", strategyAddress],
+            ["address", tokenToDeposit],
+            ["uint256", amountToDeposit],
+            ["uint256", minStrategyToken ? minStrategyToken : 0], // 100% slippage if minAmountOut is null
+        ]),
+    ];
+}
+
+
+// Create a WithdrawETH order in StakeDAO
+export function getStakeDaoWithdrawETHOrder(context: FactoryAndOperatorsForkingETHFixture, strategyAddress: string, amountToWithdraw: BigNumber, minAmountOut?: BigNumber) {
+    return [
+        buildOrderStruct(context.stakeDaoCurveStrategyWithdrawETHOperatorNameBytes32, strategyAddress, [
+            ["address", strategyAddress],
+            ["uint256", amountToWithdraw],
+            ["uint256", minAmountOut ? minAmountOut : 0], // 100% slippage if minAmountOut is null
+        ]),
+    ];
+}
+
+
+// Create a Withdraw128 order in StakeDAO
+export function getStakeDaoWithdraw128Order(context: FactoryAndOperatorsForkingBSCFixture, strategyAddress: string, amountToWithdraw: BigNumber, outputToken: string, minAmountOut?: BigNumber) {
+    return [
+        buildOrderStruct(context.stakeDaoCurveStrategyWithdraw128OperatorNameBytes32, strategyAddress, [
+            ["address", strategyAddress],
+            ["uint256", amountToWithdraw],
+            ["address", outputToken],
+            ["uint256", minAmountOut ? minAmountOut : 0], // 100% slippage if minAmountOut is null
+        ]),
+    ];
+}
+
+
+// Create a Withdraw256 order in StakeDAO
+export function getStakeDaoWithdraw256Order(context: FactoryAndOperatorsForkingBSCFixture, strategyAddress: string, amountToWithdraw: BigNumber, outputToken: string, minAmountOut?: BigNumber) {
+    return [
+        buildOrderStruct(context.stakeDaoCurveStrategyWithdraw256OperatorNameBytes32, strategyAddress, [
+            ["address", strategyAddress],
+            ["uint256", amountToWithdraw],
+            ["address", outputToken],
+            ["uint256", minAmountOut ? minAmountOut : 0], // 100% slippage if minAmountOut is null
+        ]),
+    ];
+}
+
 // Create a Deposit order in Beefy (BNB Venus Vault on BSC)
 export function getBeefyBnbVenusDepositOrder(context: FactoryAndOperatorsForkingBSCFixture, bnbToDeposit: BigNumber) {
     return [
@@ -317,60 +514,74 @@ export function getBeefyBnbVenusWithdrawOrder(context: FactoryAndOperatorsForkin
     ];
 }
 
-// Create an ETH Deposit order in StakeDAO
-export function getStakeDaoDepositETHOrder(context: FactoryAndOperatorsForkingETHFixture, strategyAddress: string, amountToDeposit: BigNumber, minStrategyToken?: BigNumber) {
+// Create a Deposit order in Beefy
+export function getBeefyUniswapDepositOrder(
+    context: FactoryAndOperatorsForkingBSCFixture,
+    depositTokenAddress: string,
+    tokenToDeposit: BigNumber,
+    vaultAddress: string,
+    minOutputToken?: BigNumber
+) {
     return [
-        buildOrderStruct(context.stakeDaoCurveStrategyDepositETHOperatorNameBytes32, strategyAddress, [
-            ["address", strategyAddress],
-            ["uint256", amountToDeposit],
-            ["uint256", minStrategyToken ? minStrategyToken : 0], // 100% slippage if minAmountOut is null
+        buildOrderStruct(context.beefyZapUniswapLPVaultDepositOperatorNameBytes32, vaultAddress, [
+            ["address", vaultAddress],
+            ["address", depositTokenAddress],
+            ["uint256", tokenToDeposit],
+            ["uint256", minOutputToken != null ? minOutputToken : 0], // 100% slippage if the provided slippage is null
         ]),
     ];
 }
 
-// Create a non-ETH Deposit order in StakeDAO
-export function getStakeDaoDepositOrder(context: FactoryAndOperatorsForkingBSCFixture, strategyAddress: string, tokenToDeposit: string, amountToDeposit: BigNumber, minStrategyToken?: BigNumber) {
+// Create a Withdraw order in Beefy
+export function getBeefyUniswapWithdrawOrder(
+    context: FactoryAndOperatorsForkingBSCFixture,
+    withdrawTokenAddress: string,
+    mooToWithdraw: BigNumber,
+    vaultAddress: string,
+    minOutputToken?: BigNumber
+) {
     return [
-        buildOrderStruct(context.stakeDaoCurveStrategyDepositOperatorNameBytes32, strategyAddress, [
-            ["address", strategyAddress],
-            ["address", tokenToDeposit],
-            ["uint256", amountToDeposit],
-            ["uint256", minStrategyToken ? minStrategyToken : 0], // 100% slippage if minAmountOut is null
+        buildOrderStruct(context.beefyZapUniswapLPVaultWithdrawOperatorNameBytes32, vaultAddress, [
+            ["address", vaultAddress],
+            ["uint256", mooToWithdraw],
+            ["address", withdrawTokenAddress],
+            ["uint256", minOutputToken != null ? minOutputToken : 0], // 100% slippage if the provided slippage is null
         ]),
     ];
 }
 
-// Create a WithdrawETH order in StakeDAO
-export function getStakeDaoWithdrawETHOrder(context: FactoryAndOperatorsForkingETHFixture, strategyAddress: string, amountToWithdraw: BigNumber, minAmountOut?: BigNumber) {
+// Create a Deposit order in Beefy (Biswap USDT-BNB on Bsc)
+export function getBeefyBiswapDepositOrder(
+    context: FactoryAndOperatorsForkingBSCFixture,
+    depositTokenAddress: string,
+    tokenToDeposit: BigNumber,
+    vaultAddress: string,
+    minOutputToken?: BigNumber
+) {
     return [
-        buildOrderStruct(context.stakeDaoCurveStrategyWithdrawETHOperatorNameBytes32, strategyAddress, [
-            ["address", strategyAddress],
-            ["uint256", amountToWithdraw],
-            ["uint256", minAmountOut ? minAmountOut : 0], // 100% slippage if minAmountOut is null
+        buildOrderStruct(context.beefyZapBiswapLPVaultDepositOperatorNameBytes32, vaultAddress, [
+            ["address", vaultAddress],
+            ["address", depositTokenAddress],
+            ["uint256", tokenToDeposit],
+            ["uint256", minOutputToken != null ? minOutputToken : 0], // 100% slippage if the provided slippage is null
         ]),
     ];
 }
 
-// Create a Withdraw128 order in StakeDAO
-export function getStakeDaoWithdraw128Order(context: FactoryAndOperatorsForkingBSCFixture, strategyAddress: string, amountToWithdraw: BigNumber, outputToken: string, minAmountOut?: BigNumber) {
+// Create a Withdraw order in Beefy (Biswap USDT-BNB on Bsc)
+export function getBeefyBiswapWithdrawOrder(
+    context: FactoryAndOperatorsForkingBSCFixture,
+    withdrawTokenAddress: string,
+    mooToWithdraw: BigNumber,
+    vaultAddress: string,
+    minOutputToken?: BigNumber
+) {
     return [
-        buildOrderStruct(context.stakeDaoCurveStrategyWithdraw128OperatorNameBytes32, strategyAddress, [
-            ["address", strategyAddress],
-            ["uint256", amountToWithdraw],
-            ["address", outputToken],
-            ["uint256", minAmountOut ? minAmountOut : 0], // 100% slippage if minAmountOut is null
-        ]),
-    ];
-}
-
-// Create a Withdraw256 order in StakeDAO
-export function getStakeDaoWithdraw256Order(context: FactoryAndOperatorsForkingBSCFixture, strategyAddress: string, amountToWithdraw: BigNumber, outputToken: string, minAmountOut?: BigNumber) {
-    return [
-        buildOrderStruct(context.stakeDaoCurveStrategyWithdraw256OperatorNameBytes32, strategyAddress, [
-            ["address", strategyAddress],
-            ["uint256", amountToWithdraw],
-            ["address", outputToken],
-            ["uint256", minAmountOut ? minAmountOut : 0], // 100% slippage if minAmountOut is null
+        buildOrderStruct(context.beefyZapBiswapLPVaultWithdrawOperatorNameBytes32, vaultAddress, [
+            ["address", vaultAddress],
+            ["uint256", mooToWithdraw],
+            ["address", withdrawTokenAddress],
+            ["uint256", minOutputToken != null ? minOutputToken : 0], // 100% slippage if the provided slippage is null
         ]),
     ];
 }

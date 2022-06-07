@@ -15,8 +15,6 @@ import "./NestedAsset.sol";
 import "./NestedRecords.sol";
 import "./Withdrawer.sol";
 
-import "hardhat/console.sol";
-
 /// @title Creates, updates and destroys NestedAssets (portfolios).
 /// @notice Responsible for the business logic of the protocol and interaction with operators
 contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegation, MixinOperatorResolver {
@@ -83,9 +81,14 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         withdrawer = _withdrawer;
     }
 
-    /// @dev Receive function
+    /// @dev Receive function that will wrap the ether if
+    ///      an address other than the withdrawer sends ether to
+    ///      to the contract. The factory cannot handle ether but
+    ///      has functions to withdraw ERC20 tokens if needed.
     receive() external payable {
-        require(msg.sender == address(withdrawer), "NF: ETH_SENDER_NOT_WITHDRAWER");
+        if (msg.sender != address(withdrawer)) {
+            weth.deposit{ value: msg.value }();
+        }
     }
 
     /* ------------------------------ MODIFIERS ---------------------------- */

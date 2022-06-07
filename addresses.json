@@ -13,7 +13,7 @@
         "ZeroExOperator": "0x1dB81116467789b7dCC3B070ee8f5aA4d90D6940",
         "ZeroExStorage": "0xA19d093D24d345Fa25424d15202caB00a5FaBe65",
         "FlatOperator": "0x9ca5249E3b889191980C4cB8ad6Ac55727d65a55",
-        "Timelock": "",
+        "Timelock": "0xc106C292dB0176Be602D4d9b340473FECc99edF6",
         "NestedAssetBatcher": "0xD9C7cd07f3435dF70B3204e1612Aebb1C374D1DE",
         "config": {
             "maxHoldingsCount": 12,
@@ -38,7 +38,7 @@
         "ZeroExOperator": "0x25FD6E8940B6FD0A5eC3b1c45216a3eB2DcD707E",
         "ZeroExStorage": "0xe8b1970566440A9518043A30953508fa9574E3BB",
         "FlatOperator": "0x6bDc58D3287176b40ad2243eC0CF35f33F2119DA",
-        "Timelock": "",
+        "Timelock": "0x1734A5eAB695d9B7C678adaa9a479DBB88897660",
         "NestedAssetBatcher": "0xae5fAB55C6AA6Bba24eef3fb98c48a0B616b163d",
         "config": {
             "maxHoldingsCount": 12,

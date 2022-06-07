@@ -13,7 +13,7 @@ export const impersonnate = async (address: string) => {
     return await ethers.getSigner(address)
 }
 
-export const addUsdcBalanceTo = async (receiver: Wallet, amount: BigNumber) => {
+export const addBscUsdcBalanceTo = async (receiver: Wallet, amount: BigNumber) => {
     const usdcWhale: string = "0xf977814e90da44bfa03b6295a0616a897441acec"
     const usdcContract: string = "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d"
     const signer = await impersonnate(usdcWhale)
@@ -30,6 +30,26 @@ export const addUsdcBalanceTo = async (receiver: Wallet, amount: BigNumber) => {
     await signer.sendTransaction({
         from: signer.address,
         to: usdcContract,
+        data: data
+    })
+}
+
+export const addEthEurtBalanceTo = async (receiver: Wallet, amount: BigNumber) => {
+    const eurtWhale: string = "0x5754284f345afc66a98fbb0a0afe71e0f007b949"
+    const eurtContract: string = "0xC581b735A1688071A1746c968e0798D642EDE491"
+    const signer = await impersonnate(eurtWhale)
+
+    const data =
+        ethers.utils.keccak256(
+            ethers.utils.toUtf8Bytes("transfer(address,uint256)")
+        ).slice(0, 10) +
+        abiCoder.encode(
+            ["address", "uint256"],
+            [receiver.address, amount]
+        ).slice(2, 130)
+    await signer.sendTransaction({
+        from: signer.address,
+        to: eurtContract,
         data: data
     })
 }
