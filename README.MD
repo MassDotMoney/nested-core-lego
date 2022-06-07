@@ -177,6 +177,10 @@ struct BatchedOutputOrders {
 
 <div align="center"><img src="./static/processInputOrders.png" width="1200"></div>
 
+## Nested Factory interaction with the Nested Reserve and Nested Records
+The Nested Reserve stores underlying assets of all NestedNFTs. The Nested Records keeps track of which underlying assets are associated with a specific NestedNFT. 
+Hence, each time the Nested Factory needs to interact with user funds (which are represented as a NestedNFT), it will first check the balance of tokens associated with the NestedNFT through Nested Records. If needed, it will then transfert funds to the Nested Reserve or withdraw funds from it.
+
 ## ETH managment
 
 The Nested protocol only handles WETH when calling operators.  
