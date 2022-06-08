@@ -15,8 +15,6 @@ import "./NestedAsset.sol";
 import "./NestedRecords.sol";
 import "./Withdrawer.sol";
 
-import "hardhat/console.sol";
-
 /// @title Creates, updates and destroys NestedAssets (portfolios).
 /// @notice Responsible for the business logic of the protocol and interaction with operators
 contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegation, MixinOperatorResolver {
