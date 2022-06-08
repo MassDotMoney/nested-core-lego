@@ -37,8 +37,8 @@ const config: HardhatUserConfig = {
             // https://github.com/MetaMask/metamask-extension/issues/9827
             chainId: 1337,
             forking: {
-                url: process.env.FORK_URL, 
-                enabled: process.env.FORKING === "true" 
+                url: process.env.FORK_URL,
+                enabled: process.env.FORKING === "true"
             }
         },
         ropsten: {
@@ -77,7 +77,7 @@ const config: HardhatUserConfig = {
         celo: {
             url: "https://forno.celo.org/",
             chainId: 42220,
-            accounts: accounts, 
+            accounts: accounts,
         },
         avalanche: {
             url: "https://api.avax.network/ext/bc/C/rpc",
@@ -86,7 +86,7 @@ const config: HardhatUserConfig = {
         }
     },
     solidity: {
-        version: "0.8.11",
+        version: "0.8.14",
         settings: {
             optimizer: {
                 enabled: true,
@@ -114,7 +114,7 @@ const config: HardhatUserConfig = {
     },
     dependencyCompiler: {
         paths: [
-            "@openzeppelin/contracts/governance/TimelockController.sol", 
+            "@openzeppelin/contracts/governance/TimelockController.sol",
             "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol"
         ],
     },
