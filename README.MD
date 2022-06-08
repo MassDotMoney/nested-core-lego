@@ -199,6 +199,16 @@ In this case, the operator uses the Withdrawer to get the ETH back from the WETH
 
 > Only the Withdrawer can send ETH to the NestedFactory without automatic WETH conversion.
 
+## Royalties
+Royalties are withdrawal fees when a user has copied an existing portfolio and are managed by the `FeeSplitter.sol`. Royalties are distributed from the `NestedFactory.sol` when a user withdraws funds from his portfolio OR when an order fails, all tokens are returned to the sender and are therefore subject to withdrawal fees.
+
+### Fees distribution
+For now, protfolio designers and Nested share equally the royalties.
+This distribution is done in the `feeSplitter.sol` with the ratio between the `royaltiesWeight` and the `shareholders` weights.
+Currently, we have `royaltiesWeight = 50` and **one** shareholder (_Nested_) with `weight = 50`.
+
+> **totalWeights** always equals **royaltiesWeight** + all shareholders **weights**
+
 # Ownership & Governance
 
 Some functions of the protocol require admin rights (`onlyOwner`).
