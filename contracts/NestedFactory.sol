@@ -491,7 +491,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
             unchecked {
                 uint256 underSpentAmount = _amountToSpend - amounts[1];
                 if (underSpentAmount != 0) {
-                    SafeERC20.safeTransfer(IERC20(_inputToken), _msgSender(), underSpentAmount);
+                    _safeTransferWithFees(IERC20(_inputToken), underSpentAmount, _msgSender(), _nftId);
                 }
             }
         } else {
