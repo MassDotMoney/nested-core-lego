@@ -25,13 +25,15 @@ contract YearnVaultStorage is Ownable {
 
     /// @notice Add a Yearn Curve vault
     /// @param vault The vault address
-    /// @param pool The underlying CurvePool (used to add liquidity)
-    function addVault(address vault, CurvePool calldata pool) external onlyOwner {
+    /// @param curvePool The underlying CurvePool (used to add liquidity)
+    function addVault(address vault, CurvePool calldata curvePool) external onlyOwner {
         require(vault != address(0), "YVS: INVALID_VAULT_ADDRESS");
-        require(pool.poolAddress != address(0), "YVS: INVALID_POOL_ADDRESS");
-        require(vaults[vault].poolAddress == address(0), "YVS: ALREADY_EXISTENT_VAULT");
-        vaults[vault] = pool;
-        emit VaultAdded(vault, pool);
+        require(curvePool.poolAddress != address(0), "YVS: INVALID_POOL_ADDRESS");
+        require(curvePool.lpToken != address(0), "YVS: INVALID_TOKEN_ADDRESS");
+        require(vaults[vault].poolAddress == address(0), "YVS: VAULT_ALREADY_HAS_POOL");
+        require(vaults[vault].lpToken == address(0), "YVS: VAULT_ALREADY_HAS_LP");
+        vaults[vault] = curvePool;
+        emit VaultAdded(vault, curvePool);
     }
 
     /// @notice Remove a Yearn vault

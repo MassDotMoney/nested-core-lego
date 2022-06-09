@@ -102,7 +102,7 @@ library StakingLPVaultHelpers {
             lpToken.balanceOf(address(this)) - lpTokenBalanceBefore,
             outputToken,
             poolCoinAmount,
-            "remove_liquidity_one_coin(uint256,int128,uint256)"
+            bytes4(keccak256(bytes("remove_liquidity_one_coin(uint256,int128,uint256)")))
         );
 
         require(success, "SDCSO: CURVE_RM_LIQUIDITY_FAILED");
@@ -132,7 +132,7 @@ library StakingLPVaultHelpers {
             lpToken.balanceOf(address(this)) - lpTokenBalanceBefore,
             outputToken,
             poolCoinAmount,
-            "remove_liquidity_one_coin(uint256,uint256,uint256)"
+            bytes4(keccak256(bytes("remove_liquidity_one_coin(uint256,uint256,uint256)")))
         );
 
         require(success, "SDCSO: CURVE_RM_LIQUIDITY_FAILED");

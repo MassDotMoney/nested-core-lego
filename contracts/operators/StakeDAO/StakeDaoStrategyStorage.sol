@@ -33,8 +33,9 @@ contract StakeDaoStrategyStorage is Ownable {
     function addStrategy(address strategy, CurvePool calldata curvePool) external onlyOwner {
         require(strategy != address(0), "SDSS: INVALID_STRATEGY_ADDRESS");
         require(curvePool.poolAddress != address(0), "SDSS: INVALID_POOL_ADDRESS");
-        require(strategies[strategy].poolAddress == address(0), "SDSS: ALREADY_EXISTENT_STRATEGY");
-        require(strategies[strategy].lpToken == address(0), "SDSS: ALREADY_EXISTENT_STRATEGY");
+        require(curvePool.lpToken != address(0), "SDSS: INVALID_TOKEN_ADDRESS");
+        require(strategies[strategy].poolAddress == address(0), "SDSS: STRATEGY_ALREADY_HAS_POOL");
+        require(strategies[strategy].lpToken == address(0), "SDSS: STRATEGY_ALREADY_HAS_LP");
         strategies[strategy] = curvePool;
         emit StrategyAdded(strategy, curvePool);
     }

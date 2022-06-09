@@ -62,7 +62,7 @@ describeOnBscFork("StakeDaoCurveStrategyOperator BSC fork", () => {
 
             await expect(
                 context.stakeDaoStrategyStorage.connect(context.masterDeployer).addStrategy(strategyToAdd, poolToAdd),
-            ).to.be.revertedWith("SDSS: ALREADY_EXISTENT_STRATEGY");
+            ).to.be.revertedWith("SDSS: STRATEGY_ALREADY_HAS_POOL");
         });
 
         it("Should add new strategy", async () => {

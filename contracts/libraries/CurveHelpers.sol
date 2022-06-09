@@ -81,11 +81,11 @@ library CurveHelpers {
         uint256 amount,
         address outputToken,
         uint256 poolCoinAmount,
-        string memory signature
+        bytes4 signature
     ) internal returns (bool success) {
         for (uint256 i; i < poolCoinAmount; i++) {
             if (outputToken == pool.coins(i)) {
-                (success, ) = address(pool).call(abi.encodeWithSignature(signature, amount, i, 0));
+                (success, ) = address(pool).call(abi.encodeWithSelector(signature, amount, i, 0));
                 return success;
             }
         }

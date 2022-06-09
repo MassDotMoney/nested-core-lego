@@ -52,7 +52,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
                     poolCoinAmount: 1,
                     lpToken: poolToAdd
                 }),
-            ).to.be.revertedWith("YVS: ALREADY_EXISTENT_VAULT");
+            ).to.be.revertedWith("YVS: VAULT_ALREADY_HAS_POOL");
         });
 
         it("Should add new vault", async () => {
