@@ -3,9 +3,10 @@ pragma solidity 0.8.11;
 
 import "./../../Withdrawer.sol";
 import "./YearnVaultStorage.sol";
+import "./../../libraries/CurveHelpers.sol";
+import "./../../libraries/OperatorHelpers.sol";
 import "./../../libraries/ExchangeHelpers.sol";
 import "./../../interfaces/external/IWETH.sol";
-import "./../../libraries/CurveHelpers.sol";
 import "../../libraries/StakingLPVaultHelpers.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./../../interfaces/external/ICurvePool/ICurvePoolETH.sol";
@@ -87,7 +88,7 @@ contract YearnCurveVaultOperator {
             amount
         );
 
-        (amounts, tokens) = CurveHelpers.getOutputAmounts(
+        (amounts, tokens) = OperatorHelpers.getOutputAmounts(
             IERC20(address(weth)),
             ethBalanceBefore,
             amount,
@@ -132,7 +133,7 @@ contract YearnCurveVaultOperator {
             amount
         );
 
-        (amounts, tokens) = CurveHelpers.getOutputAmounts(
+        (amounts, tokens) = OperatorHelpers.getOutputAmounts(
             IERC20(token),
             tokenBalanceBefore,
             amount,
@@ -176,7 +177,7 @@ contract YearnCurveVaultOperator {
             eth
         );
 
-        (amounts, tokens) = CurveHelpers.getOutputAmounts(
+        (amounts, tokens) = OperatorHelpers.getOutputAmounts(
             IERC20(vault),
             vaultBalanceBefore,
             amount,
@@ -224,7 +225,7 @@ contract YearnCurveVaultOperator {
             address(outputToken)
         );
 
-        (amounts, tokens) = CurveHelpers.getOutputAmounts(
+        (amounts, tokens) = OperatorHelpers.getOutputAmounts(
             IERC20(vault),
             vaultBalanceBefore,
             amount,
@@ -272,7 +273,7 @@ contract YearnCurveVaultOperator {
             address(outputToken)
         );
 
-        (amounts, tokens) = CurveHelpers.getOutputAmounts(
+        (amounts, tokens) = OperatorHelpers.getOutputAmounts(
             IERC20(vault),
             vaultBalanceBefore,
             amount,

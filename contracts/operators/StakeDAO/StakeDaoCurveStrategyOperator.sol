@@ -3,15 +3,16 @@ pragma solidity 0.8.11;
 
 import "./../../Withdrawer.sol";
 import "./StakeDaoStrategyStorage.sol";
-import "../../libraries/CurveHelpers.sol";
+import "./../../libraries/CurveHelpers.sol";
 import "./../../interfaces/external/IWETH.sol";
+import "./../../libraries/OperatorHelpers.sol";
 import "./../../libraries/ExchangeHelpers.sol";
-import "../../libraries/StakingLPVaultHelpers.sol";
+import "./../../libraries/StakingLPVaultHelpers.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../../interfaces/external/ICurvePool/ICurvePool.sol";
-import "../../interfaces/external/ICurvePool/ICurvePoolETH.sol";
-import "../../interfaces/external/ICurvePool/ICurvePoolNonETH.sol";
-import "../../interfaces/external/IStakingVault/IStakeDaoStrategy.sol";
+import "./../../interfaces/external/ICurvePool/ICurvePool.sol";
+import "./../../interfaces/external/ICurvePool/ICurvePoolETH.sol";
+import "./../../interfaces/external/ICurvePool/ICurvePoolNonETH.sol";
+import "./../../interfaces/external/IStakingVault/IStakeDaoStrategy.sol";
 
 /// @title StakeDAO Curve strategy operator
 /// @notice Deposit/Withdraw in a StakeDAO strategy
@@ -88,7 +89,7 @@ contract StakeDaoCurveStrategyOperator {
             amount
         );
 
-        (amounts, tokens) = CurveHelpers.getOutputAmounts(
+        (amounts, tokens) = OperatorHelpers.getOutputAmounts(
             IERC20(address(weth)),
             ethBalanceBefore,
             amount,
@@ -133,7 +134,7 @@ contract StakeDaoCurveStrategyOperator {
             amount
         );
 
-        (amounts, tokens) = CurveHelpers.getOutputAmounts(
+        (amounts, tokens) = OperatorHelpers.getOutputAmounts(
             IERC20(token),
             tokenBalanceBefore,
             amount,
@@ -177,7 +178,7 @@ contract StakeDaoCurveStrategyOperator {
             eth
         );
 
-        (amounts, tokens) = CurveHelpers.getOutputAmounts(
+        (amounts, tokens) = OperatorHelpers.getOutputAmounts(
             IERC20(strategy),
             strategyBalanceBefore,
             amount,
@@ -225,7 +226,7 @@ contract StakeDaoCurveStrategyOperator {
             address(outputToken)
         );
 
-        (amounts, tokens) = CurveHelpers.getOutputAmounts(
+        (amounts, tokens) = OperatorHelpers.getOutputAmounts(
             IERC20(strategy),
             strategyBalanceBefore,
             amount,
@@ -273,7 +274,7 @@ contract StakeDaoCurveStrategyOperator {
             address(outputToken)
         );
 
-        (amounts, tokens) = CurveHelpers.getOutputAmounts(
+        (amounts, tokens) = OperatorHelpers.getOutputAmounts(
             IERC20(strategy),
             strategyBalanceBefore,
             amount,

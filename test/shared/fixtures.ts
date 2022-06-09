@@ -58,10 +58,12 @@ import {
 import { BeefyZapBiswapLPVaultOperator } from "../../typechain/BeefyZapBiswapLPVaultOperator";
 
 export type OperatorResolverFixture = { operatorResolver: OperatorResolver };
+// Token addresses on mainnet
 export const USDCEth = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
-export const EURT = "0xC581b735A1688071A1746c968e0798D642EDE491"
+export const EURTEth = "0xC581b735A1688071A1746c968e0798D642EDE491"
 
-export const USDC = "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d";
+// Token addresses on BSC
+export const USDCBsc = "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d";
 
 export const operatorResolverFixture: Fixture<OperatorResolverFixture> = async (wallets, provider) => {
     const signer = new ActorFixture(wallets as Wallet[], provider).addressResolverOwner();
@@ -711,7 +713,7 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
 
     // add ERC20 token balance to user1
     await addBscUsdcBalanceTo(user1, appendDecimals(1000000))
-    await setMaxAllowance(user1, nestedFactory.address, USDC)
+    await setMaxAllowance(user1, nestedFactory.address, USDCBsc)
 
     return {
         WBNB,
@@ -882,7 +884,7 @@ export const factoryAndOperatorsForkingETHFixture: Fixture<FactoryAndOperatorsFo
     const stakeDaoStrategyStorageFactory = await ethers.getContractFactory("StakeDaoStrategyStorage");
     const stakeDaoStrategyStorage = stakeDaoStrategyStorageFactory.attach(await stakeDaoCurveStrategyOperator.operatorStorage());
 
-    // Deploy Yearn Curve operator (Curve 3crypto)
+    // Deploy Yearn Curve operator (Curve 3crypto, Curve alETH and Curve 3EUR)
     const triCryptoVault = "0xE537B5cc158EB71037D4125BDD7538421981E6AA";
     const curveTriCryptoPoolAddress = "0xD51a44d3FaE010294C616388b506AcdA1bfAAE46";
     const curveTriCryptoLpTokenAddress = "0xc4AD29ba4B3c580e6D59105FFf484999997675Ff";
@@ -1041,7 +1043,7 @@ export const factoryAndOperatorsForkingETHFixture: Fixture<FactoryAndOperatorsFo
     const eurtToAddToBalanceAndFees = eurtToAddToBalance.add(getExpectedFees(eurtToAddToBalance));
     // Add fund ThreeEur to balance
     await addEthEurtBalanceTo(user1, eurtToAddToBalanceAndFees);
-    await setAllowance(user1, EURT, nestedFactory.address, UINT256_MAX);
+    await setAllowance(user1, EURTEth, nestedFactory.address, UINT256_MAX);
 
     return {
         WETH,

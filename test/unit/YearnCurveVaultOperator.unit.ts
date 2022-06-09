@@ -1,5 +1,5 @@
 import { LoadFixtureFunction } from "../types";
-import { EURT, FactoryAndOperatorsForkingETHFixture, factoryAndOperatorsForkingETHFixture, USDCEth } from "../shared/fixtures";
+import { EURTEth, FactoryAndOperatorsForkingETHFixture, factoryAndOperatorsForkingETHFixture, USDCEth } from "../shared/fixtures";
 import { createFixtureLoader, describeOnEthFork, expect, provider } from "../shared/provider";
 import { BigNumber, Wallet } from "ethers";
 import { append6Decimals, appendDecimals, BIG_NUMBER_ZERO, getExpectedFees, UINT256_MAX } from "../helpers";
@@ -493,12 +493,12 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
             const eurtToDepositAndFees = eurtToDeposit.add(getExpectedFees(eurtToDeposit));
 
             // Orders to Deposit in yearn
-            let orders: utils.OrderStruct[] = utils.getYearnCurveDepositOrder(context, context.yearnVaultAddresses.threeEurVault, EURT, eurtToDeposit);
+            let orders: utils.OrderStruct[] = utils.getYearnCurveDepositOrder(context, context.yearnVaultAddresses.threeEurVault, EURTEth, eurtToDeposit);
 
             // User1 creates the portfolio/NFT
             await context.nestedFactory
                 .connect(context.user1)
-                .create(0, [{ inputToken: EURT, amount: eurtToDepositAndFees, orders, fromReserve: false }], {
+                .create(0, [{ inputToken: EURTEth, amount: eurtToDepositAndFees, orders, fromReserve: false }], {
                     value: 0,
                 });
         });
@@ -509,14 +509,14 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
             const vaultBalance = await vault.balanceOf(context.nestedReserve.address);
 
             // Orders to withdraw from yearn vault and remove liquidity from curve pool
-            let orders: utils.OrderStruct[] = utils.getYearnCurveWithdraw128Order(context, context.yearnVaultAddresses.threeEurVault, BIG_NUMBER_ZERO, EURT);
+            let orders: utils.OrderStruct[] = utils.getYearnCurveWithdraw128Order(context, context.yearnVaultAddresses.threeEurVault, BIG_NUMBER_ZERO, EURTEth);
 
             // User1 creates the portfolio/NFT
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(1, [
-                        { outputToken: EURT, amounts: [vaultBalance], orders, toReserve: true },
+                        { outputToken: EURTEth, amounts: [vaultBalance], orders, toReserve: true },
                     ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
@@ -527,27 +527,27 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
             const vaultBalance = await vault.balanceOf(context.nestedReserve.address);
 
             // Orders to withdraw from yearn vault and remove liquidity from curve pool
-            let orders: utils.OrderStruct[] = utils.getYearnCurveWithdraw128Order(context, context.yearnVaultAddresses.threeEurVault, vaultBalance.mul(2), EURT);
+            let orders: utils.OrderStruct[] = utils.getYearnCurveWithdraw128Order(context, context.yearnVaultAddresses.threeEurVault, vaultBalance.mul(2), EURTEth);
 
             // User1 creates the portfolio/NFT
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(1, [
-                        { outputToken: EURT, amounts: [vaultBalance], orders, toReserve: true },
+                        { outputToken: EURTEth, amounts: [vaultBalance], orders, toReserve: true },
                     ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
         it("Should revert if vault is not added in Operator Storage", async () => {
             // Orders to withdraw from yearn curve vault
-            let orders: utils.OrderStruct[] = utils.getYearnCurveWithdraw128Order(context, context.yearnVaultAddresses.nonWhitelistedVault, BigNumber.from(100), EURT);
+            let orders: utils.OrderStruct[] = utils.getYearnCurveWithdraw128Order(context, context.yearnVaultAddresses.nonWhitelistedVault, BigNumber.from(100), EURTEth);
 
             // User1 creates the portfolio/NFT
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(1, [
-                        { outputToken: EURT, amounts: [BIG_NUMBER_ZERO], orders, toReserve: true },
+                        { outputToken: EURTEth, amounts: [BIG_NUMBER_ZERO], orders, toReserve: true },
                     ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
@@ -565,7 +565,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(1, [
-                        { outputToken: EURT, amounts: [vaultBalance], orders, toReserve: true },
+                        { outputToken: EURTEth, amounts: [vaultBalance], orders, toReserve: true },
                     ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
@@ -583,7 +583,7 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
                 context.nestedFactory
                     .connect(context.user1)
                     .processOutputOrders(1, [
-                        { outputToken: EURT, amounts: [vaultBalance], orders, toReserve: true },
+                        { outputToken: EURTEth, amounts: [vaultBalance], orders, toReserve: true },
                     ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
@@ -591,14 +591,14 @@ describeOnEthFork("YearnCurveVaultOperator", () => {
             const mockERC20Factory = await ethers.getContractFactory("MockERC20");
             const vault = mockERC20Factory.attach(context.yearnVaultAddresses.threeEurVault);
 
-            const eurt = mockERC20Factory.attach(EURT);
+            const eurt = mockERC20Factory.attach(EURTEth);
 
             const vaultBalance = await vault.balanceOf(context.nestedReserve.address);
 
             // Orders to withdraw from yearn curve vault
-            let orders: utils.OrderStruct[] = utils.getYearnCurveWithdraw128Order(context, context.yearnVaultAddresses.threeEurVault, vaultBalance, EURT);
+            let orders: utils.OrderStruct[] = utils.getYearnCurveWithdraw128Order(context, context.yearnVaultAddresses.threeEurVault, vaultBalance, EURTEth);
 
-            await context.nestedFactory.connect(context.user1).destroy(1, EURT, orders);
+            await context.nestedFactory.connect(context.user1).destroy(1, EURTEth, orders);
 
             // All yearn vault token removed from reserve
             expect(await vault.balanceOf(context.nestedReserve.address)).to.be.equal(BIG_NUMBER_ZERO);
