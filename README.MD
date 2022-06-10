@@ -211,14 +211,15 @@ Currently, we have `royaltiesWeight = 50` and **one** shareholder (_Nested_) wit
 
 # Ownership & Governance
 
-Some functions of the protocol require admin rights (`onlyOwner`).
+Some functions of the protocol require admin rights (`onlyOwner` using `Ownable` from [OpenZeppelin](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol)). Same with the [TransparentUpgradeableProxy](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/transparent/TransparentUpgradeableProxy.sol) which need an **Admin**.
 
-The contracts are owned by the [TimelockController](https://docs.openzeppelin.com/contracts/4.x/api/governance#TimelockController) contract from OpenZeppelin, set with a **7-days** delay.
-This ensures the community has time to review any changes made to the protocol.
+<img width="1011" alt="image" src="https://user-images.githubusercontent.com/22816913/173034995-432d6e84-e9d2-40cf-acb3-e109a158240f.png">
 
-The owner of the TimelockController is a three-party multisignature wallet.
+The contracts are owned by the `OwnerProxy` which is a [DSProxy](https://github.com/dapphub/ds-proxy) fork without a cache, where only the Timelock can execute the scripts.
 
-> During the next phase of the protocol, the ownership will be transferred to a fully decentralized DAO.
+The TimelockControllerEmergency is a [TimelockController](https://docs.openzeppelin.com/contracts/4.x/api/governance#TimelockController) fork. 
+It introduces the "Emergency Role" to execute a transaction in an instantaneous way, but only the "Emergency Multisig" has this role, with 5 members and 5 approvals needed (in the case of an urgent fix).
+On the other hand, the "Operational Multisig" can schedule/execute transactions with a **6-hours** delay, with 3 members an 2 approvals needed.
 
 # Development & Testing
 
