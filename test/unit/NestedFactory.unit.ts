@@ -36,13 +36,13 @@ describeWithoutFork("NestedFactory", () => {
     });
 
     describe("addOperator()", () => {
-        it("cant be invoked by a user", async () => {
+        it("Can't be invoked by a user", async () => {
             await expect(
                 context.nestedFactory.connect(context.user1).addOperator(toBytes32("test")),
             ).to.be.revertedWith("OPD: NOT_OWNER");
         });
 
-        it("cant add already existent operator", async () => {
+        it("Can't add already existent operator", async () => {
             await context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("test"));
             await context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("test1"));
             await expect(
@@ -53,7 +53,7 @@ describeWithoutFork("NestedFactory", () => {
             ).to.be.revertedWith("NF: EXISTENT_OPERATOR");
         });
 
-        it("cant add empty operator name", async () => {
+        it("Can't add empty operator name", async () => {
             await expect(
                 context.nestedFactory.connect(context.masterDeployer).addOperator(toBytes32("")),
             ).to.be.revertedWith("NF: INVALID_OPERATOR_NAME");
@@ -76,7 +76,7 @@ describeWithoutFork("NestedFactory", () => {
     });
 
     describe("removeOperator()", () => {
-        it("cant be invoked by a user", async () => {
+        it("Can't be invoked by a user", async () => {
             await expect(
                 context.nestedFactory.connect(context.user1).removeOperator(toBytes32("test")),
             ).to.be.revertedWith("OPD: NOT_OWNER");
@@ -210,13 +210,13 @@ describeWithoutFork("NestedFactory", () => {
 
     describe("setFeeSplitter()", () => {
         const newFeeSplitter = Wallet.createRandom().address;
-        it("cant be invoked by a user", async () => {
+        it("Can't be invoked by a user", async () => {
             await expect(
                 context.nestedFactory.connect(context.user1).setFeeSplitter(newFeeSplitter),
             ).to.be.revertedWith("OPD: NOT_OWNER");
         });
 
-        it("cant set zero address", async () => {
+        it("Can't set zero address", async () => {
             await expect(
                 context.nestedFactory.connect(context.masterDeployer).setFeeSplitter(ethers.constants.AddressZero),
             ).to.be.revertedWith("NF: INVALID_FEE_SPLITTER_ADDRESS");
@@ -235,22 +235,22 @@ describeWithoutFork("NestedFactory", () => {
     });
 
     describe("setEntryFees()", () => {
-        it("cant be invoked by a user", async () => {
-            await expect(context.nestedFactory.connect(context.user1).setEntryFees(100)).to.be.revertedWith(
-                "OPD: NOT_OWNER",
-            );
+        it("Can't be invoked by a user", async () => {
+            await expect(
+                context.nestedFactory.connect(context.user1).setEntryFees(100),
+            ).to.be.revertedWith("OPD: NOT_OWNER");
         });
 
-        it("cant set zero", async () => {
-            await expect(context.nestedFactory.connect(context.masterDeployer).setEntryFees(0)).to.be.revertedWith(
-                "NF: ZERO_FEES",
-            );
+        it("Can't set zero", async () => {
+            await expect(
+                context.nestedFactory.connect(context.masterDeployer).setEntryFees(0),
+            ).to.be.revertedWith("NF: ZERO_FEES");
         });
 
-        it("cant set more than 10,000", async () => {
-            await expect(context.nestedFactory.connect(context.masterDeployer).setEntryFees(10001)).to.be.revertedWith(
-                "NF: FEES_OVERFLOW",
-            );
+        it("Can't set more than 10,000", async () => {
+            await expect(
+                context.nestedFactory.connect(context.masterDeployer).setEntryFees(10001),
+            ).to.be.revertedWith("NF: FEES_OVERFLOW");
         });
 
         it("set value", async () => {
@@ -266,22 +266,22 @@ describeWithoutFork("NestedFactory", () => {
     });
 
     describe("setExitFees()", () => {
-        it("cant be invoked by a user", async () => {
-            await expect(context.nestedFactory.connect(context.user1).setExitFees(100)).to.be.revertedWith(
-                "OPD: NOT_OWNER",
-            );
+        it("Can't be invoked by a user", async () => {
+            await expect(
+                context.nestedFactory.connect(context.user1).setExitFees(100),
+            ).to.be.revertedWith("OPD: NOT_OWNER");
         });
 
-        it("cant set zero", async () => {
-            await expect(context.nestedFactory.connect(context.masterDeployer).setExitFees(0)).to.be.revertedWith(
-                "NF: ZERO_FEES",
-            );
+        it("Can't set zero", async () => {
+            await expect(
+                context.nestedFactory.connect(context.masterDeployer).setExitFees(0),
+            ).to.be.revertedWith("NF: ZERO_FEES");
         });
 
-        it("cant set more than 10,000", async () => {
-            await expect(context.nestedFactory.connect(context.masterDeployer).setExitFees(10001)).to.be.revertedWith(
-                "NF: FEES_OVERFLOW",
-            );
+        it("Can't set more than 10,000", async () => {
+            await expect(
+                context.nestedFactory.connect(context.masterDeployer).setExitFees(10001),
+            ).to.be.revertedWith("NF: FEES_OVERFLOW");
         });
 
         it("set value", async () => {
@@ -770,7 +770,7 @@ describeWithoutFork("NestedFactory", () => {
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
-        it("cant add tokens to nonexistent portfolio", async () => {
+        it("Can't add tokens to nonexistent portfolio", async () => {
             // Amounts and Orders must be good
             const uniBought = appendDecimals(6);
             const kncBought = appendDecimals(4);
@@ -789,7 +789,7 @@ describeWithoutFork("NestedFactory", () => {
             ).to.be.revertedWith("ERC721: owner query for nonexistent token");
         });
 
-        it("cant add tokens to another user portfolio", async () => {
+        it("Can't add tokens to another user portfolio", async () => {
             // Amounts and Orders must be good
             const uniBought = appendDecimals(6);
             const kncBought = appendDecimals(4);
@@ -1340,7 +1340,7 @@ describeWithoutFork("NestedFactory", () => {
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
-        it("cant swap token from nonexistent portfolio", async () => {
+        it("Can't swap token from nonexistent portfolio", async () => {
             // Amounts and Orders must be good
             const kncBought = appendDecimals(10);
             const totalToBought = kncBought;
@@ -1363,7 +1363,7 @@ describeWithoutFork("NestedFactory", () => {
             ).to.be.revertedWith("ERC721: owner query for nonexistent token");
         });
 
-        it("cant swap token from another user portfolio", async () => {
+        it("Can't swap token from another user portfolio", async () => {
             // Amounts and Orders must be good
             const kncBought = appendDecimals(10);
             const totalToBought = kncBought;
@@ -1631,7 +1631,7 @@ describeWithoutFork("NestedFactory", () => {
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
-        it("cant swap tokens from nonexistent portfolio", async () => {
+        it("Can't swap tokens from nonexistent portfolio", async () => {
             // 6 UNI and 4 KNC in the portfolio, the user sell 3 UNI and 3 KNC for 6 USCC
             const uniSold = appendDecimals(3);
             const kncSold = appendDecimals(3);
@@ -1648,7 +1648,7 @@ describeWithoutFork("NestedFactory", () => {
             ).to.be.revertedWith("ERC721: owner query for nonexistent token");
         });
 
-        it("cant swap tokens from another user portfolio", async () => {
+        it("Can't swap tokens from another user portfolio", async () => {
             // 6 UNI and 4 KNC in the portfolio, the user sell 3 UNI and 3 KNC for 6 USCC
             const uniSold = appendDecimals(3);
             const kncSold = appendDecimals(3);
@@ -1665,7 +1665,7 @@ describeWithoutFork("NestedFactory", () => {
             ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
-        it("cant swap tokens if orders dont match sell amounts (array size)", async () => {
+        it("Can't swap tokens if orders dont match sell amounts (array size)", async () => {
             // 6 UNI and 4 KNC in the portfolio, the user sell 3 UNI and 3 KNC for 6 USCC
             const uniSold = appendDecimals(3);
             const kncSold = appendDecimals(3);
@@ -1709,7 +1709,7 @@ describeWithoutFork("NestedFactory", () => {
                 kncSold.add(appendDecimals(1)),
             );
 
-            // Error in operator cant transfer more than in factory balance
+            // Error in operator can't transfer more than in factory balance
             await expect(
                 context.nestedFactory
                     .connect(context.user1)
@@ -1910,7 +1910,7 @@ describeWithoutFork("NestedFactory", () => {
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
-        it("cant swap tokens from nonexistent portfolio", async () => {
+        it("Can't swap tokens from nonexistent portfolio", async () => {
             // 6 UNI and 4 KNC in the portfolio, the user sell 3 UNI and 3 KNC for 6 USCC
             const uniSold = appendDecimals(3);
             const kncSold = appendDecimals(3);
@@ -1930,7 +1930,7 @@ describeWithoutFork("NestedFactory", () => {
             ).to.be.revertedWith("ERC721: owner query for nonexistent token");
         });
 
-        it("cant swap tokens from another user portfolio", async () => {
+        it("Can't swap tokens from another user portfolio", async () => {
             // 6 UNI and 4 KNC in the portfolio, the user sell 3 UNI and 3 KNC for 6 USCC
             const uniSold = appendDecimals(3);
             const kncSold = appendDecimals(3);
@@ -1950,7 +1950,7 @@ describeWithoutFork("NestedFactory", () => {
             ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
-        it("cant swap tokens if orders dont match sell amounts (array size)", async () => {
+        it("Can't swap tokens if orders dont match sell amounts (array size)", async () => {
             // 6 UNI and 4 KNC in the portfolio, the user sell 3 UNI and 3 KNC for 6 USCC
             const uniSold = appendDecimals(3);
             const kncSold = appendDecimals(3);
@@ -1997,7 +1997,7 @@ describeWithoutFork("NestedFactory", () => {
                 kncSold.add(appendDecimals(1)),
             );
 
-            // Error in operator cant transfer more than in factory balance
+            // Error in operator can't transfer more than in factory balance
             await expect(
                 context.nestedFactory.connect(context.user1).processOutputOrders(1, [
                     {
@@ -2205,7 +2205,7 @@ describeWithoutFork("NestedFactory", () => {
                 .not.be.reverted;
         });
 
-        it("cant swap tokens from nonexistent portfolio", async () => {
+        it("Can't swap tokens from nonexistent portfolio", async () => {
             // 6 UNI and 4 KNC in the portfolio, sell everything for 10 USCC
             const uniSold = appendDecimals(6);
             const kncSold = appendDecimals(4);
@@ -2218,7 +2218,7 @@ describeWithoutFork("NestedFactory", () => {
             ).to.be.revertedWith("ERC721: owner query for nonexistent token");
         });
 
-        it("cant swap tokens from another user portfolio", async () => {
+        it("Can't swap tokens from another user portfolio", async () => {
             // 6 UNI and 4 KNC in the portfolio, sell everything for 10 USCC
             const uniSold = appendDecimals(6);
             const kncSold = appendDecimals(4);
@@ -2385,19 +2385,19 @@ describeWithoutFork("NestedFactory", () => {
                 ]);
         });
 
-        it("cant withdraw from another user portfolio", async () => {
+        it("Can't withdraw from another user portfolio", async () => {
             await expect(context.nestedFactory.connect(context.masterDeployer).withdraw(1, 1)).to.be.revertedWith(
                 "NF: CALLER_NOT_OWNER",
             );
         });
 
-        it("cant withdraw from nonexistent portfolio", async () => {
+        it("Can't withdraw from nonexistent portfolio", async () => {
             await expect(context.nestedFactory.connect(context.user1).withdraw(2, 1)).to.be.revertedWith(
                 "ERC721: owner query for nonexistent token",
             );
         });
 
-        it("cant withdraw if wrong token index", async () => {
+        it("Can't withdraw if wrong token index", async () => {
             // KNC => Index 1
             await expect(context.nestedFactory.connect(context.user1).withdraw(1, 2)).to.be.revertedWith(
                 "NF: INVALID_TOKEN_INDEX",
@@ -2423,7 +2423,7 @@ describeWithoutFork("NestedFactory", () => {
             );
         });
 
-        it("cant withdraw the last token", async () => {
+        it("Can't withdraw the last token", async () => {
             // Withdraw KNC first
             await context.nestedFactory.connect(context.user1).withdraw(1, 1);
 
@@ -2452,19 +2452,19 @@ describeWithoutFork("NestedFactory", () => {
                 ]);
         });
 
-        it("cant increase if another user portfolio", async () => {
+        it("Can't increase if another user portfolio", async () => {
             await expect(
                 context.nestedFactory.connect(context.masterDeployer).updateLockTimestamp(1, Date.now()),
             ).to.be.revertedWith("NF: CALLER_NOT_OWNER");
         });
 
-        it("cant increase nonexistent portfolio", async () => {
+        it("Can't increase nonexistent portfolio", async () => {
             await expect(
                 context.nestedFactory.connect(context.user1).updateLockTimestamp(2, Date.now()),
             ).to.be.revertedWith("ERC721: owner query for nonexistent token");
         });
 
-        it("cant decrease timestamp", async () => {
+        it("Can't decrease timestamp", async () => {
             await context.nestedFactory.connect(context.user1).updateLockTimestamp(1, Date.now());
             await expect(
                 context.nestedFactory.connect(context.user1).updateLockTimestamp(1, Date.now() - 1000),
@@ -2475,7 +2475,7 @@ describeWithoutFork("NestedFactory", () => {
          * We are testing with the "withdraw" function, but it's the same for
          * all the functions implementing the "isUnlocked" modifier.
          */
-        it("cant withdraw if locked", async () => {
+        it("Can't withdraw if locked", async () => {
             await expect(context.nestedFactory.connect(context.user1).updateLockTimestamp(1, Date.now() + 1000))
                 .to.emit(context.nestedRecords, "LockTimestampIncreased")
                 .withArgs(1, Date.now() + 1000);

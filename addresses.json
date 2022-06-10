@@ -15,13 +15,17 @@
         "FlatOperator": "0x9ca5249E3b889191980C4cB8ad6Ac55727d65a55",
         "Timelock": "0xc106C292dB0176Be602D4d9b340473FECc99edF6",
         "NestedAssetBatcher": "0xD9C7cd07f3435dF70B3204e1612Aebb1C374D1DE",
+        "scripts": {
+            "OperatorScripts": ""
+        },
         "config": {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
             "multisig": "0x2B93035B9f93E617aC468B220E7a1E5012Bd6E3d",
             "emergencyMultisig": "0xcA2927254adc08548191F8431ad603552209428c",
-            "nestedTreasury": "0x2eeE8d38eA788A7260df8C4D32f39066DD80eF3B"
+            "nestedTreasury": "0x2eeE8d38eA788A7260df8C4D32f39066DD80eF3B",
+            "OwnerProxy": ""
         }
     },
     "10": {
@@ -40,13 +44,17 @@
         "FlatOperator": "0x6bDc58D3287176b40ad2243eC0CF35f33F2119DA",
         "Timelock": "0x1734A5eAB695d9B7C678adaa9a479DBB88897660",
         "NestedAssetBatcher": "0xae5fAB55C6AA6Bba24eef3fb98c48a0B616b163d",
+        "scripts": {
+            "OperatorScripts": "0x3a506575bF5202EF846cE4C88eea8aDFBA63f760"
+        },
         "config": {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xDEF1ABE32c034e558Cdd535791643C58a13aCC10",
             "WETH": "0x4200000000000000000000000000000000000006",
             "multisig": "0x37F560eaaa7e40fF9d575825eB03d5631BfB8d50",
             "emergencyMultisig": "0x75b8ac2a08eD803C7002134639C6CACaf0A6470D",
-            "nestedTreasury": "0x0b928f82d2E3371420136DE930f2dCd7928b2e61"
+            "nestedTreasury": "0x0b928f82d2E3371420136DE930f2dCd7928b2e61",
+            "OwnerProxy": "0x9ee92a94a8ace98f36f19b35091c34e9d9bccd54"
         }
     },
     "56": {
@@ -65,13 +73,17 @@
         "FlatOperator": "0x6bDc58D3287176b40ad2243eC0CF35f33F2119DA",
         "Timelock": "0x42f93A591C2eF6Ce52426a027F2529Eef4738F5A",
         "NestedAssetBatcher": "0x9EE92a94A8Ace98F36F19b35091C34e9D9bccD54",
+        "scripts": {
+            "OperatorScripts": "0xecF79cB50fdCB4E39cF91089BE31a7D581f57E5F"
+        },
         "config": {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
             "multisig": "0xD95c74A3041EEC4DC393F98A2180EE67903CcC4F",
             "emergencyMultisig": "0xF76119Ba666fe838431544cDBA513dE9b6d851C1",
-            "nestedTreasury": "0xb8725Ed917e4F3f2B3c6eb0a7C356206235f4f6A"
+            "nestedTreasury": "0xb8725Ed917e4F3f2B3c6eb0a7C356206235f4f6A",
+            "OwnerProxy": "0x47da55928d52FDD7584bb0FB80E5a0Cf8C2FcEDc"
         }
     },
     "137": {
@@ -90,13 +102,17 @@
         "FlatOperator": "0xD75aF988B2282C1B466C7640B01E4B89239a72D8",
         "Timelock": "0x42f93A591C2eF6Ce52426a027F2529Eef4738F5A",
         "NestedAssetBatcher": "0xD81b8221f57eB314AB9C6606F418653CCfC90eB5",
+        "scripts": {
+            "OperatorScripts": ""
+        },
         "config": {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
             "multisig": "0xf9B701cE5bc5E83C65301c733e1d91f18eF35d8E",
             "emergencyMultisig": "0x66E5393d0D780b84A26f166450F4778ccDFAfE07",
-            "nestedTreasury": "0x44FE6e6513BBf4e19Bbf421f3AA8ef60e15006AB"
+            "nestedTreasury": "0x44FE6e6513BBf4e19Bbf421f3AA8ef60e15006AB",
+            "OwnerProxy": ""
         }
     },
     "250": {
@@ -115,13 +131,17 @@
         "FlatOperator": "",
         "Timelock": "",
         "NestedAssetBatcher": "",
+        "scripts": {
+            "OperatorScripts": ""
+        },
         "config": {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef189deaef76e379df891899eb5a00a94cbc250",
             "WETH": "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
             "multisig": "0xA30b05583365E56f4672FfBCeadE458818e5f0a1",
             "emergencyMultisig": "0x38ae60704579f44ADb3D7E60830AC2400A10BB7b",
-            "nestedTreasury": "0x0d276a90Ce591844AEd5c8B93072cA5D59face06"
+            "nestedTreasury": "0x0d276a90Ce591844AEd5c8B93072cA5D59face06",
+            "OwnerProxy": ""
         }
     },
     "42220": {
@@ -140,13 +160,17 @@
         "FlatOperator": "",
         "Timelock": "",
         "NestedAssetBatcher": "",
+        "scripts": {
+            "OperatorScripts": ""
+        },
         "config": {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0x471ece3750da237f93b8e339c536989b8978a438",
             "multisig": "",
             "emergencyMultisig": "",
-            "nestedTreasury": "0x4d32736631239B662D034724730375BBC5B8299d"
+            "nestedTreasury": "0x4d32736631239B662D034724730375BBC5B8299d",
+            "OwnerProxy": ""
         }
     },
     "43114": {
@@ -165,13 +189,17 @@
         "FlatOperator": "0x6bDc58D3287176b40ad2243eC0CF35f33F2119DA",
         "Timelock": "0x42f93A591C2eF6Ce52426a027F2529Eef4738F5A",
         "NestedAssetBatcher": "0x9EE92a94A8Ace98F36F19b35091C34e9D9bccD54",
+        "scripts": {
+            "OperatorScripts": ""
+        },
         "config": {
             "maxHoldingsCount": 12,
             "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
             "WETH": "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
             "multisig": "0x4a9101F6266E912e99477D1557997bBe7054652a",
             "emergencyMultisig": "0x71d68D6dcA7C5D814c64b3b2052af5Cb11ACe8be",
-            "nestedTreasury": "0x16019330CCf2e14E1C2A9562092415F6621b51BC"
+            "nestedTreasury": "0x16019330CCf2e14E1C2A9562092415F6621b51BC",
+            "OwnerProxy": ""
         }
     }
 }

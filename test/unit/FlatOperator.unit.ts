@@ -27,7 +27,7 @@ describeWithoutFork("FlatOperator", () => {
         expect(context.flatOperator.address).to.be.a.string;
     });
 
-    it("Cant use amount zero", async () => {
+    it("Can't use amount zero", async () => {
         // The user add 10 UNI to the portfolio
         const totalToBought = appendDecimals(10);
         const expectedFee = getExpectedFees(totalToBought);
@@ -54,7 +54,7 @@ describeWithoutFork("FlatOperator", () => {
         ).to.revertedWith("NF: OPERATOR_CALL_FAILED");
     });
 
-    it("Cant use with different input", async () => {
+    it("Can't use with different input", async () => {
         // The user add 10 UNI to the portfolio
         const totalToBought = appendDecimals(10);
         const expectedFee = getExpectedFees(totalToBought);
@@ -172,6 +172,59 @@ describeWithoutFork("FlatOperator", () => {
 
         // Remove 10 UNI (with same order)
         await context.nestedFactory.connect(context.user1).destroy(1, context.mockUNI.address, orders);
+
+        // UNI from create and from destroy to FeeSplitter (so, two times 1% of 10 UNI)
+        expect(await context.mockUNI.balanceOf(context.feeSplitter.address)).to.be.equal(
+            getExpectedFees(uniBought).mul(2),
+        );
+
+        // No holdings for NFT 1
+        expect(await context.nestedRecords.getAssetTokens(1).then(value => value.toString())).to.be.equal(
+            [].toString(),
+        );
+
+        // The NFT is burned
+        await expect(context.nestedAsset.ownerOf(1)).to.be.revertedWith("ERC721: owner query for nonexistent token");
+    });
+
+    it("remove token from portfolio when destroy() with underspend amount", async () => {
+        // The user add 10 UNI to the portfolio
+        const uniBought = appendDecimals(10);
+        const expectedFee = getExpectedFees(uniBought);
+        const totalToSpend = uniBought.add(expectedFee);
+
+        // Add 10 UNI with FlatOperator
+        let orders: Order[] = [
+            {
+                operator: context.flatOperatorNameBytes32,
+                token: context.mockUNI.address,
+                callData: utils.abiCoder.encode(["address", "uint256"], [context.mockUNI.address, uniBought]),
+            },
+        ];
+
+        // User1 creates the portfolio/NFT and emit event NftCreated
+        await expect(
+            context.nestedFactory.connect(context.user1).create(0, [
+                {
+                    inputToken: context.mockUNI.address,
+                    amount: totalToSpend,
+                    orders,
+                    fromReserve: false,
+                },
+            ]),
+        )
+            .to.emit(context.nestedFactory, "NftCreated")
+            .withArgs(1, 0);
+
+        // Remove only 1 UNI in the order, hence there is still holdings leading to underspend amount
+        let orders_underspend: Order[] = [
+            {
+                operator: context.flatOperatorNameBytes32,
+                token: context.mockUNI.address,
+                callData: utils.abiCoder.encode(["address", "uint256"], [context.mockUNI.address, appendDecimals(1)]),
+            },
+        ];
+        await context.nestedFactory.connect(context.user1).destroy(1, context.mockUNI.address, orders_underspend);
 
         // UNI from create and from destroy to FeeSplitter (so, two times 1% of 10 UNI)
         expect(await context.mockUNI.balanceOf(context.feeSplitter.address)).to.be.equal(
