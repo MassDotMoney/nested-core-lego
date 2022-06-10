@@ -28,9 +28,9 @@ remove_liquidity_one_coin(uint256,int128,uint256)
 remove_liquidity_one_coin(uint256,uint256,uint256)
 ```
 
-These differences are the consequence of the presence of functions `withdraw128()` and `withdraw256()` in the operator.
+These differences are the consequence of the presence of functions `withdraw128()` and `withdraw256()` in the StakeDAO and Yearn operators.
 
-### ETH managment
+### ETH handling
 
 #### Add liquidity
 
@@ -49,11 +49,8 @@ add_liquidity(uint256[],uint256)
 
 #### remove liquidity
 
-To withdraw liquidity and receive ETH, we have to withdraw some ETH from WETH contract because the [ETH/WETH nested protocol managment](https://github.com/NestedFi/nested-core-lego#eth-managment) forces operators to handle WETH as input, so we must call:
+When you remove liquidity from a Curve pool using ETH as a Curve output token, the `NestedFactory` will automaticly convert the received ETH into WETH because the [ETH/WETH nested protocol managment](https://github.com/NestedFi/nested-core-lego#eth-managment) forces WETH conversion on `receive` if the sender is not the whithdrawer, so when you call `withdrawETH(address,uint256,uint256)`, you will receive WETH as output token even if you asked for ETH.
 
-```
-withdrawETH(address,uint256,uint256)
-```
 
 ## Supported Curve pool types
 

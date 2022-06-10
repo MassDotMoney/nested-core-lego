@@ -11,10 +11,10 @@ The platform allows users to put several digital assets, i.e. ERC20 tokens, insi
 
 Each NestedNFT is backed by underlying assets:
 
--   Purchased or sold on a decentralized exchange (AMM).
--   Collected/earned after adding liquidity or staking.
--   Exchanged/Minted on a protocol that is not a decentralized exchange.
--   (...)
+- Purchased or sold on a decentralized exchange (AMM).
+- Collected/earned after adding liquidity or staking.
+- Exchanged/Minted on a protocol that is not a decentralized exchange.
+- (...)
 
 The main idea is to allow adding modules (**operators**) to interact with new protocols
 and enable new assets, without re-deploying.
@@ -64,8 +64,8 @@ We want to be able to interact with any protocol in exchange for an ERC20 token.
 
 So, we had to deal with two issues :
 
--   How to interact with 5, 10, or 20 protocols without blowing up the bytecode size and having too much logic?
--   How to add new interactions without redeploying the `NestedFactory` contract?
+- How to interact with 5, 10, or 20 protocols without blowing up the bytecode size and having too much logic?
+- How to add new interactions without redeploying the `NestedFactory` contract?
 
 Our solution is called the "**Operator**"... A new interaction is a new operator and can be added on the fly.
 They kind of work like [libraries](https://docs.soliditylang.org/en/v0.8.9/contracts.html#libraries), but since we don't want to redeploy the factory,
@@ -108,9 +108,9 @@ When deploying an operator, it will also deploy the storage contract and transfe
 | ZeroExStorage                  | ZeroExOperator storage contract. Must store the 0x `swapTarget`.                                                         |
 | FlatOperator                   | Handles deposits and withdraws. No interaction with any third parties ([read more](contracts/operators/Flat/README.md)). |
 | BeefyVaultOperator             | Handles deposits and withdraws in a Beefy single vault (native or non-native).                                           |
-| BeefyZapBiswapLPVaultOperator  | Handles deposits and withdraws in a Beefy Biswap LP vault using zapper                                                   |
-| BeefyZapUniswapLPVaultOperator | Handles deposits and withdraws in a Beefy UniswapV2 LP vault using zapper                                                |
-| BeefyVaultStorage              | Handles whitelisting of Beefy Vault or Zapper                                                                            |
+| BeefyZapBiswapLPVaultOperator  | Handles deposits and withdraws in a Beefy Biswap LP vault using zapper.                                                  |
+| BeefyZapUniswapLPVaultOperator | Handles deposits and withdraws in a Beefy UniswapV2 LP vault using zapper.                                               |
+| BeefyVaultStorage              | Handles whitelisting of Beefy Vault or Zapper.                                                                           |
 | ParaswapOperator               | Performs token swaps through Paraswap.                                                                                   |
 
 _More operators will be added. e.g. CurveOperator or SynthetixOperator_
@@ -121,9 +121,9 @@ The `NestedFactory` is using the operators to interact with other protocols. The
 
 An Order has several information:
 
--   The operator/selector to use
--   The token processed (swapped, stacked,...) by the operator (from the portfolio or wallet).
--   The calldatas (without the selector).
+- The operator/selector to use
+- The token processed (swapped, stacked,...) by the operator (from the portfolio or wallet).
+- The calldatas (without the selector).
 
 ```javascript
 struct Order {
@@ -133,7 +133,7 @@ struct Order {
 }
 ```
 
-It help us to make **one** interaction, but we want to make multiple interactions. For example, to create a portfolio with multiple tokens, we need to "batch" these orders.
+It helps us to make **one** interaction, but we want to make multiple interactions. For example, to create a portfolio with multiple tokens, we need to "batch" these orders.
 
 **There are two types of "Batched Orders" processed by the Factory to create or edit Portfolios :**
 
@@ -141,10 +141,10 @@ It help us to make **one** interaction, but we want to make multiple interaction
 
 <div align="center"><img src="./static/input-orders.png" width="650"></div>
 
--   One same input for every orders but multiple outputs.
--   0.3% fee on the input.
--   The input (_source_) is from a wallet **or** a porfolio owned by the transactions signer.
--   The ouput (_destination_) is the portfolio owned by the transactions signer (**only**).
+- One same input for every orders but multiple outputs.
+- 0.3% fee on the input.
+- The input (_source_) is from a wallet **or** a porfolio owned by the transactions signer.
+- The ouput (_destination_) is the portfolio owned by the transactions signer (**only**).
 
 ```javascript
 struct BatchedInputOrders {
@@ -159,10 +159,10 @@ struct BatchedInputOrders {
 
 <div align="center"><img src="./static/output-orders.png" width="650"></div>
 
--   Multiple inputs for every orders but one output.
--   0.3% fee on the output if operation does not reduce TVL, 0.8% if it does
--   The input (_source_) is the portfolio owned by the transactions signer (**only**).
--   The ouput (_destination_) is from a wallet **or** a portfolio owned by the transactions signer.
+- Multiple inputs for every orders but one output.
+- 0.3% fee on the output if operation does not reduce TVL, 0.8% if it does.
+- The input (_source_) is the portfolio owned by the transactions signer (**only**).
+- The ouput (_destination_) is from a wallet **or** a portfolio owned by the transactions signer.
 
 ```javascript
 struct BatchedOutputOrders {
@@ -200,10 +200,14 @@ In this case, the operator uses the Withdrawer to get the ETH back from the WETH
 > Only the Withdrawer can send ETH to the NestedFactory without automatic WETH conversion.
 
 ## Royalties
-Royalties are withdrawal fees when a user has copied an existing portfolio and are managed by the `FeeSplitter.sol`. Royalties are distributed from the `NestedFactory.sol` when a user withdraws funds from his portfolio OR when an order fails, all tokens are returned to the sender and are therefore subject to withdrawal fees.
+Royalties are a part of the fee collected by the protocol and they are collected during every step of a copied portfolio lifecycle (copy, update, deposit, withdraw).
 
 ### Fees distribution
-For now, protfolio designers and Nested share equally the royalties.
+For now, the fees are shared equally between portfolio creators (as royalties) and Nested.
+
+**First scenario:** When a portfolio is created from scratch, all fees go to Nested Finance Ltd and there are no royalties.
+**Second scenario:** When a portfolio is replicated, the fees are shared equally between Nested Finance Ltd. and the original creator of the Nested portfolio.  
+
 This distribution is done in the `feeSplitter.sol` with the ratio between the `royaltiesWeight` and the `shareholders` weights.
 Currently, we have `royaltiesWeight = 50` and **one** shareholder (_Nested_) with `weight = 50`.
 
@@ -213,38 +217,42 @@ Currently, we have `royaltiesWeight = 50` and **one** shareholder (_Nested_) wit
 
 Some functions of the protocol require admin rights (`onlyOwner` using `Ownable` from [OpenZeppelin](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/access/Ownable.sol)). Same with the [TransparentUpgradeableProxy](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/transparent/TransparentUpgradeableProxy.sol) which need an **Admin**.
 
-<img width="1011" alt="image" src="https://user-images.githubusercontent.com/22816913/173034995-432d6e84-e9d2-40cf-acb3-e109a158240f.png">
+<img width="1011" alt="image" src="./static/ownership.png">
 
 The contracts are owned by the `OwnerProxy` which is a [DSProxy](https://github.com/dapphub/ds-proxy) fork without a cache, where only the Timelock can execute the scripts.
 
 The TimelockControllerEmergency is a [TimelockController](https://docs.openzeppelin.com/contracts/4.x/api/governance#TimelockController) fork. 
-It introduces the "Emergency Role" to execute a transaction in an instantaneous way, but only the "Emergency Multisig" has this role, with 5 members and 5 approvals needed (in the case of an urgent fix).
-On the other hand, the "Operational Multisig" can schedule/execute transactions with a **6-hours** delay, with 3 members an 2 approvals needed.
+It introduces the "Emergency Role" to execute a transaction in an instantaneous way. 
+Only the "Emergency Multisig" has this role, with 5 members and 5 approvals needed (in the case of an urgent fix).
+On the other hand, the "Operational Multisig" can schedule/execute transactions with a **6-hours** delay, with 3 members and 2 approvals needed.
 
 # Development & Testing
 
 ## Setup
 
--   Install Node > 12
--   Install Yarn
--   `yarn install`
--   Copy `.env.example` to a new file `.env` and insert a dummy mnemonic and a mainnet api key
+- Install Node > 12
+- Install Yarn
+- Run `yarn install`
+- Copy `.env.example` to a new file `.env`
+- Insert a dummy mnemonic and a mainnet api key in the .env
+- [Configure forks](#testing) in .env
+
 
 ## Commands
 
--   Start a local blockchain
+- Start a local blockchain
     `yarn run`
 
--   Start a hardhat console
+- Start a hardhat console
     `yarn console`
 
--   Compile
+- Compile
     `yarn compile`
 
--   Generate typechain files
+- Generate typechain files
     `yarn typechain`
 
--   Run tests
+- Run tests
     `yarn test`
 
 ## Testing
