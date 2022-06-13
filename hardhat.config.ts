@@ -17,7 +17,7 @@ const accounts = {
     mnemonic: process.env.MNEMONIC,
     initialIndex: parseInt(process.env.ACCOUNT_INDEX ?? "0"),
     count: 20,
-    accountsBalance: "990000000000000000000",
+    accountsBalance: "99000000000000000000000",
 };
 
 /**
