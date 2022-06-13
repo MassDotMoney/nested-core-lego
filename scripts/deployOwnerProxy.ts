@@ -26,7 +26,7 @@ async function main(): Promise<void> {
     const operatorResolverFactory = await ethers.getContractFactory("OperatorResolver");
     const nestedFactoryFactory = await ethers.getContractFactory("NestedFactory");
     const zeroExStorageFactory = await ethers.getContractFactory("ZeroExStorage");
-    
+
     // Get contracts
     const feeSplitter = await feeSplitterFactory.attach(feeSplitterAddress);
     const nestedAsset = await nestedAssetFactory.attach(nestedAssetAddress);

@@ -8,7 +8,7 @@ async function main(): Promise<void> {
 
     const nestedFactoryAddr = "";
     const operatorResolverAddr = "";
-    
+
     // Get Factories
     const operatorScriptsFactory = await ethers.getContractFactory("OperatorScripts");
     const operatorScripts = await operatorScriptsFactory.deploy(nestedFactoryAddr, operatorResolverAddr);

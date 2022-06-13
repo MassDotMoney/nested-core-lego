@@ -526,9 +526,7 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
     const beefyZapBiswapLPVaultOperatorFactory = await ethers.getContractFactory("BeefyZapBiswapLPVaultOperator");
     const beefyZapBiswapLPVaultOperator = await beefyZapBiswapLPVaultOperatorFactory
         .connect(masterDeployer)
-        .deploy(
-            [beefyBiswapVaultAddress, beefyBiswapBtcEthLPVaultAddress],
-            [biswapRouterAddress, biswapRouterAddress]);
+        .deploy([beefyBiswapVaultAddress, beefyBiswapBtcEthLPVaultAddress], [biswapRouterAddress, biswapRouterAddress]);
     await beefyZapBiswapLPVaultOperator.deployed();
 
     // Deploy Beefy Zap Uniswap LP vault operator (ERA-WBNB and BTCB-ETH LP vaults)
@@ -540,7 +538,7 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
         .connect(masterDeployer)
         .deploy(
             [beefyUniswapVaultAddress, beefyUniswapBtcEthLPVaultAddress],
-            [uniswapRouterAddress, uniswapRouterAddress]
+            [uniswapRouterAddress, uniswapRouterAddress],
         );
     await beefyZapUniswapLPVaultOperator.deployed();
 

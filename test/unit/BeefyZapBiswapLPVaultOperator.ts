@@ -37,7 +37,7 @@ describeOnBscFork("BeefyZapBiswapLPVaultOperator", () => {
                 context,
                 context.WBNB.address,
                 BIG_NUMBER_ZERO,
-                context.beefyBiswapVaultAddress
+                context.beefyBiswapVaultAddress,
             );
 
             // User1 creates the portfolio/NFT
@@ -60,7 +60,7 @@ describeOnBscFork("BeefyZapBiswapLPVaultOperator", () => {
                 context,
                 context.WBNB.address,
                 bnbToDepositAndFees.mul(2),
-                context.beefyBiswapVaultAddress
+                context.beefyBiswapVaultAddress,
             );
 
             // User1 creates the portfolio/NFT
@@ -82,7 +82,7 @@ describeOnBscFork("BeefyZapBiswapLPVaultOperator", () => {
                 context,
                 context.WBNB.address,
                 bnbToDepositAndFees,
-                context.beefyUnregisteredBiswapVaultAddress
+                context.beefyUnregisteredBiswapVaultAddress,
             );
 
             await expect(
@@ -99,12 +99,12 @@ describeOnBscFork("BeefyZapBiswapLPVaultOperator", () => {
             const bnbToDeposit = appendDecimals(1);
             const bnbToDepositAndFees = bnbToDeposit.add(getExpectedFees(bnbToDeposit));
 
-            // Order to deposit WBNB into the Beefy Biswap BTCB-ETH LP vault operator  
+            // Order to deposit WBNB into the Beefy Biswap BTCB-ETH LP vault operator
             let orders: utils.OrderStruct[] = utils.getBeefyBiswapDepositOrder(
                 context,
                 context.WBNB.address,
                 bnbToDepositAndFees,
-                context.beefyBiswapBtcEthLPVaultAddress
+                context.beefyBiswapBtcEthLPVaultAddress,
             );
 
             await expect(
@@ -121,13 +121,13 @@ describeOnBscFork("BeefyZapBiswapLPVaultOperator", () => {
             const bnbToDeposit = appendDecimals(1);
             const bnbToDepositAndFees = bnbToDeposit.add(getExpectedFees(bnbToDeposit));
 
-            // Order to deposit WBNB into the Beefy Biswap BTCB-ETH LP vault operator  
+            // Order to deposit WBNB into the Beefy Biswap BTCB-ETH LP vault operator
             let orders: utils.OrderStruct[] = utils.getBeefyBiswapDepositOrder(
                 context,
                 context.WBNB.address,
                 bnbToDepositAndFees,
                 context.beefyBiswapVaultAddress,
-                ethers.constants.MaxUint256
+                ethers.constants.MaxUint256,
             );
 
             await expect(
@@ -151,7 +151,7 @@ describeOnBscFork("BeefyZapBiswapLPVaultOperator", () => {
                 context,
                 context.WBNB.address,
                 bnbToDeposit,
-                context.beefyBiswapVaultAddress
+                context.beefyBiswapVaultAddress,
             );
 
             // User1 creates the portfolio/NFT
@@ -278,7 +278,7 @@ describeOnBscFork("BeefyZapBiswapLPVaultOperator", () => {
                 context,
                 context.WBNB.address,
                 bnbToDeposit,
-                context.beefyBiswapVaultAddress
+                context.beefyBiswapVaultAddress,
             );
 
             // User1 creates the portfolio/NFT
@@ -300,7 +300,7 @@ describeOnBscFork("BeefyZapBiswapLPVaultOperator", () => {
                 context,
                 context.WBNB.address,
                 BIG_NUMBER_ZERO,
-                context.beefyBiswapVaultAddress
+                context.beefyBiswapVaultAddress,
             );
 
             await expect(
@@ -323,31 +323,28 @@ describeOnBscFork("BeefyZapBiswapLPVaultOperator", () => {
                 context,
                 context.beefyUnregisteredBiswapVaultAddress, // Not one of the paired token expected by the vault
                 mooBalance,
-                context.beefyBiswapVaultAddress
+                context.beefyBiswapVaultAddress,
             );
 
             await expect(
-                context.nestedFactory
-                    .connect(context.user1)
-                    .processOutputOrders(1, [
-                        {
-                            outputToken: context.beefyUnregisteredBiswapVaultAddress,
-                            amounts: [mooBalance],
-                            orders,
-                            toReserve: true
-                        },
-                    ]),
+                context.nestedFactory.connect(context.user1).processOutputOrders(1, [
+                    {
+                        outputToken: context.beefyUnregisteredBiswapVaultAddress,
+                        amounts: [mooBalance],
+                        orders,
+                        toReserve: true,
+                    },
+                ]),
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
         it("Should revert if sended vault is not registered in BeefyVaultStorage", async () => {
-
             // Orders to withdraw from beefy
             let orders: utils.OrderStruct[] = utils.getBeefyBiswapWithdrawOrder(
                 context,
                 context.WBNB.address,
                 BIG_NUMBER_ZERO.add(1),
-                context.beefyUnregisteredBiswapVaultAddress
+                context.beefyUnregisteredBiswapVaultAddress,
             );
 
             await expect(
@@ -365,13 +362,12 @@ describeOnBscFork("BeefyZapBiswapLPVaultOperator", () => {
 
             const mooBalance = await vault.balanceOf(context.nestedReserve.address);
 
-
             // Orders to withdraw from beefy
             let orders: utils.OrderStruct[] = utils.getBeefyBiswapWithdrawOrder(
                 context,
                 context.WBNB.address,
                 mooBalance.add(1),
-                context.beefyBiswapVaultAddress
+                context.beefyBiswapVaultAddress,
             );
 
             await expect(
@@ -389,14 +385,13 @@ describeOnBscFork("BeefyZapBiswapLPVaultOperator", () => {
 
             const mooBalance = await vault.balanceOf(context.nestedReserve.address);
 
-
             // Orders to withdraw from beefy
             let orders: utils.OrderStruct[] = utils.getBeefyBiswapWithdrawOrder(
                 context,
                 context.WBNB.address,
                 mooBalance,
                 context.beefyBiswapVaultAddress,
-                ethers.constants.MaxUint256
+                ethers.constants.MaxUint256,
             );
 
             await expect(
@@ -420,7 +415,7 @@ describeOnBscFork("BeefyZapBiswapLPVaultOperator", () => {
                 context,
                 context.WBNB.address,
                 mooBalance,
-                context.beefyBiswapVaultAddress
+                context.beefyBiswapVaultAddress,
             );
 
             await context.nestedFactory.connect(context.user1).destroy(1, context.WBNB.address, orders);
