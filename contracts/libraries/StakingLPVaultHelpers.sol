@@ -2,8 +2,8 @@
 pragma solidity 0.8.14;
 
 import "./../Withdrawer.sol";
-import "./../libraries/CurveHelpers.sol";
 import "./../libraries/ExchangeHelpers.sol";
+import "./../libraries/CurveHelpers/CurveHelpers.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./../interfaces/external/ICurvePool/ICurvePool.sol";
 import "./../interfaces/external/ICurvePool/ICurvePoolETH.sol";

@@ -3,12 +3,12 @@ pragma solidity 0.8.14;
 
 import "./../../Withdrawer.sol";
 import "./YearnVaultStorage.sol";
-import "./../../libraries/CurveHelpers.sol";
 import "./../../libraries/OperatorHelpers.sol";
 import "./../../libraries/ExchangeHelpers.sol";
 import "./../../interfaces/external/IWETH.sol";
 import "../../libraries/StakingLPVaultHelpers.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./../../libraries/CurveHelpers/CurveHelpers.sol";
 import "./../../interfaces/external/ICurvePool/ICurvePoolETH.sol";
 import "./../../interfaces/external/IStakingVault/IYearnVault.sol";
 import "./../../interfaces/external/ICurvePool/ICurvePoolNonETH.sol";
