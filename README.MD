@@ -181,10 +181,10 @@ struct BatchedOutputOrders {
 The Nested Reserve stores underlying assets of all NestedNFTs. The Nested Records keeps track of which underlying assets are associated with a specific NestedNFT. 
 Hence, each time the Nested Factory needs to interact with user funds (which are represented as a NestedNFT), it will first check the balance of tokens associated with the NestedNFT through Nested Records. If needed, it will then transfert funds to the Nested Reserve or withdraw funds from it.
 
-## ETH managment
+## Native Token Management
 
-The Nested protocol only handles WETH when calling operators.  
-The sent ETH used to feed a portfolio is automatically converted to WETH when received.
+The Nested protocol only handles ERC20 when calling operators.  
+If the msg.sender is not the withdrawer, the sent ETH used to feed a portfolio are automatically converted to WETH when received.
 
 ### WETH Conversion
 
@@ -205,7 +205,7 @@ Royalties are a part of the fee collected by the protocol and they are collected
 ### Fees distribution
 For now, the fees are shared equally between portfolio creators (as royalties) and Nested.
 
-**First scenario:** When a portfolio is created from scratch, all fees go to Nested Finance Ltd and there are no royalties.
+**First scenario:** When a portfolio is created from scratch, all fees go to Nested Finance Ltd and there are no royalties.<br/>
 **Second scenario:** When a portfolio is replicated, the fees are shared equally between Nested Finance Ltd. and the original creator of the Nested portfolio.  
 
 This distribution is done in the `feeSplitter.sol` with the ratio between the `royaltiesWeight` and the `shareholders` weights.
