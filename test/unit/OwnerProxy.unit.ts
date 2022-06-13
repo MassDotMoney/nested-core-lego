@@ -40,10 +40,12 @@ describeWithoutFork("OwnerProxy", () => {
         // Transfer NestedFactory/OperatorResolver ownership to the OwnerProxy
         await context.nestedFactory.connect(context.masterDeployer).transferOwnership(ownerProxy.address);
         await context.operatorResolver.connect(context.masterDeployer).transferOwnership(ownerProxy.address);
-        
+
         // Set OwnerProxy as proxy admin
         const transparentUpgradeableProxyFactory = await ethers.getContractFactory("TransparentUpgradeableProxy");
-        const transparentUpgradeableProxy = await transparentUpgradeableProxyFactory.attach(context.nestedFactory.address);
+        const transparentUpgradeableProxy = await transparentUpgradeableProxyFactory.attach(
+            context.nestedFactory.address,
+        );
         await transparentUpgradeableProxy.connect(context.proxyAdmin).changeAdmin(ownerProxy.address);
 
         // Deploy UpdateFees script
@@ -60,7 +62,9 @@ describeWithoutFork("OwnerProxy", () => {
 
         // Deploy AddOperator Script
         const operatorScriptsFactory = await ethers.getContractFactory("OperatorScripts");
-        operatorScripts = await operatorScriptsFactory.connect(context.masterDeployer).deploy(context.nestedFactory.address, context.operatorResolver.address);
+        operatorScripts = await operatorScriptsFactory
+            .connect(context.masterDeployer)
+            .deploy(context.nestedFactory.address, context.operatorResolver.address);
         await operatorScripts.deployed();
 
         // Create "addOperator" calldata (to call OwnerProxy)
@@ -76,9 +80,9 @@ describeWithoutFork("OwnerProxy", () => {
         // Create "removeOperator" calldata (to call OwnerProxy)
         // We are removing the flatTest operator
         scriptRemoveOperatorCalldata = await operatorScripts.interface.encodeFunctionData("removeOperator", [
-            toBytes32("flatTest")
+            toBytes32("flatTest"),
         ]);
-        
+
         // Create "deployAddOperators" calldata (to call OwnerProxy)
         // We are deploying/adding the FlatOperator a second time
         flatOperatorFactory = await ethers.getContractFactory("FlatOperator");
@@ -88,7 +92,7 @@ describeWithoutFork("OwnerProxy", () => {
                 {
                     name: toBytes32("flatTest"),
                     selector: context.flatOperator.interface.getSighash("transfer(address,uint)"),
-                }
+                },
             ],
         ]);
     });
@@ -240,8 +244,7 @@ describeWithoutFork("OwnerProxy", () => {
                         fromReserve: false,
                     },
                 ]),
-            )
-                .to.be.revertedWith("MOR: MISSING_OPERATOR: flatTest");
+            ).to.be.revertedWith("MOR: MISSING_OPERATOR: flatTest");
         });
     });
 
@@ -253,7 +256,7 @@ describeWithoutFork("OwnerProxy", () => {
                     {
                         name: toBytes32("flatTest"),
                         selector: context.flatOperator.interface.getSighash("transfer(address,uint)"),
-                    }
+                    },
                 ],
             ]);
 
@@ -270,7 +273,7 @@ describeWithoutFork("OwnerProxy", () => {
                     {
                         name: toBytes32("flatTest"),
                         selector: context.flatOperator.interface.getSighash("transfer(address,uint)"),
-                    }
+                    },
                 ],
             ]);
 

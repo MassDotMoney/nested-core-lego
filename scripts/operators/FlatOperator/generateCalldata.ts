@@ -22,7 +22,10 @@ async function main(): Promise<void> {
         ],
     ]);
 
-    const finalCalldata = ownerProxyFactory.interface.encodeFunctionData("execute", [context[chainId].scripts.OperatorScripts, calldata]);
+    const finalCalldata = ownerProxyFactory.interface.encodeFunctionData("execute", [
+        context[chainId].scripts.OperatorScripts,
+        calldata,
+    ]);
     console.log("Calldata for OwnerProxy => ", finalCalldata);
 }
 

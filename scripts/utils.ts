@@ -520,7 +520,7 @@ export function getBeefyUniswapDepositOrder(
     depositTokenAddress: string,
     tokenToDeposit: BigNumber,
     vaultAddress: string,
-    minOutputToken?: BigNumber
+    minOutputToken?: BigNumber,
 ) {
     return [
         buildOrderStruct(context.beefyZapUniswapLPVaultDepositOperatorNameBytes32, vaultAddress, [
@@ -538,7 +538,7 @@ export function getBeefyUniswapWithdrawOrder(
     withdrawTokenAddress: string,
     mooToWithdraw: BigNumber,
     vaultAddress: string,
-    minOutputToken?: BigNumber
+    minOutputToken?: BigNumber,
 ) {
     return [
         buildOrderStruct(context.beefyZapUniswapLPVaultWithdrawOperatorNameBytes32, vaultAddress, [
@@ -556,7 +556,7 @@ export function getBeefyBiswapDepositOrder(
     depositTokenAddress: string,
     tokenToDeposit: BigNumber,
     vaultAddress: string,
-    minOutputToken?: BigNumber
+    minOutputToken?: BigNumber,
 ) {
     return [
         buildOrderStruct(context.beefyZapBiswapLPVaultDepositOperatorNameBytes32, vaultAddress, [
@@ -574,7 +574,7 @@ export function getBeefyBiswapWithdrawOrder(
     withdrawTokenAddress: string,
     mooToWithdraw: BigNumber,
     vaultAddress: string,
-    minOutputToken?: BigNumber
+    minOutputToken?: BigNumber,
 ) {
     return [
         buildOrderStruct(context.beefyZapBiswapLPVaultWithdrawOperatorNameBytes32, vaultAddress, [
