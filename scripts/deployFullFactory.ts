@@ -117,14 +117,6 @@ async function main(): Promise<void> {
     tx = await proxyImpl.setFeeSplitter(feeSplitter.address);
     await tx.wait();
 
-    // Set entry fees in proxy storage
-    tx = await proxyImpl.setEntryFees(30);
-    await tx.wait();
-
-    // Set exit fees in proxy storage
-    tx = await proxyImpl.setExitFees(80);
-    await tx.wait();
-
     await importOperators(operatorResolver, [registerFlat(flatOperator), registerZeroEx(zeroExOperator)], proxyImpl);
 
     // Convert JSON object to string

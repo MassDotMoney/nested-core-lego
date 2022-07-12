@@ -99,16 +99,6 @@ interface INestedFactory {
     /// @param _feeSplitter The address of the receiver
     function setFeeSplitter(FeeSplitter _feeSplitter) external;
 
-    /// @notice Sets the entry fees amount
-    ///         Where 1 = 0.01% and 10000 = 100%
-    /// @param _entryFees Entry fees amount
-    function setEntryFees(uint256 _entryFees) external;
-
-    /// @notice Sets the exit fees amount
-    ///         Where 1 = 0.01% and 10000 = 100%
-    /// @param _exitFees Exit fees amount
-    function setExitFees(uint256 _exitFees) external;
-
     /// @notice The Factory is not storing funds, but some users can make
     /// bad manipulations and send tokens to the contract.
     /// In response to that, the owner can retrieve the factory balance of a given token

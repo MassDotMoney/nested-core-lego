@@ -113,49 +113,6 @@ describeWithoutFork("OwnerProxy", () => {
         });
     });
 
-    describe("Update fees", () => {
-        it("Can't update fees if entry fees are zero", async () => {
-            // set fees to zero is not allowed
-            let wrongScriptCalldata = await scriptUpdateFees.interface.encodeFunctionData("updateFees", [
-                context.nestedFactory.address,
-                0,
-                80,
-            ]);
-
-            await expect(
-                ownerProxy.connect(context.masterDeployer).execute(scriptUpdateFees.address, wrongScriptCalldata),
-            ).to.be.revertedWith("NF: ZERO_FEES");
-        });
-
-        it("Can't update fees if exit fees are zero", async () => {
-            // set fees to zero is not allowed
-            let wrongScriptCalldata = await scriptUpdateFees.interface.encodeFunctionData("updateFees", [
-                context.nestedFactory.address,
-                30,
-                0,
-            ]);
-
-            await expect(
-                ownerProxy.connect(context.masterDeployer).execute(scriptUpdateFees.address, wrongScriptCalldata),
-            ).to.be.revertedWith("NF: ZERO_FEES");
-        });
-
-        it("Can't update fees by calling script", async () => {
-            await expect(
-                scriptUpdateFees.connect(context.masterDeployer).updateFees(context.nestedFactory.address, 30, 80),
-            ).to.be.reverted;
-        });
-
-        it("can update fees", async () => {
-            await ownerProxy
-                .connect(context.masterDeployer)
-                .execute(scriptUpdateFees.address, scriptUpdateFeesCalldata);
-
-            expect(await context.nestedFactory.entryFees()).to.be.equal(BigNumber.from(30));
-            expect(await context.nestedFactory.exitFees()).to.be.equal(BigNumber.from(80));
-        });
-    });
-
     describe("Add operator", () => {
         it("Can't add operator if operator address is zero", async () => {
             let wrongScriptCalldata = await operatorScripts.interface.encodeFunctionData("addOperator", [
