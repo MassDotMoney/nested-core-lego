@@ -31,7 +31,7 @@ contract DummyRouter is IERC721Receiver {
     }
 
     function reentrancyAttackForDestroy(uint256 nftId) external {
-        NestedFactory(factory).destroy(nftId, IERC20(address(weth)), attackOrders);
+        NestedFactory(factory).destroy(nftId, address(weth), 1, IERC20(address(weth)), attackOrders);
     }
 
     function setMaxAllowance(IERC20 _token, address _spender) external {

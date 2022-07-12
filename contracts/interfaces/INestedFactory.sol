@@ -47,6 +47,11 @@ interface INestedFactory {
     /// @param amount The unlocked amount
     event TokensUnlocked(address token, uint256 amount);
 
+    /// @dev Emitted when fees are paid.
+    /// @param token The token used to pay the fees
+    /// @param amount The amount paid
+    event FeesPaid(address token, uint256 amount);
+
     /* ------------------------------ STRUCTS ------------------------------ */
 
     /// @dev Represent an order made to the factory when creating/editing an NFT
@@ -110,25 +115,50 @@ interface INestedFactory {
 
     /// @notice Create a portfolio and store the underlying assets from the positions
     /// @param _originalTokenId The id of the NFT replicated, 0 if not replicating
+    /// @param _feesToken The token used to pay the fees
+    /// @param _feesToken The fees amount
     /// @param _batchedOrders The order to execute
-    function create(uint256 _originalTokenId, BatchedInputOrders[] calldata _batchedOrders) external payable;
+    function create(
+        uint256 _originalTokenId,
+        address _feesToken,
+        uint256 _feesAmount,
+        BatchedInputOrders[] calldata _batchedOrders
+    ) external payable;
 
     /// @notice Process multiple input orders
     /// @param _nftId The id of the NFT to update
+    /// @param _feesToken The token used to pay the fees
+    /// @param _feesToken The fees amount
     /// @param _batchedOrders The order to execute
-    function processInputOrders(uint256 _nftId, BatchedInputOrders[] calldata _batchedOrders) external payable;
+    function processInputOrders(
+        uint256 _nftId,
+        address _feesToken,
+        uint256 _feesAmount,
+        BatchedInputOrders[] calldata _batchedOrders
+    ) external payable;
 
     /// @notice Process multiple output orders
     /// @param _nftId The id of the NFT to update
+    /// @param _feesToken The token used to pay the fees
+    /// @param _feesToken The fees amount
     /// @param _batchedOrders The order to execute
-    function processOutputOrders(uint256 _nftId, BatchedOutputOrders[] calldata _batchedOrders) external;
+    function processOutputOrders(
+        uint256 _nftId,
+        address _feesToken,
+        uint256 _feesAmount,
+        BatchedOutputOrders[] calldata _batchedOrders
+    ) external;
 
     /// @notice Process multiple input orders and then multiple output orders
     /// @param _nftId The id of the NFT to update
+    /// @param _feesToken The token used to pay the fees
+    /// @param _feesToken The fees amount
     /// @param _batchedInputOrders The input orders to execute (first)
     /// @param _batchedOutputOrders The output orders to execute (after)
     function processInputAndOutputOrders(
         uint256 _nftId,
+        address _feesToken,
+        uint256 _feesAmount,
         BatchedInputOrders[] calldata _batchedInputOrders,
         BatchedOutputOrders[] calldata _batchedOutputOrders
     ) external payable;
@@ -136,18 +166,29 @@ interface INestedFactory {
     /// @notice Burn NFT and exchange all tokens for a specific ERC20 then send it back to the user
     /// @dev Will unwrap WETH output to ETH
     /// @param _nftId The id of the NFT to destroy
+    /// @param _feesToken The token used to pay the fees
+    /// @param _feesToken The fees amount
     /// @param _buyToken The output token
     /// @param _orders Orders calldata
     function destroy(
         uint256 _nftId,
+        address _feesToken,
+        uint256 _feesAmount,
         IERC20 _buyToken,
         Order[] calldata _orders
     ) external;
 
     /// @notice Withdraw a token from the reserve and transfer it to the owner without exchanging it
     /// @param _nftId NFT token ID
+    /// @param _feesToken The token used to pay the fees
+    /// @param _feesToken The fees amount
     /// @param _tokenIndex Index in array of tokens for this NFT and holding.
-    function withdraw(uint256 _nftId, uint256 _tokenIndex) external;
+    function withdraw(
+        uint256 _nftId,
+        address _feesToken,
+        uint256 _feesAmount,
+        uint256 _tokenIndex
+    ) external;
 
     /// @notice Update the lock timestamp of an NFT record.
     /// Note: Can only increase the lock timestamp.

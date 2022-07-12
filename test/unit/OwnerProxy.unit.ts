@@ -4,7 +4,7 @@ import { createFixtureLoader, describeWithoutFork, expect, provider } from "../s
 import { BigNumber } from "ethers";
 import { appendDecimals, getExpectedFees, toBytes32 } from "../helpers";
 import { ethers } from "hardhat";
-import { FlatOperator__factory, OperatorScripts, OwnerProxy, UpdateFees } from "../../typechain";
+import { FlatOperator__factory, OperatorScripts, OwnerProxy } from "../../typechain";
 import * as utils from "../../scripts/utils";
 
 let loadFixture: LoadFixtureFunction;
@@ -18,8 +18,6 @@ interface Order {
 describeWithoutFork("OwnerProxy", () => {
     let context: FactoryAndOperatorsFixture;
     let ownerProxy: OwnerProxy;
-    let scriptUpdateFees: UpdateFees;
-    let scriptUpdateFeesCalldata: string;
     let operatorScripts: OperatorScripts;
     let scriptAddOperatorCalldata: string;
     let scriptRemoveOperatorCalldata: string;
@@ -47,18 +45,6 @@ describeWithoutFork("OwnerProxy", () => {
             context.nestedFactory.address,
         );
         await transparentUpgradeableProxy.connect(context.proxyAdmin).changeAdmin(ownerProxy.address);
-
-        // Deploy UpdateFees script
-        const scriptUpdateFeesFactory = await ethers.getContractFactory("UpdateFees");
-        scriptUpdateFees = await scriptUpdateFeesFactory.connect(context.masterDeployer).deploy();
-        await scriptUpdateFees.deployed();
-
-        // Create "updateFees" calldata (to call OwnerProxy)
-        scriptUpdateFeesCalldata = await scriptUpdateFees.interface.encodeFunctionData("updateFees", [
-            context.nestedFactory.address,
-            30,
-            80,
-        ]);
 
         // Deploy AddOperator Script
         const operatorScriptsFactory = await ethers.getContractFactory("OperatorScripts");
@@ -100,7 +86,7 @@ describeWithoutFork("OwnerProxy", () => {
     describe("Common", () => {
         it("Can't update fees if not owner", async () => {
             await expect(
-                ownerProxy.connect(context.user1).execute(scriptUpdateFees.address, scriptUpdateFeesCalldata),
+                ownerProxy.connect(context.user1).execute(operatorScripts.address, ""),
             ).to.be.revertedWith("Ownable: caller is not the owner");
         });
 
@@ -108,7 +94,7 @@ describeWithoutFork("OwnerProxy", () => {
             await expect(
                 ownerProxy
                     .connect(context.masterDeployer)
-                    .execute(ethers.constants.AddressZero, scriptUpdateFeesCalldata),
+                    .execute(ethers.constants.AddressZero, ""),
             ).to.be.revertedWith("OP: INVALID_TARGET");
         });
     });
