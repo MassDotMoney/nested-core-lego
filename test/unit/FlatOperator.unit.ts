@@ -15,6 +15,7 @@ interface Order {
 describeWithoutFork("FlatOperator", () => {
     let context: FactoryAndOperatorsFixture;
 
+
     before("loader", async () => {
         loadFixture = createFixtureLoader(provider.getWallets(), provider);
     });
@@ -31,7 +32,6 @@ describeWithoutFork("FlatOperator", () => {
         // The user add 10 UNI to the portfolio
         const totalToBought = appendDecimals(10);
         const expectedFee = getExpectedFees(totalToBought);
-        const totalToSpend = totalToBought.add(expectedFee);
 
         // Add 0 UNI with FlatOperator
         let orders: Order[] = [
@@ -43,10 +43,10 @@ describeWithoutFork("FlatOperator", () => {
         ];
 
         await expect(
-            context.nestedFactory.connect(context.user1).create(0, [
+            context.nestedFactory.connect(context.user1).create(0, context.mockUNI.address, expectedFee, [
                 {
                     inputToken: context.mockUNI.address,
-                    amount: totalToSpend,
+                    amount: totalToBought,
                     orders,
                     fromReserve: false,
                 },
@@ -58,7 +58,6 @@ describeWithoutFork("FlatOperator", () => {
         // The user add 10 UNI to the portfolio
         const totalToBought = appendDecimals(10);
         const expectedFee = getExpectedFees(totalToBought);
-        const totalToSpend = totalToBought.add(expectedFee);
 
         // Add 10 DAI with FlatOperator, but input UNI
         let orders: Order[] = [
@@ -72,10 +71,10 @@ describeWithoutFork("FlatOperator", () => {
         // The error is "OUTPUT" because the token in Order is considered as the "right token" (UNI)
         // Therefore, the DAI token (output) is considered as invalid.
         await expect(
-            context.nestedFactory.connect(context.user1).create(0, [
+            context.nestedFactory.connect(context.user1).create(0, context.mockUNI.address, expectedFee, [
                 {
                     inputToken: context.mockUNI.address,
-                    amount: totalToSpend,
+                    amount: totalToBought,
                     orders,
                     fromReserve: false,
                 },
@@ -101,10 +100,10 @@ describeWithoutFork("FlatOperator", () => {
 
         // User1 creates the portfolio/NFT and emit event NftCreated
         await expect(
-            context.nestedFactory.connect(context.user1).create(0, [
+            context.nestedFactory.connect(context.user1).create(0,  context.mockUNI.address, expectedFee, [
                 {
                     inputToken: context.mockUNI.address,
-                    amount: totalToSpend,
+                    amount: totalToBought,
                     orders,
                     fromReserve: false,
                 },
@@ -145,7 +144,6 @@ describeWithoutFork("FlatOperator", () => {
         const uniBought = appendDecimals(10);
         const totalToBought = uniBought;
         const expectedFee = getExpectedFees(totalToBought);
-        const totalToSpend = totalToBought.add(expectedFee);
 
         // Add 10 UNI with FlatOperator
         let orders: Order[] = [
@@ -158,10 +156,10 @@ describeWithoutFork("FlatOperator", () => {
 
         // User1 creates the portfolio/NFT and emit event NftCreated
         await expect(
-            context.nestedFactory.connect(context.user1).create(0, [
+            context.nestedFactory.connect(context.user1).create(0, context.mockUNI.address, expectedFee, [
                 {
                     inputToken: context.mockUNI.address,
-                    amount: totalToSpend,
+                    amount: totalToBought,
                     orders,
                     fromReserve: false,
                 },
@@ -171,7 +169,7 @@ describeWithoutFork("FlatOperator", () => {
             .withArgs(1, 0);
 
         // Remove 10 UNI (with same order)
-        await context.nestedFactory.connect(context.user1).destroy(1, context.mockUNI.address, orders);
+        await context.nestedFactory.connect(context.user1).destroy(1, context.mockUNI.address, expectedFee, context.mockUNI.address, orders);
 
         // UNI from create and from destroy to FeeSplitter (so, two times 1% of 10 UNI)
         expect(await context.mockUNI.balanceOf(context.feeSplitter.address)).to.be.equal(
@@ -204,7 +202,7 @@ describeWithoutFork("FlatOperator", () => {
 
         // User1 creates the portfolio/NFT and emit event NftCreated
         await expect(
-            context.nestedFactory.connect(context.user1).create(0, [
+            context.nestedFactory.connect(context.user1).create(0, context.mockUNI.address, expectedFee, [
                 {
                     inputToken: context.mockUNI.address,
                     amount: totalToSpend,
@@ -224,7 +222,7 @@ describeWithoutFork("FlatOperator", () => {
                 callData: utils.abiCoder.encode(["address", "uint256"], [context.mockUNI.address, appendDecimals(1)]),
             },
         ];
-        await context.nestedFactory.connect(context.user1).destroy(1, context.mockUNI.address, orders_underspend);
+        await context.nestedFactory.connect(context.user1).destroy(1, context.mockUNI.address, expectedFee, context.mockUNI.address, orders_underspend);
 
         // UNI from create and from destroy to FeeSplitter (so, two times 1% of 10 UNI)
         expect(await context.mockUNI.balanceOf(context.feeSplitter.address)).to.be.equal(

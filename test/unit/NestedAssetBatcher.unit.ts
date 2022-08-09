@@ -31,7 +31,7 @@ describeWithoutFork("NestedAssetBatcher", () => {
             let orders: utils.OrderStruct[] = utils.getUniAndKncWithDaiOrders(context, baseUniBought, baseKncBought);
             await context.nestedFactory
                 .connect(context.user1)
-                .create(0, [
+                .create(0,context.mockDAI.address, baseExpectedFee, [
                     { inputToken: context.mockDAI.address, amount: baseTotalToSpend, orders, fromReserve: true },
                 ]);
         });
@@ -63,7 +63,7 @@ describeWithoutFork("NestedAssetBatcher", () => {
             await expect(context.nestedAssetBatcher.requireTokenHoldings(1)).to.not.be.reverted;
 
             let orders: utils.OrderStruct[] = utils.getUsdcWithUniAndKncOrders(context, baseUniBought, baseKncBought);
-            await context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, orders);
+            await context.nestedFactory.connect(context.user1).destroy(1, context.mockUSDC.address, baseExpectedFee, context.mockUSDC.address, orders);
 
             // Not reverting after burn
             await expect(context.nestedAssetBatcher.requireTokenHoldings(1)).to.not.be.reverted;

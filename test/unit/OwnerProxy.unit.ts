@@ -83,22 +83,6 @@ describeWithoutFork("OwnerProxy", () => {
         ]);
     });
 
-    describe("Common", () => {
-        it("Can't update fees if not owner", async () => {
-            await expect(
-                ownerProxy.connect(context.user1).execute(operatorScripts.address, ""),
-            ).to.be.revertedWith("Ownable: caller is not the owner");
-        });
-
-        it("Can't update fees if empty target", async () => {
-            await expect(
-                ownerProxy
-                    .connect(context.masterDeployer)
-                    .execute(ethers.constants.AddressZero, ""),
-            ).to.be.revertedWith("OP: INVALID_TARGET");
-        });
-    });
-
     describe("Add operator", () => {
         it("Can't add operator if operator address is zero", async () => {
             let wrongScriptCalldata = await operatorScripts.interface.encodeFunctionData("addOperator", [
@@ -136,7 +120,7 @@ describeWithoutFork("OwnerProxy", () => {
 
             // User1 creates the portfolio/NFT and emit event NftCreated
             await expect(
-                context.nestedFactory.connect(context.user1).create(0, [
+                context.nestedFactory.connect(context.user1).create(0, context.mockUNI.address, expectedFee, [
                     {
                         inputToken: context.mockUNI.address,
                         amount: totalToSpend,
@@ -179,7 +163,7 @@ describeWithoutFork("OwnerProxy", () => {
 
             // User1 creates the portfolio/NFT and emit event NftCreated
             await expect(
-                context.nestedFactory.connect(context.user1).create(0, [
+                context.nestedFactory.connect(context.user1).create(0, context.mockUNI.address, expectedFee, [
                     {
                         inputToken: context.mockUNI.address,
                         amount: totalToSpend,
@@ -247,7 +231,7 @@ describeWithoutFork("OwnerProxy", () => {
 
             // User1 creates the portfolio/NFT and emit event NftCreated
             await expect(
-                context.nestedFactory.connect(context.user1).create(0, [
+                context.nestedFactory.connect(context.user1).create(0, context.mockUNI.address, expectedFee, [
                     {
                         inputToken: context.mockUNI.address,
                         amount: totalToSpend,

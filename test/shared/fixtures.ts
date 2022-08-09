@@ -751,6 +751,7 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
 
 export type FactoryAndOperatorsForkingETHFixture = {
     WETH: WETH9;
+    mockDAI: MockERC20;
     shareholder1: Wallet;
     shareholder2: Wallet;
     feeSplitter: FeeSplitter;
@@ -1019,8 +1020,17 @@ export const factoryAndOperatorsForkingETHFixture: Fixture<FactoryAndOperatorsFo
     await addEthEurtBalanceTo(user1, eurtToAddToBalanceAndFees);
     await setAllowance(user1, EURTEth, nestedFactory.address, UINT256_MAX);
 
+    // Deploy ERC20
+    const mockERC20Factory = await ethers.getContractFactory("MockERC20");
+    const mockDAI = await mockERC20Factory.connect(masterDeployer).deploy("Mocked DAI", "DAI", appendDecimals(3000000));
+    await mockDAI.deployed();
+    await mockDAI.connect(user1).approve(nestedFactory.address, baseAmount);
+    await mockDAI.connect(masterDeployer).transfer(user1.address, baseAmount);
+
+
     return {
         WETH,
+        mockDAI,
         shareholder1,
         shareholder2,
         feeSplitter,
