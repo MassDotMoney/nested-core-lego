@@ -486,7 +486,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         }
     }
 
-    /// @notice Transfer fees to the FeeSplitter
+    /// @dev Transfer fees to the FeeSplitter
     /// @param _token The token to pay fees
     /// @param _amount The amount transfered
     /// @param _nftId The parent nft id (for royalties)
