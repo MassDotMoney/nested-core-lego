@@ -262,8 +262,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         }
 
         // Amount calculation to send tokens
-        uint256 amountBought = _buyToken.balanceOf(address(this)) - buyTokenInitialBalance;
-        _safeTransferAndUnwrap(_buyToken, amountBought, _msgSender());
+        _safeTransferAndUnwrap(_buyToken, _buyToken.balanceOf(address(this)) - buyTokenInitialBalance, _msgSender());
 
         // Burn NFT
         nestedRecords.removeNFT(_nftId);
