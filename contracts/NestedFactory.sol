@@ -258,7 +258,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         uint256 buyTokenInitialBalance = _buyToken.balanceOf(address(this));
 
         for (uint256 i = 0; i < tokens.length; i++) {
-            _safeSubmitOrder(tokens[i], address(_buyToken), _safeWithdraw(tokens[i], _nftId), _nftId, _orders[i]);
+            _safeSubmitOrder(tokens[i], address(_buyToken), _safeWithdraw(tokens[i], _nftId), _orders[i]);
         }
 
         // Amount calculation to send tokens
@@ -462,13 +462,11 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     /// @param _inputToken Token used to make the orders
     /// @param _outputToken Expected output token
     /// @param _amountToSpend The input amount available (to spend)
-    /// @param _nftId The nftId
     /// @param _order The order calldata
     function _safeSubmitOrder(
         address _inputToken,
         address _outputToken,
         uint256 _amountToSpend,
-        uint256 _nftId,
         Order calldata _order
     ) private {
         (bool success, uint256[] memory amounts) = callOperator(_order, _inputToken, _outputToken);
