@@ -365,29 +365,6 @@ describeWithoutFork("NestedFactory", () => {
             ).to.be.revertedWith("NF: OPERATOR_CALL_FAILED");
         });
 
-        it("reverts if not enough to pay fees", async () => {
-            /*
-             * All the amounts for this test :
-             * - Buy 6 UNI and 4 KNC
-             * - The user needs 10 DAI (+ fees) but will spend 10 DAI => without the fees
-             */
-            const uniBought = appendDecimals(6);
-            const kncBought = appendDecimals(4);
-            const totalToSpend = appendDecimals(10);
-
-            // Orders for UNI and KNC
-            let orders: utils.OrderStruct[] = utils.getUniAndKncWithDaiOrders(context, uniBought, kncBought);
-
-            // Should revert with "assert" (no message)
-            await expect(
-                context.nestedFactory
-                    .connect(context.user1)
-                    .create(0, context.mockDAI.address, 0, [
-                        { inputToken: context.mockDAI.address, amount: totalToSpend, orders, fromReserve: false },
-                    ]),
-            ).to.be.reverted;
-        });
-
         it("reverts if the ETH amount is less than total sum of ETH sales", async () => {
             /*
              * All the amounts for this test :
@@ -615,6 +592,46 @@ describeWithoutFork("NestedFactory", () => {
             const totalToBought = uniBought.add(kncBought);
             const expectedFee = getExpectedFees(totalToBought);
             const totalToSpend = totalToBought.add(expectedFee);
+
+            const ethBalanceBefore = await context.user1.getBalance();
+
+            // Orders for UNI and KNC
+            let orders: utils.OrderStruct[] = utils.getUniAndKncWithETHOrders(context, uniBought, kncBought);
+
+            // User1 creates the portfolio/NFT
+            const tx = await context.nestedFactory
+                .connect(context.user1)
+                .create(0, context.mockDAI.address, expectedFee, [{ inputToken: ETH, amount: totalToBought, orders, fromReserve: false }], {
+                    value: totalToBought,
+                });
+
+            // Get the transaction fees
+            const txFees = await tx.wait().then(value => value.gasUsed.mul(value.effectiveGasPrice));
+
+            // User1 must be the owner of NFT n°1
+            expect(await context.nestedAsset.ownerOf(1)).to.be.equal(context.user1.address);
+
+            // 6 UNI and 4 KNC must be in the reserve
+            expect(await context.mockUNI.balanceOf(context.nestedReserve.address)).to.be.equal(uniBought);
+            expect(await context.mockKNC.balanceOf(context.nestedReserve.address)).to.be.equal(kncBought);
+
+            /*
+             * User1 must have the right ETH amount :
+             * baseAmount - amount spent - transation fees
+             */
+            expect(await context.user1.getBalance()).to.be.equal(ethBalanceBefore.sub(totalToBought).sub(txFees));
+
+            // The FeeSplitter must receive the right fee amount
+            expect(await context.mockDAI.balanceOf(context.feeSplitter.address)).to.be.equal(expectedFee);
+        });
+
+        it("Creates NFT from ETH with KNI and UNI inside (ZeroExOperator) with right amounts and without fees", async () => {
+            // All the amounts for this test
+            const uniBought = appendDecimals(6);
+            const kncBought = appendDecimals(4);
+            const totalToBought = uniBought.add(kncBought);
+            const expectedFee = 0;
+            const totalToSpend = totalToBought;
 
             const ethBalanceBefore = await context.user1.getBalance();
 
