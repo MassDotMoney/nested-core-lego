@@ -218,8 +218,8 @@ describeOnBscFork("BeefyZapBiswapLPVaultOperator", () => {
             expect(await context.user1.getBalance()).to.be.equal(ethBalanceBefore.sub(bnbToDepositAndFees).sub(txFees));
 
             // Fees in ETH
-            expect(await context.WBNB.balanceOf(context.feeSplitter.address)).to.be.gt(
-                getExpectedFees(bnbToDeposit).sub(getExpectedFees(bnbToDeposit).div(100)),
+            expect(await context.WBNB.balanceOf(context.feeSplitter.address)).to.be.equal(
+                getExpectedFees(bnbToDeposit),
             );
 
             const expectedNfts = [
