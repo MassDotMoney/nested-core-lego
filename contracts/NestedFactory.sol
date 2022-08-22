@@ -425,10 +425,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
 
         amountBought = _batchedOrders.outputToken.balanceOf(address(this)) - amountBought;
 
-        unchecked {
-            if (_toReserve) {
-                _transferToReserveAndStore(_batchedOrders.outputToken, amountBought, _nftId);
-            }
+        if (_toReserve) {
+            _transferToReserveAndStore(_batchedOrders.outputToken, amountBought, _nftId);
         }
     }
 
