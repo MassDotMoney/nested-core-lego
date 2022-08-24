@@ -112,7 +112,7 @@
             "multisig": "0xf9B701cE5bc5E83C65301c733e1d91f18eF35d8E",
             "emergencyMultisig": "0x66E5393d0D780b84A26f166450F4778ccDFAfE07",
             "nestedTreasury": "0x44FE6e6513BBf4e19Bbf421f3AA8ef60e15006AB",
-            "OwnerProxy": ""
+            "OwnerProxy": "0x03BD874355F88f8bbE6ebA654d27857CE5e9e23c"
         }
     },
     "250": {
