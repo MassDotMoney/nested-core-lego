@@ -4,7 +4,7 @@ import { createFixtureLoader, describeWithoutFork, expect, provider } from "../s
 import { BigNumber } from "ethers";
 import { appendDecimals, getExpectedFees, toBytes32 } from "../helpers";
 import { ethers } from "hardhat";
-import { FlatOperator__factory, OperatorScripts, OwnerProxy, UpdateFees } from "../../typechain";
+import { FlatOperator__factory, OperatorScripts, OwnerProxy, SingleCall, UpdateFees } from "../../typechain";
 import * as utils from "../../scripts/utils";
 
 let loadFixture: LoadFixtureFunction;
@@ -21,6 +21,7 @@ describeWithoutFork("OwnerProxy", () => {
     let scriptUpdateFees: UpdateFees;
     let scriptUpdateFeesCalldata: string;
     let operatorScripts: OperatorScripts;
+    let scriptSingleCall: SingleCall;
     let scriptAddOperatorCalldata: string;
     let scriptRemoveOperatorCalldata: string;
     let scriptDeployAddOperatorsCalldata: string;
@@ -40,6 +41,7 @@ describeWithoutFork("OwnerProxy", () => {
         // Transfer NestedFactory/OperatorResolver ownership to the OwnerProxy
         await context.nestedFactory.connect(context.masterDeployer).transferOwnership(ownerProxy.address);
         await context.operatorResolver.connect(context.masterDeployer).transferOwnership(ownerProxy.address);
+        await context.nestedAsset.connect(context.masterDeployer).transferOwnership(ownerProxy.address);
 
         // Set OwnerProxy as proxy admin
         const transparentUpgradeableProxyFactory = await ethers.getContractFactory("TransparentUpgradeableProxy");
@@ -66,6 +68,13 @@ describeWithoutFork("OwnerProxy", () => {
             .connect(context.masterDeployer)
             .deploy(context.nestedFactory.address, context.operatorResolver.address);
         await operatorScripts.deployed();
+
+        // Deploy SingleCall Script
+        const singleCallFactory = await ethers.getContractFactory("SingleCall");
+        scriptSingleCall = await singleCallFactory
+            .connect(context.masterDeployer)
+            .deploy();
+        await scriptSingleCall.deployed();
 
         // Create "addOperator" calldata (to call OwnerProxy)
         // We are adding the FlatOperator a second time
@@ -315,6 +324,17 @@ describeWithoutFork("OwnerProxy", () => {
             )
                 .to.emit(context.nestedFactory, "NftCreated")
                 .withArgs(1, 0);
+        });
+    });
+
+    describe("Update unrevealedTokenURI", () => {
+        it("Can update unrevealedURI", async () => {
+            let setURICalldata = await context.nestedAsset.interface.encodeFunctionData("setUnrevealedTokenURI", ["test"]);
+            let singleCalldata = await scriptSingleCall.interface.encodeFunctionData("call", [context.nestedAsset.address, setURICalldata]);
+
+            await ownerProxy.connect(context.masterDeployer).execute(scriptSingleCall.address, singleCalldata);
+
+            expect(await context.nestedAsset.unrevealedTokenUri()).to.be.equal("test");
         });
     });
 });
