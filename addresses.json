@@ -190,7 +190,7 @@
         "Timelock": "0x42f93A591C2eF6Ce52426a027F2529Eef4738F5A",
         "NestedAssetBatcher": "0x9EE92a94A8Ace98F36F19b35091C34e9D9bccD54",
         "scripts": {
-            "OperatorScripts": ""
+            "OperatorScripts": "0xabAD5F133372933AF0BF26cb46273876f3bBF045"
         },
         "config": {
             "maxHoldingsCount": 12,
@@ -199,7 +199,7 @@
             "multisig": "0x4a9101F6266E912e99477D1557997bBe7054652a",
             "emergencyMultisig": "0x71d68D6dcA7C5D814c64b3b2052af5Cb11ACe8be",
             "nestedTreasury": "0x16019330CCf2e14E1C2A9562092415F6621b51BC",
-            "OwnerProxy": ""
+            "OwnerProxy": "0x03BD874355F88f8bbE6ebA654d27857CE5e9e23c"
         }
     }
 }
