@@ -19,12 +19,12 @@ const maxHoldingsCount = context[chainId].config.maxHoldingsCount;
 const zeroExSwapTarget = context[chainId].config.zeroExSwapTarget;
 const WETH = context[chainId].config.WETH;
 const nestedTreasury = context[chainId].config.nestedTreasury;
-const multisig = context[chainId].config.multisig;
+const timelock = context[chainId].Timelock;
 
 let deployments: Deployment[] = [];
 
 async function main(): Promise<void> {
-    console.log("Deploy All : ");
+    console.log("Deploy All (with proxy) : ");
 
     // Get Factories
     const feeSplitterFactory = await ethers.getContractFactory("FeeSplitter");
@@ -33,10 +33,17 @@ async function main(): Promise<void> {
     const operatorResolverFactory = await ethers.getContractFactory("OperatorResolver");
     const flatOperatorFactory = await ethers.getContractFactory("FlatOperator");
     const zeroExOperatorFactory = await ethers.getContractFactory("ZeroExOperator");
+    const zeroExStorageFactory = await ethers.getContractFactory("ZeroExStorage");
     const nestedFactoryFactory = await ethers.getContractFactory("NestedFactory");
     const nestedReserveFactory = await ethers.getContractFactory("NestedReserve");
     const transparentUpgradeableProxyFactory = await ethers.getContractFactory("TransparentUpgradeableProxy");
     const withdrawerFactory = await ethers.getContractFactory("Withdrawer");
+    const ownerProxyFactory = await ethers.getContractFactory("OwnerProxy");
+
+    // Deploy OwnerProxy
+    const ownerProxy = await ownerProxyFactory.deploy();
+    await verify("OwnerProxy", ownerProxy, []);
+    console.log("OwnerProxy Deployed : ", ownerProxy.address);
 
     // Deploy FeeSplitter
     const feeSplitter = await feeSplitterFactory.deploy([nestedTreasury], [20], 20, WETH);
@@ -124,8 +131,8 @@ async function main(): Promise<void> {
     const initData = await nestedFactory.interface.encodeFunctionData("initialize", [owner]);
     await run(await factoryProxy.upgradeToAndCall(nestedFactory.address, initData));
 
-    // Set multisig as admin of proxy, so we can call the implementation as owner
-    await run(await factoryProxy.changeAdmin(multisig));
+    // Set OwnerProxy as admin of proxy, so we can call the implementation as owner
+    await run(await factoryProxy.changeAdmin(ownerProxy.address));
 
     // Attach factory impl to proxy address
     const proxyImpl = await nestedFactoryFactory.attach(factoryProxy.address);
@@ -141,6 +148,32 @@ async function main(): Promise<void> {
 
     await importOperators(operatorResolver, [registerFlat(flatOperator), registerZeroEx(zeroExOperator)], proxyImpl);
 
+    // Transfer Ownerships
+    await run(await ownerProxy.transferOwnership(timelock));
+    console.log("OwnerProxy ownership transfered to Timelock");
+
+    await run(await feeSplitter.transferOwnership(ownerProxy.address));
+    console.log("FeeSplitter ownership transfered to OwnerProxy");
+
+    await run(await nestedAsset.transferOwnership(ownerProxy.address));
+    console.log("NestedAsset ownership transfered to OwnerProxy");
+
+    await run(await nestedRecords.transferOwnership(ownerProxy.address));
+    console.log("NestedRecords ownership transfered to OwnerProxy");
+
+    await run(await nestedReserve.transferOwnership(ownerProxy.address));
+    console.log("NestedReserve ownership transfered to OwnerProxy");
+
+    await run(await operatorResolver.transferOwnership(ownerProxy.address));
+    console.log("OperatorResolver ownership transfered to OwnerProxy");
+
+    await run(await proxyImpl.transferOwnership(ownerProxy.address));
+    console.log("NestedFactory ownership transfered to OwnerProxy");
+
+    const zeroExStorageAttached = zeroExStorageFactory.attach(zeroExStorage);
+    await run(await zeroExStorageAttached.transferOwnership(ownerProxy.address));
+    console.log("ZeroExStorage ownership transfered to OwnerProxy");
+
     // Convert JSON object to string
     const data = JSON.stringify(deployments);
     console.log(data);
@@ -150,6 +183,13 @@ async function main(): Promise<void> {
 
     // Verify Etherscan
     await delay(60000);
+
+    await hre.run("verify:verify", {
+        address: ownerProxy.address,
+        constructorArguments: [],
+    });
+
+    await delay(10000);
 
     await hre.run("verify:verify", {
         address: feeSplitter.address,

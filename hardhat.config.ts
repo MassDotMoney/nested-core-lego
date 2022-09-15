@@ -74,6 +74,11 @@ const config: HardhatUserConfig = {
             chainId: 250,
             accounts: accounts,
         },
+        arbitrum: {
+            url: "https://rpc.ankr.com/arbitrum",
+            chainId: 42161,
+            accounts: accounts,
+        },
         celo: {
             url: "https://forno.celo.org/",
             chainId: 42220,

@@ -173,6 +173,35 @@
             "OwnerProxy": ""
         }
     },
+    "42161": {
+        "name": "arbitrum",
+        "Deployer": "0xb7eb3F6a9abCae7559484fB126B8F872781Cf9dD",
+        "NestedFactoryProxy": "",
+        "Withdrawer": "",
+        "NestedFactory_1": "",
+        "NestedRecords": "",
+        "NestedReserve": "",
+        "NestedAsset": "",
+        "FeeSplitter": "",
+        "OperatorResolver": "",
+        "ZeroExOperator": "",
+        "ZeroExStorage": "",
+        "FlatOperator": "",
+        "Timelock": "0xf84D9a7ed9a885f5D81D6De6476b58682fc9A6d2",
+        "NestedAssetBatcher": "",
+        "scripts": {
+            "OperatorScripts": ""
+        },
+        "config": {
+            "maxHoldingsCount": 12,
+            "zeroExSwapTarget": "0xdef1c0ded9bec7f1a1670819833240f027b25eff",
+            "WETH": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+            "multisig": "0xcC76938b9CA0E6aB0E32653Cb4D0619D682B6b9b",
+            "emergencyMultisig": "0x3756AEA0257a1fdDD59ac70dF0157a058CF5700E",
+            "nestedTreasury": "0x3e2929910FB66bbC361CBa5D1eEBb3F15EDFb4bA",
+            "OwnerProxy": ""
+        }
+    },
     "43114": {
         "name": "avalanche",
         "Deployer": "0xb7eb3F6a9abCae7559484fB126B8F872781Cf9dD",
@@ -190,7 +219,7 @@
         "Timelock": "0x42f93A591C2eF6Ce52426a027F2529Eef4738F5A",
         "NestedAssetBatcher": "0x9EE92a94A8Ace98F36F19b35091C34e9D9bccD54",
         "scripts": {
-            "OperatorScripts": "0xabAD5F133372933AF0BF26cb46273876f3bBF045"
+            "OperatorScripts": "0x659e59b13dFa339453a70969ab1594059b32aacF"
         },
         "config": {
             "maxHoldingsCount": 12,
