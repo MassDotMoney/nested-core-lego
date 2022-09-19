@@ -176,19 +176,19 @@
     "42161": {
         "name": "arbitrum",
         "Deployer": "0xb7eb3F6a9abCae7559484fB126B8F872781Cf9dD",
-        "NestedFactoryProxy": "",
-        "Withdrawer": "",
-        "NestedFactory_1": "",
-        "NestedRecords": "",
-        "NestedReserve": "",
-        "NestedAsset": "",
-        "FeeSplitter": "",
-        "OperatorResolver": "",
-        "ZeroExOperator": "",
-        "ZeroExStorage": "",
-        "FlatOperator": "",
+        "NestedFactoryProxy": "0xD9C7cd07f3435dF70B3204e1612Aebb1C374D1DE",
+        "Withdrawer": "0xc2733a17418529D1FC1fEA682Dce9Cf3649D1FEF",
+        "NestedFactory_1": "0x0b118Ec0257142Ff8C24E964e9eB6e0B67b26e70",
+        "NestedRecords": "0x9b8664149ab4514749CD019cbA8eCd2F4da49DbC",
+        "NestedReserve": "0x31A2a9E625C111d98d74241C046C1117cc1D94b0",
+        "NestedAsset": "0xE3b822eF027bdbdeE19c460D13F7D48F681C561b",
+        "FeeSplitter": "0x61c5fd807b0f3BDe048926E802f8ab9dA5eeDa07",
+        "OperatorResolver": "0xE7Bb5de7FCcF974aDe2Fee24f62D08572995d38D",
+        "ZeroExOperator": "0x6504E4bfAe814EA988100BE070ff05bF9E014d50",
+        "ZeroExStorage": "0xA1c7EFB17E7bf68C220EE6547F24234D7Dcf4e52",
+        "FlatOperator": "0x2A3C3d80E93501E751E5B6F355f396E831f26989",
         "Timelock": "0xf84D9a7ed9a885f5D81D6De6476b58682fc9A6d2",
-        "NestedAssetBatcher": "",
+        "NestedAssetBatcher": "0xFDd05606300d4b1b36f2C89aD06c5074944cbad9",
         "scripts": {
             "OperatorScripts": ""
         },
@@ -199,7 +199,7 @@
             "multisig": "0xcC76938b9CA0E6aB0E32653Cb4D0619D682B6b9b",
             "emergencyMultisig": "0x3756AEA0257a1fdDD59ac70dF0157a058CF5700E",
             "nestedTreasury": "0x3e2929910FB66bbC361CBa5D1eEBb3F15EDFb4bA",
-            "OwnerProxy": ""
+            "OwnerProxy": "0x3FEe75E278EE137F38abd1fc9dAa60198A6c84DE"
         }
     },
     "43114": {
