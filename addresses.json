@@ -25,7 +25,7 @@
             "multisig": "0x2B93035B9f93E617aC468B220E7a1E5012Bd6E3d",
             "emergencyMultisig": "0xcA2927254adc08548191F8431ad603552209428c",
             "nestedTreasury": "0x2eeE8d38eA788A7260df8C4D32f39066DD80eF3B",
-            "OwnerProxy": ""
+            "OwnerProxy": "0x76Bc5AffBC9DAcBc1e6A18d7135dEf47605bae8E"
         }
     },
     "10": {
