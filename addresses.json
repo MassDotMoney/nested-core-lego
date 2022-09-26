@@ -16,7 +16,7 @@
         "Timelock": "0xc106C292dB0176Be602D4d9b340473FECc99edF6",
         "NestedAssetBatcher": "0xD9C7cd07f3435dF70B3204e1612Aebb1C374D1DE",
         "scripts": {
-            "OperatorScripts": ""
+            "OperatorScripts": "0x150fb0Cfa5bF3D4023bA198C725b6DCBc1577f21"
         },
         "config": {
             "maxHoldingsCount": 12,
