@@ -367,15 +367,17 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
 
         uint256 amountSpent;
         for (uint256 i = 0; i < batchLength; i++) {
-            amountSpent += _submitOrder(
+            uint256 spent = _submitOrder(
                 address(tokenSold),
                 _batchedOrders.orders[i].token,
                 _nftId,
                 _batchedOrders.orders[i],
                 true // always to the reserve
             );
+            amountSpent += spent;
+            // Entry fees are computed on each order to make it easy to predict rounding errors
+            feesAmount += (spent * entryFees) / 10000;
         }
-        feesAmount = (amountSpent * entryFees) / 10000; // Entry Fees
         require(amountSpent <= _inputTokenAmount - feesAmount, "NF: OVERSPENT");
         unchecked {
             uint256 underSpentAmount = _inputTokenAmount - feesAmount - amountSpent;
