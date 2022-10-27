@@ -381,6 +381,14 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         require(amountSpent <= _inputTokenAmount - feesAmount, "NF: OVERSPENT");
         unchecked {
             uint256 underSpentAmount = _inputTokenAmount - feesAmount - amountSpent;
+            // numeric errors when computing fees might yield a 0x1 underspent dust by token.
+            // if that happens (which cannot be compensated client-side), then consider those dusts to be fees
+            // otherwise, we cannot reliably have a client that does not leave token dusts in portfolios.
+            if (underSpentAmount != 0 && underSpentAmount <= batchLength) {
+                feesAmount += underSpentAmount;
+                underSpentAmount = 0;
+            }
+            // the caller sent too much budget, which is not explainable by numeric errors. Send it back.
             if (underSpentAmount != 0) {
                 SafeERC20.safeTransfer(tokenSold, _fromReserve ? address(reserve) : _msgSender(), underSpentAmount);
             }
