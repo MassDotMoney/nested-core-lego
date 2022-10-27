@@ -16,10 +16,10 @@ async function main(): Promise<void> {
     const augustusSwapper = "";
 
     // Concat deploy bytecode + args
-    const deployCalldata = abiCoder.encode(
-        ["bytes", "address", "address"],
-        [paraswapOperatorFactory.bytecode, tokenTransferProxy, augustusSwapper],
-    );
+    // We are using slice(2) to remove the "0x" from the encodeDeploy (args)
+    const deployCalldata =
+        paraswapOperatorFactory.bytecode +
+        paraswapOperatorFactory.interface.encodeDeploy([tokenTransferProxy, augustusSwapper]).slice(2);
 
     // Generate OperatorScripts script calldata
     const calldata = operatorScriptsFactory.interface.encodeFunctionData("deployAddOperators", [
