@@ -164,4 +164,13 @@ interface INestedFactory {
     /// @param _nftId The NFT id to get the record
     /// @param _timestamp The new timestamp.
     function updateLockTimestamp(uint256 _nftId, uint256 _timestamp) external;
+
+    /// @notice Migrate a funds to a Nested Wallet frorm Tetris architecture.
+    /// @dev    Message sender needs to be an EOA.
+    /// @param _nftId The NFT id to get the record from.
+    /// @param _salt The salt to provide for nested Wallet creation.
+    /// @param _payload Bytes to forward to nested Wallet for the call.
+    function migrate(uint256 _nftId, bytes32 _salt, bytes calldata _payload)
+        external
+        returns (address nestedWallet, bytes memory data);
 }

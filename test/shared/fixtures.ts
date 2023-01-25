@@ -22,6 +22,7 @@ import {
     StakeDaoCurveStrategyOperator,
     StakeDaoStrategyStorage,
     TestableOperatorCaller,
+    WalletFactoryMock,
     WETH9,
     Withdrawer,
     YearnCurveVaultOperator,
@@ -186,6 +187,7 @@ export type FactoryAndOperatorsFixture = {
     proxyAdmin: Wallet;
     baseAmount: BigNumber;
     nestedAssetBatcher: NestedAssetBatcher;
+    dummyWalletFactory: WalletFactoryMock;
 };
 
 export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = async (wallets, provider) => {
@@ -278,6 +280,11 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
     const withdrawer = await withdrawerFactory.connect(masterDeployer).deploy(WETH.address);
     await withdrawer.deployed();
 
+    // Deploy DummyWalletFactory
+    const dummyWalletFactoryFactory = await ethers.getContractFactory("WalletFactoryMock");
+    const dummyWalletFactory = await dummyWalletFactoryFactory.connect(masterDeployer).deploy();
+    await dummyWalletFactory.deployed();
+
     // Deploy NestedFactory
     const nestedFactoryFactory = await ethers.getContractFactory("NestedFactory");
     const nestedFactoryImpl = await nestedFactoryFactory
@@ -290,6 +297,7 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
             WETH.address,
             operatorResolver.address,
             withdrawer.address,
+            dummyWalletFactory.address
         );
     await nestedFactoryImpl.deployed();
 
@@ -425,6 +433,7 @@ export const factoryAndOperatorsFixture: Fixture<FactoryAndOperatorsFixture> = a
         proxyAdmin,
         baseAmount,
         nestedAssetBatcher,
+        dummyWalletFactory
     };
 };
 
@@ -477,6 +486,7 @@ export type FactoryAndOperatorsForkingBSCFixture = {
     proxyAdmin: Wallet;
     baseAmount: BigNumber;
     nestedAssetBatcher: NestedAssetBatcher;
+    dummyWalletFactory: WalletFactoryMock;
 };
 
 export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsForkingBSCFixture> = async (
@@ -603,6 +613,11 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
         );
     await beefyZapUniswapLPVaultOperator.deployed();
 
+    // Deploy DummyWalletFactory
+    const dummyWalletFactoryFactory = await ethers.getContractFactory("WalletFactoryMock");
+    const dummyWalletFactory = await dummyWalletFactoryFactory.connect(masterDeployer).deploy();
+    await dummyWalletFactory.deployed();
+
     // Deploy NestedFactory
     const nestedFactoryFactory = await ethers.getContractFactory("NestedFactory");
     const nestedFactoryImpl = await nestedFactoryFactory
@@ -615,6 +630,7 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
             WBNB.address,
             operatorResolver.address,
             withdrawer.address,
+            dummyWalletFactory.address
         );
     await nestedFactoryImpl.deployed();
 
@@ -762,6 +778,7 @@ export const factoryAndOperatorsForkingBSCFixture: Fixture<FactoryAndOperatorsFo
         proxyAdmin,
         baseAmount,
         nestedAssetBatcher,
+        dummyWalletFactory
     };
 };
 
@@ -805,6 +822,7 @@ export type FactoryAndOperatorsForkingETHFixture = {
     proxyAdmin: Wallet;
     baseAmount: BigNumber;
     nestedAssetBatcher: NestedAssetBatcher;
+    dummyWalletFactory: WalletFactoryMock;
 };
 
 export const factoryAndOperatorsForkingETHFixture: Fixture<FactoryAndOperatorsForkingETHFixture> = async (
@@ -934,6 +952,11 @@ export const factoryAndOperatorsForkingETHFixture: Fixture<FactoryAndOperatorsFo
     const yearnVaultStorageFactory = await ethers.getContractFactory("YearnVaultStorage");
     const yearnVaultStorage = yearnVaultStorageFactory.attach(await yearnCurveVaultOperator.operatorStorage());
 
+    // Deploy DummyWalletFactory
+    const dummyWalletFactoryFactory = await ethers.getContractFactory("WalletFactoryMock");
+    const dummyWalletFactory = await dummyWalletFactoryFactory.connect(masterDeployer).deploy();
+    await dummyWalletFactory.deployed();
+
     // Deploy NestedFactory
     const nestedFactoryFactory = await ethers.getContractFactory("NestedFactory");
     const nestedFactoryImpl = await nestedFactoryFactory
@@ -946,6 +969,7 @@ export const factoryAndOperatorsForkingETHFixture: Fixture<FactoryAndOperatorsFo
             WETH.address,
             operatorResolver.address,
             withdrawer.address,
+            dummyWalletFactory.address
         );
     await nestedFactoryImpl.deployed();
 
@@ -1083,5 +1107,6 @@ export const factoryAndOperatorsForkingETHFixture: Fixture<FactoryAndOperatorsFo
         proxyAdmin,
         baseAmount,
         nestedAssetBatcher,
+        dummyWalletFactory
     };
 };

@@ -8,6 +8,7 @@ import "./abstracts/OwnableProxyDelegation.sol";
 import "./abstracts/MixinOperatorResolver.sol";
 import "./libraries/ExchangeHelpers.sol";
 import "./interfaces/external/IWETH.sol";
+import "./interfaces/external/IWalletFactory.sol";
 import "./interfaces/INestedFactory.sol";
 import "./FeeSplitter.sol";
 import "./NestedReserve.sol";
@@ -44,6 +45,9 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     /// @dev Helper to withdraw native tokens from wrapper
     Withdrawer private immutable withdrawer;
 
+    /// @dev Wallet factory from tetris
+    IWalletFactory private immutable walletFactory;
+
     /// @dev Fees when funds stay in portfolios
     ///      From 1 to 10,000 (0.01% to 100%)
     uint256 public entryFees;
@@ -61,7 +65,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         FeeSplitter _feeSplitter,
         IWETH _weth,
         address _operatorResolver,
-        Withdrawer _withdrawer
+        Withdrawer _withdrawer,
+        IWalletFactory _walletFactory
     ) MixinOperatorResolver(_operatorResolver) {
         require(
             address(_nestedAsset) != address(0) &&
@@ -70,7 +75,8 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
                 address(_feeSplitter) != address(0) &&
                 address(_weth) != address(0) &&
                 _operatorResolver != address(0) &&
-                address(_withdrawer) != address(0),
+                address(_withdrawer) != address(0) &&
+                address(_walletFactory) != address(0),
             "NF: INVALID_ADDRESS"
         );
         nestedAsset = _nestedAsset;
@@ -79,6 +85,7 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
         feeSplitter = _feeSplitter;
         weth = _weth;
         withdrawer = _withdrawer;
+        walletFactory = _walletFactory;
     }
 
     /// @dev Receive function that will wrap the ether if
@@ -300,6 +307,31 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     /// @inheritdoc INestedFactory
     function updateLockTimestamp(uint256 _nftId, uint256 _timestamp) external override onlyTokenOwner(_nftId) {
         nestedRecords.updateLockTimestamp(_nftId, _timestamp);
+    }
+
+    /// @inheritdoc INestedFactory
+    function migrate(uint256 _nftId, bytes32 _salt, bytes calldata _payload)
+        external
+        override
+        onlyTokenOwner(_nftId)
+        returns (address nestedWallet, bytes memory data)
+    {
+        require(tx.origin == _msgSender(), "NF: CONTRACT_CANNOT_MIGRATE");
+        // compute predicted address Nested Wallet
+        address predictedAddress = walletFactory.computePredictedAddressWallet(_salt, address(_msgSender()));
+        // withdraws funds, update records and send funds
+        address[] memory tokens = nestedRecords.getAssetTokens(_nftId);
+        uint256 tokensLength = tokens.length;
+        for (uint256 i ; i < tokensLength; ++i) {
+            address token = tokens[i];
+            uint256 amount = _safeWithdraw(token, _nftId);
+            _safeTransferAndUnwrap(IERC20(token), amount, predictedAddress);
+        }
+        // Burn NFT
+        nestedRecords.removeNFT(_nftId);
+        nestedAsset.burn(_msgSender(), _nftId);
+        // Create wallet and foward payload
+       (nestedWallet, data) = walletFactory.createAndCallTxOrigin(_salt, _payload);
     }
 
     /* ------------------------- PRIVATE FUNCTIONS ------------------------- */
