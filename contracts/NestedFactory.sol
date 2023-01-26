@@ -103,16 +103,26 @@ contract NestedFactory is INestedFactory, ReentrancyGuard, OwnableProxyDelegatio
     /// @dev Reverts the transaction if the caller is not the token owner
     /// @param _nftId The NFT Id
     modifier onlyTokenOwner(uint256 _nftId) {
-        require(nestedAsset.ownerOf(_nftId) == _msgSender(), "NF: CALLER_NOT_OWNER");
+        _onlyTokenOwner(_nftId);
         _;
+    }
+
+    /// @dev Private function reduce bytecode size
+    function _onlyTokenOwner(uint256 _nftId) private view {
+        require(nestedAsset.ownerOf(_nftId) == _msgSender(), "NF: CALLER_NOT_OWNER");
     }
 
     /// @dev Reverts the transaction if the nft is locked (hold by design).
     /// The block.timestamp must be greater than NFT record lock timestamp
     /// @param _nftId The NFT Id
     modifier isUnlocked(uint256 _nftId) {
-        require(block.timestamp > nestedRecords.getLockTimestamp(_nftId), "NF: LOCKED_NFT");
+        _isUnlocked(_nftId);
         _;
+    }
+
+    /// @dev Private function reduce bytecode size
+    function _isUnlocked(uint256 _nftId) private view {
+        require(block.timestamp > nestedRecords.getLockTimestamp(_nftId), "NF: LOCKED_NFT");
     }
 
     /* ------------------------------- VIEWS ------------------------------- */
